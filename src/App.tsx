@@ -123,9 +123,10 @@ const LEGACY_SHIP_LEVEL_BY_NAME: Record<string, number> = {
 
 const syncShipMetadata = (s: any) => {
   if (!s) return s;
-  const lvl = typeof s.level === 'number' && !isNaN(s.level)
+  const rawLvl = typeof s.level === 'number' && !isNaN(s.level)
     ? s.level
     : (LEGACY_SHIP_LEVEL_BY_NAME[s.name] ?? SHOP_SHIPS.find(spec => spec.name === s.name)?.level ?? 0);
+  const lvl = rawLvl === 31 ? 30 : rawLvl;
   if (lvl >= 1 && lvl <= 30) {
     const spec = SHOP_SHIPS.find(sp => sp.level === lvl);
     if (spec) {
@@ -139,15 +140,6 @@ const syncShipMetadata = (s: any) => {
         durationStr: spec.durationStr,
         fishTypes: spec.fishTypes,
         ...(s.expectedFish ? { expectedFish: updatedExpected } : {}),
-      });
-    }
-  } else if (lvl === 31) {
-    const spec = SHOP_SHIPS.find(sp => sp.level === lvl);
-    if (spec) {
-      return normalizeShipEnergyToCargo({
-        ...s,
-        level: lvl,
-        durationStr: spec.durationStr,
       });
     }
   } else if (lvl >= 32 && lvl <= 37) {
@@ -2531,6 +2523,7 @@ export default function App() {
           if (legacyLvl !== undefined) shipLevel = legacyLvl;
           else if (specByName) shipLevel = specByName.level;
         }
+        if (shipLevel === 31) shipLevel = 30;
         const spec = SHOP_SHIPS.find(spec => spec.level === shipLevel) || SHOP_SHIPS[0];
 
         return normalizeShipEnergyToCargo({
@@ -2540,7 +2533,7 @@ export default function App() {
           hook: s.hook || spec.hook,
           cargo: s.cargo || getShipCapacity(shipLevel),
           heart: s.heart !== undefined ? s.heart : spec.heart,
-          durationStr: (shipLevel >= 1 && shipLevel <= 31) ? spec.durationStr : (s.durationStr || spec.durationStr),
+          durationStr: (shipLevel >= 1 && shipLevel <= 30) ? spec.durationStr : (s.durationStr || spec.durationStr),
           power: s.power || spec.power,
           armor: s.armor || spec.armor,
           fishTypes: ((shipLevel >= 1 && shipLevel <= 30) || (shipLevel >= 32 && shipLevel <= 37)) ? spec.fishTypes : (s.fishTypes || spec.fishTypes),
@@ -5933,10 +5926,10 @@ export default function App() {
       return;
     }
     const isSubmarine = spec.level >= 32;
-    const isLockedByTower = isSubmarine ? (shipTowerLevel < 31) : (spec.level > 0 && spec.level > shipTowerLevel);
+    const isLockedByTower = isSubmarine ? (shipTowerLevel < 30) : (spec.level > 0 && spec.level > shipTowerLevel);
     if (isLockedByTower) {
       if (isSubmarine) {
-        alert(`⚠️ لا يمكنك شراء الغواصة الأسطورية! يجب أولاً ترقية بيت السفن إلى أقصى مستوى (المستوى 31).`);
+        alert(`⚠️ لا يمكنك شراء الغواصة الأسطورية! يجب أولاً ترقية بيت السفن إلى أقصى مستوى (المستوى 30).`);
       } else {
         alert(`⚠️ لا يمكنك شراء هذه السفينة! يجب أولاً ترقية بيت السفن إلى المستوى ${spec.level}.`);
       }
@@ -10290,7 +10283,7 @@ export default function App() {
                           ? ships.filter((s) => s.exists && s.level !== undefined && s.level >= 32 && s.level <= 37).length
                           : ships.filter(s => s.exists && s.level === spec.level).length;
                         const isEpicOrLegendary = spec.level >= 18;
-                        const isLocked = isSubmarineCard ? (shipTowerLevel < 31) : (spec.level > 0 && spec.level > shipTowerLevel);
+                        const isLocked = isSubmarineCard ? (shipTowerLevel < 30) : (spec.level > 0 && spec.level > shipTowerLevel);
 
                         const nextLevelForUpgrade = currentLevel + 1;
                         const nextSpecForUpgrade = SHOP_SHIPS.find(s => s.level === nextLevelForUpgrade);
@@ -10429,7 +10422,7 @@ export default function App() {
                                   marginTop: '8px'
                                 }}
                               >
-                                {isSubmarineCard ? '🔒 يتطلب أقصى مستوى لبيت السفن (31)' : `🔒 يتطلب بيت السفن ليفل ${spec.level}`}
+                                {isSubmarineCard ? '🔒 يتطلب أقصى مستوى لبيت السفن (30)' : `🔒 يتطلب بيت السفن ليفل ${spec.level}`}
                               </button>
                             ) : (
                               <button 

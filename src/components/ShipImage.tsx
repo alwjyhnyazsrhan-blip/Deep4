@@ -51,7 +51,7 @@ export const getShipCardRect = (level: number): CardRect => {
     const sheetWidth = 1536;
     const sheetHeight = 1024;
     
-    // Precise grid for Levels 18-31
+    // Precise grid for Levels 18-30
     const marginLeft = 16;
     const gapX = 8;
     const cardWidth = 244;
@@ -60,24 +60,12 @@ export const getShipCardRect = (level: number): CardRect => {
     const gapY = 10;
     const cardHeight = 298;
 
-    if (level === 30) {
+    if (level >= 30) {
       // Level 30 is a wide card spanning the left half (3 columns wide)
       const wideCardWidth = 3 * cardWidth + 2 * gapX; // 748
       return {
         imageUrl: URL_18_TO_31,
         x: marginLeft,
-        y: marginTop + 2 * (cardHeight + gapY),
-        width: wideCardWidth,
-        height: cardHeight,
-        sheetWidth,
-        sheetHeight,
-      };
-    } else if (level === 31) {
-      // Level 31 is a wide card spanning the right half (3 columns wide)
-      const wideCardWidth = 3 * cardWidth + 2 * gapX; // 748
-      return {
-        imageUrl: URL_18_TO_31,
-        x: marginLeft + 3 * (cardWidth + gapX), // 16 + 3 * 252 = 772
         y: marginTop + 2 * (cardHeight + gapY),
         width: wideCardWidth,
         height: cardHeight,
@@ -228,7 +216,7 @@ const getLocalShipUrl = (lvl: number): string => {
   if (num === 29) {
     return SEA_LEGENDS_SHIP_IMAGE;
   }
-  if (num === 30) {
+  if (num === 30 || num === 31) {
     return MASTER_OF_SEAS_SHIP_IMAGE;
   }
   if (num === 32) {
@@ -249,7 +237,7 @@ const getLocalShipUrl = (lvl: number): string => {
   if (num >= 37) {
     return SUBMARINE_UPGRADE_MAX_IMAGE;
   }
-  const safeLvl = Math.max(0, Math.min(num, 31));
+  const safeLvl = Math.max(0, Math.min(num, 30));
   return `/ships/ship_${String(safeLvl).padStart(2, '0')}.webp`;
 };
 
@@ -285,7 +273,6 @@ const SHIP_IMAGES_1_TO_31: Record<number, string> = {
   28: CAESAR_SHIP_IMAGE,
   29: SEA_LEGENDS_SHIP_IMAGE,
   30: MASTER_OF_SEAS_SHIP_IMAGE,
-  31: '/ships/ship_31.webp',
 };
 
 const SHIP_SCALES: Record<number, number> = {
@@ -319,7 +306,6 @@ const SHIP_SCALES: Record<number, number> = {
   28: 1.0,
   29: 1.0,
   30: 1.0,
-  31: 1.1,
   32: 1.1,
   33: 1.1,
   34: 1.1,

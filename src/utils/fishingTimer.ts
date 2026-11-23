@@ -50,7 +50,7 @@ export function getShipFishingDurationMs(
   const hasSailor = crew.includes('sailor') || crew.includes('sailors');
   const hasLuck = crew.includes('luck');
 
-  // Use exact Fleet Warehouse (مستودع الأسطول) timings from shipsData for Levels 1-31
+  // Use exact Fleet Warehouse (مستودع الأسطول) timings from shipsData for Levels 1-30
   const shipData = getShipDataByLevel(level);
   if (shipData) {
     const durationText =

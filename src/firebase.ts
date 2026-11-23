@@ -1,22 +1,38 @@
 import { initializeApp } from 'firebase/app';
+import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
 import { getAuth } from 'firebase/auth';
 import { initializeFirestore, getFirestore, doc } from 'firebase/firestore';
 import firebaseAppletConfig from '../firebase-applet-config.json';
 
 export const firebaseConfig = {
-  apiKey: firebaseAppletConfig.apiKey,
-  authDomain: firebaseAppletConfig.authDomain,
-  projectId: firebaseAppletConfig.projectId,
-  storageBucket: firebaseAppletConfig.storageBucket,
-  messagingSenderId: firebaseAppletConfig.messagingSenderId,
-  appId: firebaseAppletConfig.appId,
-  measurementId: firebaseAppletConfig.measurementId,
+  apiKey: "AIzaSyANi1hKBMLRQk2keakcLjLv9PsQAxJTQN8",
+  authDomain: "kingofdeep.firebaseapp.com",
+  databaseURL: "https://kingofdeep-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "kingofdeep",
+  storageBucket: "kingofdeep.firebasestorage.app",
+  messagingSenderId: "865058774465",
+  appId: "1:865058774465:web:083d2a7ee22f2d61b92340",
+  measurementId: "G-41F5PSQ7LR",
   firestoreDatabaseId: firebaseAppletConfig.firestoreDatabaseId || "(default)",
   recaptchaSiteKey: firebaseAppletConfig.recaptchaSiteKey || ""
 };
 
 // Initialize Firebase App only once
 export const app = initializeApp(firebaseConfig);
+
+// Initialize Firebase Analytics when supported in the browser
+export let analytics: Analytics | null = null;
+if (typeof window !== 'undefined') {
+  isSupported()
+    .then((supported) => {
+      if (supported) {
+        analytics = getAnalytics(app);
+      }
+    })
+    .catch(() => {
+      // Analytics not supported in current environment
+    });
+}
 
 // Initialize Firebase Auth and Cloud Firestore instances strictly once
 export const auth = getAuth(app);

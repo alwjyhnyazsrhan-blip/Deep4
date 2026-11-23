@@ -319,14 +319,14 @@ export default function ShipWarehouse({
               </span>
             </div>
             <div style={{ color: '#cbd5e1', fontSize: '11.5px', marginTop: '3px' }}>
-              {shipTowerLevel >= 31
-                ? '⭐ بيت السفن في أقصى مستوى (31)، كافة سفن الأسطول والغواصة الأسطورية متاحة للشراء!'
-                : `يمكنك شراء واستخدام السفن حتى المستوى ${shipTowerLevel}. قم بترقية بيت السفن إلى أقصى مستوى (31) لفتح الغواصة الأسطورية للشراء.`}
+              {shipTowerLevel >= 30
+                ? '⭐ بيت السفن في أقصى مستوى (30)، كافة سفن الأسطول والغواصة الأسطورية متاحة للشراء!'
+                : `يمكنك شراء واستخدام السفن حتى المستوى ${shipTowerLevel}. قم بترقية بيت السفن إلى أقصى مستوى (30) لفتح الغواصة الأسطورية للشراء.`}
             </div>
           </div>
         </div>
 
-        {shipTowerLevel < 31 && (
+        {shipTowerLevel < 30 && (
           <button
             onClick={async () => {
               if (!isNetworkOnline()) {
@@ -358,7 +358,7 @@ export default function ShipWarehouse({
                   setGold(res.newGold);
                 }
                 setShipTowerLevel(nextLvl);
-                if (nextLvl >= 31) {
+                if (nextLvl >= 30) {
                   alert(`🎉 تهانينا! تم ترقية بيت السفن بنجاح إلى أقصى مستوى (${nextLvl})! أصبحت الغواصة الأسطورية وكافة سفن الأسطول متاحة للشراء الآن!`);
                 } else {
                   alert(`🎉 تهانينا! تم ترقية بيت السفن بنجاح إلى المستوى ${nextLvl}! أصبح بإمكانك الآن شراء سفن هذا المستوى.`);
@@ -895,9 +895,9 @@ export default function ShipWarehouse({
               ? (SHOP_SHIPS.find((s) => s.level === currentLevel) || spec)
               : spec;
 
-            // When ship house reaches max level (31), the submarine becomes available for purchase!
+            // When ship house reaches max level (30), the submarine becomes available for purchase!
             const isLocked = isSubmarineCard
-              ? shipTowerLevel < 31
+              ? shipTowerLevel < 30
               : (spec.level > 0 && spec.level > shipTowerLevel);
             const ownedCount = isSubmarineCard
               ? ships.filter((s) => s.exists && s.level !== undefined && s.level >= 32 && s.level <= 37).length
@@ -988,7 +988,7 @@ export default function ShipWarehouse({
                         gap: '4px'
                       }}
                     >
-                      {isSubmarineCard ? '🔒 يتطلب ترقية بيت السفن لأقصى مستوى (31)' : `🔒 يتطلب بيت السفن ليفل ${spec.level}`}
+                      {isSubmarineCard ? '🔒 يتطلب ترقية بيت السفن لأقصى مستوى (30)' : `🔒 يتطلب بيت السفن ليفل ${spec.level}`}
                     </button>
                   ) : isSubmarineCard ? (
                     ownedSubmarine ? (

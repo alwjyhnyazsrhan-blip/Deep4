@@ -100,7 +100,6 @@ export const SHIP_CAPACITY_BY_LEVEL: Record<number, number> = {
   28: 80_000,
   29: 85_000,
   30: 90_000,
-  31: 100_000,
 };
 
 export const getFishHouseCapacity = (level: number): number => {
@@ -110,9 +109,12 @@ export const getFishHouseCapacity = (level: number): number => {
 
 export const getShipCapacity = (level: number): number => {
   const currentLvl = Math.max(1, Math.min(Number(level) || 1, 37));
-  if (currentLvl > 31) {
+  if (currentLvl >= 32) {
     // Extended scaling for submarines: Level 0 (32) starts at 125,000 up to Level Max (37) at 300,000
     return 125_000 + (currentLvl - 32) * 35_000;
+  }
+  if (currentLvl === 31) {
+    return SHIP_CAPACITY_BY_LEVEL[30] || 90_000;
   }
   return SHIP_CAPACITY_BY_LEVEL[currentLvl] || 2_000;
 };
@@ -367,8 +369,7 @@ export const shipsData: ShipData[] = [
   { level: 27, name: "سفينة تنين البحر", storageCapacity: 75000, storageWithLucky: 150000, withoutCrewFishing: 28, sailorFishing: 28, withoutCrewFill: "2ي 19س 12د", withoutCrewPlusLucky: "1ي 9س 36د", sailor: "1ي 9س 36د", sailorPlusLucky: "16س 48د", fishTypes: ["سمكة اللهيب الأحمر", "سمكة الزعنفة الحديدية"] },
   { level: 28, name: "السفينة الإمبراطورية", storageCapacity: 80000, storageWithLucky: 160000, withoutCrewFishing: 28, sailorFishing: 28, withoutCrewFill: "2ي 22س", withoutCrewPlusLucky: "1ي 11س 28د", sailor: "1ي 11س 28د", sailorPlusLucky: "17س 44د", fishTypes: ["سمك الدايموند الأحمر", "سمك التاج الملكي"] },
   { level: 29, name: "المدمرة الملكية", storageCapacity: 85000, storageWithLucky: 170000, withoutCrewFishing: 29, sailorFishing: 29, withoutCrewFill: "3ي 4س 22د", withoutCrewPlusLucky: "1ي 14س 11د", sailor: "1ي 14س 11د", sailorPlusLucky: "19س 20د", fishTypes: ["سمكة البلور الملكية", "سمكة الشراع الجليدية"] },
-  { level: 30, name: "طوفان البحر", storageCapacity: 90000, storageWithLucky: 180000, withoutCrewFishing: 29, sailorFishing: 29, withoutCrewFill: "3ي 7س 16د", withoutCrewPlusLucky: "1ي 15س 38د", sailor: "1ي 15س 38د", sailorPlusLucky: "19س 49د", fishTypes: ["تمساح البحر", "تنين الأرض"] },
-  { level: 31, name: "سفينة ملوك المحيط", description: "مفخرة ملوك المحيط الخارقة والنهائية", storageCapacity: 100000, storageWithLucky: 200000, withoutCrewFishing: 30, sailorFishing: 30, withoutCrewFill: "3ي 8س", withoutCrewPlusLucky: "1ي 16س", sailor: "1ي 16س", sailorPlusLucky: "20س", fishTypes: ["الحوت القاتل", "الحوت الأسطوري", "الحوت الصيني"] }
+  { level: 30, name: "طوفان البحر", storageCapacity: 90000, storageWithLucky: 180000, withoutCrewFishing: 29, sailorFishing: 29, withoutCrewFill: "3ي 7س 16د", withoutCrewPlusLucky: "1ي 15س 38د", sailor: "1ي 15س 38د", sailorPlusLucky: "19س 49د", fishTypes: ["تمساح البحر", "تنين الأرض"] }
 ];
 
 export const getShipDataByLevel = (level: number): ShipData | undefined => {
@@ -407,7 +408,6 @@ export const SHOP_SHIPS: ShopShipSpec[] = [
   { level: 28, name: 'السفينة الإمبراطورية', subName: 'الحصن الإمبراطوري الملكي المصفح', hook: 5242880000, cargo: 80000, heart: 52428800000, durationStr: '2ي 22س', power: 104857600, armor: 104857600, fishTypes: ['سمك الدايموند الأحمر', 'سمك التاج الملكي'], price: 7000000, emoji: '👑', image: "https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/ship-28.png", rarity: 'أسطوري', description: 'السفينة الإمبراطورية الفاخرة غير القابلة للاختراق، تحمي كنوز الإمبراطورية وتجمع الذهب بلا حدود...' },
   { level: 29, name: 'المدمرة الملكية', subName: 'المدمرة الملكية الحربية الفائقة', hook: 10485760000, cargo: 85000, heart: 104857600000, durationStr: '3ي 4س 22د', power: 209715200, armor: 209715200, fishTypes: ['سمكة البلور الملكية', 'سمكة الشراع الجليدية'], price: 8000000, emoji: '🔱', image: "https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/ship-29.png", rarity: 'أسطوري', description: 'المدمرة الملكية المزودة بمدافع الطاقة الزرقاء، تكتسح مياه المحيط وتجذب أندر الأسماك البلورية والجليدية...' },
   { level: 30, name: 'طوفان البحر', subName: 'طوفان البحر الكاسح الحاكم لأعماق المحيط', hook: 20971520000, cargo: 90000, heart: 209715200000, durationStr: '3ي 7س 16د', power: 419430400, armor: 419430400, fishTypes: ['تمساح البحر', 'تنين الأرض'], price: 9500000, emoji: '🌊', image: "https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/ship-30.png", rarity: 'أسطوري', description: 'يرتجف المحيط خوفاً من طوفان البحر الكاسح وقوته التدميرية المطلقة وسعته العملاقة للذهب...' },
-  { level: 31, name: 'سفينة ملوك المحيط', subName: 'مفخرة ملوك المحيط الخارقة والنهائية', hook: 41943040000, cargo: 100000, heart: 419430400000, durationStr: '3ي 8س', power: 838860800, armor: 838860800, fishTypes: ['الحوت القاتل', 'الحوت الأسطوري', 'الحوت الصيني'], price: 12000000, emoji: '👑', image: "/ships/ship_31.webp", rarity: 'أسطورة', description: 'أعظم سفينة صُنعت في التاريخ، قوة دمار شامل وسعة ذهب أسطورية غير متناهية تمثل التتويج الأقصى لأي قبطان محترف للبحار السبعة الكبرى...' },
   { level: 32, name: 'غواصة الأعماق الأسطورية (المستوى الأساسي 0)', subName: 'الغواصة الحربية الخارقة حارسة الهاوية والأعماق السحيقة (المستوى الأساسي 0)', hook: 83886080000, cargo: 125000, heart: 838860800000, durationStr: '4h 15m', power: 1677721600, armor: 1677721600, fishTypes: ['سمكة الشيطان البحري'], price: 15000000, emoji: '🤿', image: "https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/submarine_6_saudi_classic.png", rarity: 'أسطورة', description: 'غواصة الأعماق السحيقة التكتيكية الفائقة (المستوى الأساسي 0)، تصطاد سمكة الشيطان البحري بسعر 15 ذهب للقطعة وتجمع أغلى كنوز القاع.' },
   { level: 33, name: 'غواصة الأعماق الأسطورية (المستوى 1)', subName: 'غواصة الأعماق الأسطورية المطورة بهالة الذهب الناري (المستوى 1)', hook: 167772160000, cargo: 155000, heart: 1677721600000, durationStr: '4h 30m', power: 3355443200, armor: 3355443200, fishTypes: ['سمكة الشيطان البحري'], price: 10000000, emoji: '🤿', image: "https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/submarine_1_gold_saudi%20(1).png", rarity: 'أسطورة', description: 'النجمة الأولى ⭐ لغواصة الأعماق الأسطورية، تصطاد سمكة الشيطان البحري بسعر 15 ذهب للقطعة مع هيكل معزز وقوة صيد مضاعفة.' },
   { level: 34, name: 'غواصة الأعماق الأسطورية (المستوى 2)', subName: 'غواصة الأعماق الأسطورية المشعة بهالة الزمرد الأخضر (المستوى 2)', hook: 335544320000, cargo: 190000, heart: 3355443200000, durationStr: '4h 45m', power: 6710886400, armor: 6710886400, fishTypes: ['سمكة الشيطان البحري'], price: 15000000, emoji: '🤿', image: "https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/submarine_2_green_aura.png", rarity: 'أسطورة', description: 'النجمة الثانية ⭐⭐ لغواصة الأعماق، تصطاد سمكة الشيطان البحري ويرتفع سعر القطعة من 15 إلى 17 ذهب!' },
@@ -977,7 +977,7 @@ export const FISH_REWARD_DATA: Record<string, FishRewardItem> = {
   'الحوت مقوس الرأس': { fullName: 'الحوت مقوس الرأس 🐋', valPerFish: 29, emoji: '🐋' },
   'الحوت الأزرق': { fullName: 'الحوت الأزرق 🐋', valPerFish: 30, emoji: '🐋' },
 
-  // المستوى 31 + الغواصات (32-37)
+  // الغواصات (32-37)
   'الحوت القاتل': { fullName: 'الحوت القاتل 🐬', valPerFish: 29, emoji: '🐬' },
   'الحوت الأسطوري': { fullName: 'الحوت الأسطوري 🌌', valPerFish: 30, emoji: '🌌' },
   'الحوت الصيني': { fullName: 'الحوت الصيني 🐋', valPerFish: 30, emoji: '🐋', image: '/fish/chinese_whale.png' },

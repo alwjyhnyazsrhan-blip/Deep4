@@ -11859,12 +11859,10 @@ export default function App() {
               }} 
             />
 
-            {/* Real-time particles overlay if the visited port is destroyed */}
-            {inspectedPlayer.portDestroyed && (
-              <div style={{ position: 'absolute', inset: 0, zIndex: 4, pointerEvents: 'none' }}>
-                <ParticlesEffect portDestroyed={true} />
-              </div>
-            )}
+            {/* Real-time particles overlay for visited port combat & destruction */}
+            <div style={{ position: 'absolute', inset: 0, zIndex: isAtomicBombActive ? 9999 : 4, pointerEvents: 'none' }}>
+              <ParticlesEffect portDestroyed={!!inspectedPlayer.portDestroyed} />
+            </div>
 
             {/* ----------------- REAL HARBOR BUILDINGS OF THE VISITED PLAYER ----------------- */}
             

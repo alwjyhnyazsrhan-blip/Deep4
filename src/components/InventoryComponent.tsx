@@ -1962,7 +1962,7 @@ export default function InventoryComponent({
                         marginBottom: '8px'
                       }}
                     >
-                      ⚔️ الضرر: {item.damagePercent}% من الطاقة
+                      ⚔️ الضرر: {item.damage.toLocaleString()} نقطة
                     </div>
 
                     <div style={{ fontSize: '16px', color: '#fcd34d', fontWeight: '900', marginBottom: '8px' }}>

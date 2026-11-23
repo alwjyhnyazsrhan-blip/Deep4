@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { ShipState, ChatMessage, Tribe, CrewMember, Quest, BattleReport, GlobalNotification, NotificationEventType } from './types';
-import { SHOP_SHIPS, FISH_REWARD_DATA, getHarborImageUrl, FISH_HOUSE_LEVELS, getFishHouseImageUrl, getFishHouseCapacity, getShipCapacity, getSubmarineDisplayTier, getSubmarineTag, getSubmarineUpgradeRule, getFishImageUrl, getShipMaxHeart, normalizeShipEnergyToCargo, calculateWeaponShipDamage, GOLD_COIN_ICON, GEM_ICON, WAREHOUSE_BG, WEAPON_SMALL_MISSILE_ICON, WEAPON_SMALL_MISSILE_BG, WEAPON_MEDIUM_MISSILE_ICON, WEAPON_MEDIUM_MISSILE_BG, WEAPON_LARGE_MISSILE_ICON, WEAPON_LARGE_MISSILE_BG, WEAPON_MEDIA_BOMB_ICON, WEAPON_MEDIA_BOMB_BG, WEAPON_ATOMIC_BOMB_ICON, WEAPON_ATOMIC_BOMB_BG, SHIP_GUARDIAN_ICON, SHIP_GUARDIAN_BG, FIXER_SMALL_ICON, FIXER_SMALL_BG, FIXER_MEDIUM_ICON, FIXER_MEDIUM_BG, FIXER_LARGE_ICON, FIXER_LARGE_BG, FIXER_LEGENDARY_ICON, FIXER_LEGENDARY_BG, SAILOR_ICON, SAILOR_BG, GOLDEN_HUNTER_ICON, GOLDEN_HUNTER_BG, MARKET_EXPERT_ICON, MARKET_EXPERT_BG, LUCK_PIRATE_ICON, LUCK_PIRATE_BG, SHIP_PILOT_ICON, SHIP_PILOT_BG, SHIP_THIEF_ICON, SHIP_THIEF_BG, CREW_SHOP_ITEMS, WEAPONS_DATA } from './data';
+import { SHOP_SHIPS, FISH_REWARD_DATA, getHarborImageUrl, FISH_HOUSE_LEVELS, getFishHouseImageUrl, getFishHouseCapacity, getShipCapacity, getSubmarineDisplayTier, getSubmarineTag, getSubmarineUpgradeRule, getSubmarineFishInfo, rollSubmarineFishCatch, getFishImageUrl, getShipMaxHeart, normalizeShipEnergyToCargo, calculateWeaponShipDamage, GOLD_COIN_ICON, GEM_ICON, WAREHOUSE_BG, WEAPON_SMALL_MISSILE_ICON, WEAPON_SMALL_MISSILE_BG, WEAPON_MEDIUM_MISSILE_ICON, WEAPON_MEDIUM_MISSILE_BG, WEAPON_LARGE_MISSILE_ICON, WEAPON_LARGE_MISSILE_BG, WEAPON_MEDIA_BOMB_ICON, WEAPON_MEDIA_BOMB_BG, WEAPON_ATOMIC_BOMB_ICON, WEAPON_ATOMIC_BOMB_BG, SHIP_GUARDIAN_ICON, SHIP_GUARDIAN_BG, FIXER_SMALL_ICON, FIXER_SMALL_BG, FIXER_MEDIUM_ICON, FIXER_MEDIUM_BG, FIXER_LARGE_ICON, FIXER_LARGE_BG, FIXER_LEGENDARY_ICON, FIXER_LEGENDARY_BG, SAILOR_ICON, SAILOR_BG, GOLDEN_HUNTER_ICON, GOLDEN_HUNTER_BG, MARKET_EXPERT_ICON, MARKET_EXPERT_BG, LUCK_PIRATE_ICON, LUCK_PIRATE_BG, SHIP_PILOT_ICON, SHIP_PILOT_BG, SHIP_THIEF_ICON, SHIP_THIEF_BG, CREW_SHOP_ITEMS, WEAPONS_DATA } from './data';
 import FishHouseComponent from './components/FishHouseComponent';
 import GoogleAccountSelector from './components/GoogleAccountSelector';
 import LandingScreen from './components/LandingScreen';
@@ -150,19 +150,38 @@ const syncShipMetadata = (s: any) => {
         durationStr: spec.durationStr,
       });
     }
+  } else if (lvl >= 32 && lvl <= 37) {
+    const spec = SHOP_SHIPS.find(sp => sp.level === lvl);
+    if (spec) {
+      const updatedExpected = s.expectedFish && spec.fishTypes.includes(s.expectedFish)
+        ? s.expectedFish
+        : spec.fishTypes[spec.fishTypes.length - 1];
+      return normalizeShipEnergyToCargo({
+        ...s,
+        level: lvl,
+        name: spec.name,
+        durationStr: spec.durationStr,
+        fishTypes: spec.fishTypes,
+        ...(s.expectedFish ? { expectedFish: updatedExpected } : {}),
+      });
+    }
   }
   return normalizeShipEnergyToCargo({ ...s, level: lvl });
 };
 
 const getFishEmoji = (fullName: string): string => {
   if (!fullName) return '🐟';
-  const emojis = ['🐠', '🦐', '🦀', '🦑', '🐙', '🦞', '🐍', '⚔️', '🦈', '⛵', '🐋', '🐬', '🐉', '🏮', '🐟'];
+  const emojis = ['🐠', '🦐', '🦀', '🦑', '🐙', '🦞', '🐍', '⚔️', '🦈', '⛵', '🐋', '🐬', '🐉', '🏮', '🐡', '🐟'];
   for (const emoji of emojis) {
     if (fullName.includes(emoji)) {
       return emoji;
     }
   }
-  const cleanName = fullName.trim();
+  const cleanName = fullName
+    .replace(/\([^)]*\)/g, '')
+    .replace(/⭐+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (FISH_REWARD_DATA[cleanName]?.emoji) {
     return FISH_REWARD_DATA[cleanName].emoji;
   }
@@ -1520,7 +1539,7 @@ export default function App() {
       playSmallRocketExplosionSound();
 
       const targetDocId = inspectedPlayer.userId || inspectedPlayer.id;
-      const damagePercent = 10;
+      const flatDamage = 1000;
       let dealtDamage = 0;
 
       if (targetShip && targetDocId) {
@@ -1532,7 +1551,7 @@ export default function App() {
           const normalized = normalizeShipEnergyToCargo(s, inspectedPlayer.portDestroyed);
           if (idx === resolvedTargetIdx) {
             const maxH = getShipMaxHeart(normalized);
-            const dmg = calculateWeaponShipDamage(maxH, damagePercent);
+            const dmg = flatDamage;
             dealtDamage = dmg;
             const currentHeart = typeof normalized.heart === 'number' ? Math.min(normalized.heart, maxH) : maxH;
             const newHeart = Math.max(0, currentHeart - dmg);
@@ -1555,7 +1574,7 @@ export default function App() {
           date: new Date().toISOString(),
           title: allDestroyed ? '🚨 تم تدمير أسطولك ومينائك بالكامل!' : '🚀 استهداف سفينتك بصاروخ صغير!',
           log: [
-            `🚀 قام القبطان @${username} باستهداف سفينتك (${targetShip.name || 'سفينة الأسطول'}) بصاروخ صغير ملحقاً ضرر ${damagePercent}% من الطاقة (-${dealtDamage.toLocaleString()} HP)!`,
+            `🚀 قام القبطان @${username} باستهداف سفينتك (${targetShip.name || 'سفينة الأسطول'}) بصاروخ صغير ملحقاً ضرر ${dealtDamage.toLocaleString()} من الطاقة!`,
             allDestroyed ? `🔥 دُمرت جميع سفن أسطولك وأصبح الميناء محترقاً ومدمراً بالكامل!` : `⚠️ قم بصيانة وإصلاح أضرار هيكل السفينة فوراً.`
           ]
         };
@@ -1563,7 +1582,6 @@ export default function App() {
         // Secure collection-based dispatch to /harborEvents
         createHarborEvent(targetDocId, 'ROCKET_SMALL', {
           damage: dealtDamage,
-          damagePercent,
           targetShipId: resolvedTargetShipId,
           allDestroyed,
           newReport
@@ -1599,10 +1617,10 @@ export default function App() {
       sendSecureChatMessage(
         'القوات الصاروخية 🚀',
         '🚀',
-        `🚀 صاروخ صغير! قصف القبطان @${username} سفينة القبطان @${inspectedPlayer.username} وألحق بها ضرر ${damagePercent}% (-${dealtDamage.toLocaleString()} HP)!`
+        `🚀 صاروخ صغير! قصف القبطان @${username} سفينة القبطان @${inspectedPlayer.username} وألحق بها ضرر ${(dealtDamage || flatDamage).toLocaleString()} من الطاقة!`
       );
 
-      showToast(`💥 تم إطلاق الصاروخ الصغير وإصابة السفينة بضرر ${damagePercent}% من الطاقة (-${dealtDamage.toLocaleString()} HP)!`, "success");
+      showToast(`💥 تم إطلاق الصاروخ الصغير وإصابة السفينة بضرر ${(dealtDamage || flatDamage).toLocaleString()} من الطاقة!`, "success");
 
       // Reset screen shake after short punch
       setTimeout(() => {
@@ -1677,7 +1695,7 @@ export default function App() {
       playMediumRocketExplosionSound();
 
       const targetDocId = inspectedPlayer.userId || inspectedPlayer.id;
-      const damagePercent = 25;
+      const flatDamage = 5000;
       let dealtDamage = 0;
 
       if (targetShip && targetDocId) {
@@ -1689,7 +1707,7 @@ export default function App() {
           const normalized = normalizeShipEnergyToCargo(s, inspectedPlayer.portDestroyed);
           if (idx === resolvedTargetIdx) {
             const maxH = getShipMaxHeart(normalized);
-            const dmg = calculateWeaponShipDamage(maxH, damagePercent);
+            const dmg = flatDamage;
             dealtDamage = dmg;
             const currentHeart = typeof normalized.heart === 'number' ? Math.min(normalized.heart, maxH) : maxH;
             const newHeart = Math.max(0, currentHeart - dmg);
@@ -1712,7 +1730,7 @@ export default function App() {
           date: new Date().toISOString(),
           title: allDestroyed ? '🚨 تم تدمير أسطولك ومينائك بالكامل!' : '🚀 استهداف سفينتك بصاروخ متوسط!',
           log: [
-            `🚀 قام القبطان @${username} باستهداف سفينتك (${targetShip.name || 'سفينة الأسطول'}) بصاروخ متوسط ملحقاً ضرر ${damagePercent}% من الطاقة (-${dealtDamage.toLocaleString()} HP)!`,
+            `🚀 قام القبطان @${username} باستهداف سفينتك (${targetShip.name || 'سفينة الأسطول'}) بصاروخ متوسط ملحقاً ضرر ${dealtDamage.toLocaleString()} من الطاقة!`,
             allDestroyed ? `🔥 دُمرت جميع سفن أسطولك وأصبح الميناء محترقاً ومدمراً بالكامل!` : `⚠️ قم بصيانة وإصلاح أضرار هيكل السفينة فوراً.`
           ]
         };
@@ -1720,7 +1738,6 @@ export default function App() {
         // Secure collection-based dispatch to /harborEvents
         createHarborEvent(targetDocId, 'ROCKET_MEDIUM', {
           damage: dealtDamage,
-          damagePercent,
           targetShipId: resolvedTargetShipId,
           allDestroyed,
           newReport
@@ -1756,10 +1773,10 @@ export default function App() {
       sendSecureChatMessage(
         'القوات الصاروخية 🚀',
         '🚀',
-        `🚀 صاروخ متوسط! قصف القبطان @${username} سفينة القبطان @${inspectedPlayer.username} وألحق بها ضرر ${damagePercent}% (-${dealtDamage.toLocaleString()} HP)!`
+        `🚀 صاروخ متوسط! قصف القبطان @${username} سفينة القبطان @${inspectedPlayer.username} وألحق بها ضرر ${(dealtDamage || flatDamage).toLocaleString()} من الطاقة!`
       );
 
-      showToast(`💥 تم إطلاق الصاروخ المتوسط وإصابة السفينة بضرر ${damagePercent}% من الطاقة (-${dealtDamage.toLocaleString()} HP)!`, "success");
+      showToast(`💥 تم إطلاق الصاروخ المتوسط وإصابة السفينة بضرر ${(dealtDamage || flatDamage).toLocaleString()} من الطاقة!`, "success");
 
       // Reset screen shake after explosion punch
       setTimeout(() => {
@@ -1836,9 +1853,9 @@ export default function App() {
       // Play heavy cinematic explosion sound matching user reference
       playLargeRocketExplosionSound();
 
-      // Deal 50% damage ONLY to the selected target ship
+      // Deal 10,000 damage ONLY to the selected target ship
       const targetDocId = inspectedPlayer.userId || inspectedPlayer.id;
-      const damagePercent = 50;
+      const flatDamage = 10000;
       let primaryDealtDamage = 0;
 
       if (targetShip && targetDocId) {
@@ -1850,7 +1867,7 @@ export default function App() {
           const normalized = normalizeShipEnergyToCargo(s, inspectedPlayer.portDestroyed);
           if (idx === resolvedTargetIdx) {
             const maxH = getShipMaxHeart(normalized);
-            const dmg = calculateWeaponShipDamage(maxH, damagePercent);
+            const dmg = flatDamage;
             primaryDealtDamage = dmg;
             const currentHeart = typeof normalized.heart === 'number' ? Math.min(normalized.heart, maxH) : maxH;
             const newHeart = Math.max(0, currentHeart - dmg);
@@ -1865,7 +1882,7 @@ export default function App() {
           return normalized;
         });
 
-        setLastRocketDamage(primaryDealtDamage || 18000);
+        setLastRocketDamage(primaryDealtDamage || 10000);
         const activeUpdatedShips = updatedShips.filter((s: any) => s.exists !== false);
         allDestroyed = activeUpdatedShips.length > 0 && activeUpdatedShips.every((s: any) => typeof s.heart === 'number' && s.heart <= 0);
 
@@ -1879,7 +1896,7 @@ export default function App() {
           date: new Date().toISOString(),
           title: allDestroyed ? '🚨 تم تدمير أسطولك ومينائك بالكامل!' : '🚀 قصف صاروخي فتاك على سفينتك!',
           log: [
-            `🚀 قصف القبطان @${username} سفينتك (${targetShip.name || 'سفينة الأسطول'}) بصاروخ كبير مدمّر ملحقاً ضرر ${damagePercent}% من الطاقة (-${primaryDealtDamage.toLocaleString()} HP)!`,
+            `🚀 قصف القبطان @${username} سفينتك (${targetShip.name || 'سفينة الأسطول'}) بصاروخ كبير مدمّر ملحقاً ضرر ${primaryDealtDamage.toLocaleString()} من الطاقة!`,
             allDestroyed ? `🔥 دُمرت جميع سفن أسطولك بالكامل وأصبح الميناء محترقاً ومدمراً!` : `⚠️ تعرضت السفينة المستهدفة لأضرار جسيمة، توجه للصيانة والإصلاح فوراً.`
           ]
         };
@@ -1887,7 +1904,6 @@ export default function App() {
         // Secure collection-based dispatch to /harborEvents
         createHarborEvent(targetDocId, 'ROCKET_LARGE', {
           damage: primaryDealtDamage,
-          damagePercent,
           targetShipId: resolvedTargetShipId,
           allDestroyed,
           newReport
@@ -1923,10 +1939,10 @@ export default function App() {
       sendSecureChatMessage(
         'القوات الصاروخية 🚀',
         '🚀',
-        `🚀 صاروخ كبير فتاك! قصف القبطان @${username} سفينة القبطان @${inspectedPlayer.username} وألحق بها ضرر ${damagePercent}% من الطاقة (-${primaryDealtDamage.toLocaleString()} HP)!`
+        `🚀 صاروخ كبير فتاك! قصف القبطان @${username} سفينة القبطان @${inspectedPlayer.username} وألحق بها ضرر ${(primaryDealtDamage || flatDamage).toLocaleString()} من الطاقة!`
       );
 
-      showToast(`💥 تم إطلاق الصاروخ الكبير وإصابة السفينة المحددة بضرر ${damagePercent}% من الطاقة (-${primaryDealtDamage.toLocaleString()} HP)!`, "success");
+      showToast(`💥 تم إطلاق الصاروخ الكبير وإصابة السفينة المحددة بضرر ${(primaryDealtDamage || flatDamage).toLocaleString()} من الطاقة!`, "success");
 
       // Impact camera shake lasts 650ms for realistic punch
       setTimeout(() => {
@@ -2020,20 +2036,18 @@ export default function App() {
       playDetonationWarningVoiceAndSound();
 
       let allDestroyed = false;
-      const damagePercent = 35;
-      let firstDealtDamage = 0;
+      const flatDamage = 20000;
       const targetDocId = inspectedPlayer.userId || inspectedPlayer.id;
       if (targetDocId && db) {
         const baseShips = (inspectedPlayer.ships && Array.isArray(inspectedPlayer.ships) && inspectedPlayer.ships.length > 0)
           ? inspectedPlayer.ships
           : getInspectedPlayerShips(inspectedPlayer);
 
-        // Deal 35% damage to all ships
-        const updatedShips = baseShips.map((s: any, idx: number) => {
+        // Deal 20,000 damage to all ships
+        const updatedShips = baseShips.map((s: any) => {
           const normalized = normalizeShipEnergyToCargo(s, inspectedPlayer.portDestroyed);
           const maxH = getShipMaxHeart(normalized);
-          const dmg = calculateWeaponShipDamage(maxH, damagePercent);
-          if (idx === 0) firstDealtDamage = dmg;
+          const dmg = flatDamage;
           const currentHeart = typeof normalized.heart === 'number' ? Math.min(normalized.heart, maxH) : maxH;
           const newHeart = Math.max(0, currentHeart - dmg);
           return {
@@ -2057,7 +2071,7 @@ export default function App() {
           date: new Date().toISOString(),
           title: allDestroyed ? '🚨 رسالة التفجير: تم تدمير أسطولك ومينائك بالكامل!' : '📡 هجوم رسالة التفجير!',
           log: [
-            `📡 قام القبطان @${username} بإطلاق رسالة التفجير [${adTitle}] على مينائك ملحقاً ضرر ${damagePercent}% من طاقة كل سفينة!`,
+            `📡 قام القبطان @${username} بإطلاق رسالة التفجير [${adTitle}] على مينائك ملحقاً ضرر ${flatDamage.toLocaleString()} من طاقة كل سفينة!`,
             allDestroyed ? `🔥 دُمرت جميع سفن أسطولك بالكامل ودُمر الميناء وأصبح محترقاً ومشتعلاً!` : `⚠️ أصيبت سفن أسطولك بأضرار جسيمة، توجه للصيانة والترميم فوراً.`,
             `⚠️ توجه فوراً إلى الميناء واضغط على [إعادة إعمار الميناء وترميم الأسطول].`
           ]
@@ -2065,8 +2079,7 @@ export default function App() {
 
         // Secure collection-based dispatch to /harborEvents
         createHarborEvent(targetDocId, 'AD_BOMB', {
-          damage: firstDealtDamage,
-          damagePercent,
+          damage: flatDamage,
           allDestroyed,
           adKey: selectedAdKey,
           adTitle,
@@ -2107,10 +2120,10 @@ export default function App() {
       sendSecureChatMessage(
         'رسالة التفجير 📡',
         '📡',
-        `📡 رسالة التفجير! أطلق القبطان @${username} رسالة التفجير [${adTitle}] على أسطول القبطان @${inspectedPlayer.username} وأنقص ${damagePercent}% من طاقة السفن!`
+        `📡 رسالة التفجير! أطلق القبطان @${username} رسالة التفجير [${adTitle}] على أسطول القبطان @${inspectedPlayer.username} وأنقص ${flatDamage.toLocaleString()} من طاقة السفن!`
       );
 
-      showToast(`💥 تم إطلاق رسالة التفجير وإنقاص ${damagePercent}% من طاقة أسطول الخصم!`, "success");
+      showToast(`💥 تم إطلاق رسالة التفجير وإنقاص ${flatDamage.toLocaleString()} من طاقة أسطول الخصم!`, "success");
 
       // فتح خانة كتابة رسالة التفجير وإرسالها مباشرة للشخص الذي فجرت سفنه أو ميناءه
       setPostDetonationModal({
@@ -2214,20 +2227,18 @@ export default function App() {
       setExp(prev => prev + 2500);
 
       const targetDocId = inspectedPlayer.userId || inspectedPlayer.id;
-      const damagePercent = 75;
-      let firstDealtDamage = 0;
+      const flatDamage = 70000;
       if (targetDocId && db) {
         const baseShips = (inspectedPlayer.ships && Array.isArray(inspectedPlayer.ships) && inspectedPlayer.ships.length > 0)
           ? inspectedPlayer.ships
           : getInspectedPlayerShips(inspectedPlayer);
 
-        // Apply 75% damage to all ships
+        // Apply 70,000 damage to all ships
         let allDestroyed = false;
-        const updatedShips = baseShips.map((s: any, idx: number) => {
+        const updatedShips = baseShips.map((s: any) => {
           const normalized = normalizeShipEnergyToCargo(s, inspectedPlayer.portDestroyed);
           const maxH = getShipMaxHeart(normalized);
-          const dmg = calculateWeaponShipDamage(maxH, damagePercent);
-          if (idx === 0) firstDealtDamage = dmg;
+          const dmg = flatDamage;
           const currentHeart = typeof normalized.heart === 'number' ? Math.min(normalized.heart, maxH) : maxH;
           const newHeart = Math.max(0, currentHeart - dmg);
           return {
@@ -2251,7 +2262,7 @@ export default function App() {
           date: new Date().toISOString(),
           title: allDestroyed ? '🚨 كارثة الموت الأسود: تم تدمير أسطولك ومينائك بالكامل!' : '💣 قصف بقنبلة الموت الأسود!',
           log: [
-            `💣 شن القبطان @${username} هجوماً فتاكاً بقنبلة الموت الأسود على مينائك ملحقاً ضرر ${damagePercent}% من طاقة كل سفينة!`,
+            `💣 شن القبطان @${username} هجوماً فتاكاً بقنبلة الموت الأسود على مينائك ملحقاً ضرر ${flatDamage.toLocaleString()} من طاقة كل سفينة!`,
             allDestroyed ? `🔥 دُمرت جميع سفن أسطولك بالكامل وغرقت في المياه وأصبح الميناء محترقاً ومدمراً!` : `⚠️ تعرضت سفن الأسطول لأضرار جسيمة للغاية، توجه للصيانة وترميم الهيكل فوراً.`,
             `⚠️ اضغط على زر [إعادة إعمار الميناء وترميم الأسطول] لإصلاح الأضرار واستعادة أسطولك.`
           ]
@@ -2259,8 +2270,7 @@ export default function App() {
 
         // Secure collection-based dispatch to /harborEvents
         createHarborEvent(targetDocId, 'ATOMIC_BOMB', {
-          damage: firstDealtDamage,
-          damagePercent,
+          damage: flatDamage,
           allDestroyed,
           newReport
         });
@@ -2297,10 +2307,10 @@ export default function App() {
       sendSecureChatMessage(
         'قنبلة الموت الأسود 💣',
         '💣',
-        `💣 قنبلة الموت الأسود! أطلق القبطان مباغتاً @${username} قنبلة الموت الأسود الفتاكة على ميناء القبطان @${inspectedPlayer.username} وأنقص ${damagePercent}% من طاقة جميع سفن الأسطول!`
+        `💣 قنبلة الموت الأسود! أطلق القبطان مباغتاً @${username} قنبلة الموت الأسود الفتاكة على ميناء القبطان @${inspectedPlayer.username} وأنقص ${flatDamage.toLocaleString()} من طاقة جميع سفن الأسطول!`
       );
 
-      showToast(`💥 تم إطلاق قنبلة الموت الأسود وإنقاص ${damagePercent}% من طاقة أسطول الخصم!`, "success");
+      showToast(`💥 تم إطلاق قنبلة الموت الأسود وإنقاص ${flatDamage.toLocaleString()} من طاقة أسطول الخصم!`, "success");
 
       // Camera shake lasts 950ms for solid nuclear impact punch
       setTimeout(() => {
@@ -2533,7 +2543,7 @@ export default function App() {
           durationStr: (shipLevel >= 1 && shipLevel <= 31) ? spec.durationStr : (s.durationStr || spec.durationStr),
           power: s.power || spec.power,
           armor: s.armor || spec.armor,
-          fishTypes: (shipLevel >= 1 && shipLevel <= 30) ? spec.fishTypes : (s.fishTypes || spec.fishTypes),
+          fishTypes: ((shipLevel >= 1 && shipLevel <= 30) || (shipLevel >= 32 && shipLevel <= 37)) ? spec.fishTypes : (s.fishTypes || spec.fishTypes),
           imgEmoji: s.imgEmoji || spec.emoji,
           exists: s.exists !== false
         }, Boolean(player.portDestroyed));
@@ -2579,6 +2589,7 @@ export default function App() {
   const [rewardFish, setRewardFish] = useState<{ name: string; amount: number; value: number; luckDoubled?: boolean; guided?: boolean; shipLevel?: number }>({ name: 'أنشوجة', amount: 80, value: 120 });
   const [crewModal, setCrewModal] = useState(false);
   const [expectedFishModalShipId, setExpectedFishModalShipId] = useState<string | null>(null);
+  const [shipDetailsModalShipId, setShipDetailsModalShipId] = useState<string | null>(null);
   const [crewTab, setCrewTab] = useState<'sailors' | 'special'>('sailors');
   const [activeReport, setActiveReport] = useState<BattleReport | null>(null);
 
@@ -2651,10 +2662,6 @@ export default function App() {
   });
 
   // --- Graphics & Visual Settings ---
-  const [showNets, setShowNets] = useState(() => {
-    const saved = localStorage.getItem('pirate_show_nets');
-    return saved !== null ? saved === 'true' : true;
-  });
   const [lowGraphics, setLowGraphics] = useState(() => {
     const saved = localStorage.getItem('pirate_low_graphics');
     return saved !== null ? saved === 'true' : false;
@@ -3269,10 +3276,6 @@ export default function App() {
   }, [isSfxMuted]);
 
   useEffect(() => {
-    localStorage.setItem('pirate_show_nets', showNets.toString());
-  }, [showNets]);
-
-  useEffect(() => {
     localStorage.setItem('pirate_low_graphics', lowGraphics.toString());
   }, [lowGraphics]);
 
@@ -3317,11 +3320,11 @@ export default function App() {
   };
 
   const fishSpots: Record<string, { l: string; t: string }> = {
-    s1: { l: '70%', t: '38%' },
-    s2: { l: '70%', t: '49%' },
-    s3: { l: '70%', t: '60%' },
-    s4: { l: '70%', t: '52%' },
-    s5: { l: '70%', t: '68%' },
+    s1: { l: '55%', t: '38%' },
+    s2: { l: '55%', t: '49%' },
+    s3: { l: '55%', t: '60%' },
+    s4: { l: '55%', t: '52%' },
+    s5: { l: '55%', t: '68%' },
   };
 
   const sunSparklesList = [
@@ -3356,7 +3359,7 @@ export default function App() {
   useEffect(() => {
     setShips(prev => prev.map(s => {
       const correctDock = docks[s.id] || { l: '45%', t: '48%' };
-      const correctFish = fishSpots[s.id] || { l: '70%', t: '48%' };
+      const correctFish = fishSpots[s.id] || { l: '55%', t: '48%' };
       const nextPos = s.status === 'fishing' ? correctFish : correctDock;
       return {
         ...s,
@@ -3383,46 +3386,6 @@ export default function App() {
       document.removeEventListener('click', handleOutsideClick);
     };
   }, []);
-
-  // --- Auto-clamp Ship Action Menu so it is NEVER cut off on any screen edge ---
-  useLayoutEffect(() => {
-    if (menu.visible && shipMenuRef.current) {
-      const el = shipMenuRef.current;
-      const rect = el.getBoundingClientRect();
-      const padding = 12;
-      const screenW = window.innerWidth;
-      const screenH = window.innerHeight;
-
-      let adjustedX = menu.x;
-      let adjustedY = menu.y;
-
-      // Ensure menu never overflows right edge
-      if (rect.right > screenW - padding) {
-        adjustedX = Math.max(padding, screenW - rect.width - padding);
-      }
-      // Ensure menu never overflows left edge
-      if (adjustedX < padding) {
-        adjustedX = padding;
-      }
-
-      // Ensure menu never overflows below bottom nav (reserve 115px for bottom bar)
-      if (rect.bottom > screenH - 115) {
-        adjustedY = Math.max(75, screenH - rect.height - 115);
-      }
-      // Ensure menu never hides behind top resource bar
-      if (adjustedY < 75) {
-        adjustedY = 75;
-      }
-
-      if (Math.round(adjustedX) !== Math.round(menu.x) || Math.round(adjustedY) !== Math.round(menu.y)) {
-        setMenu(prev => ({
-          ...prev,
-          x: Math.round(adjustedX),
-          y: Math.round(adjustedY)
-        }));
-      }
-    }
-  }, [menu.visible, menu.shipId, menu.x, menu.y]);
 
   // --- Firebase Loading Effect with real-time onSnapshot ---
   useEffect(() => {
@@ -4192,17 +4155,16 @@ export default function App() {
             const userDocRef = doc(db, 'users', currentUser.uid);
 
             if (ev.type === 'ROCKET_SMALL' || ev.type === 'ROCKET_MEDIUM' || ev.type === 'ROCKET_LARGE' || ev.type === 'ATOMIC_BOMB' || ev.type === 'AD_BOMB') {
-              const fallbackDamagePercentMap: Record<string, number> = {
-                ROCKET_SMALL: 10,
-                ROCKET_MEDIUM: 25,
-                ROCKET_LARGE: 50,
-                AD_BOMB: 35,
-                ATOMIC_BOMB: 75,
+              const fallbackDamageMap: Record<string, number> = {
+                ROCKET_SMALL: 1000,
+                ROCKET_MEDIUM: 5000,
+                ROCKET_LARGE: 10000,
+                AD_BOMB: 20000,
+                ATOMIC_BOMB: 70000,
               };
-              const damagePercent = typeof ev.payload?.damagePercent === 'number'
-                ? ev.payload.damagePercent
-                : fallbackDamagePercentMap[ev.type];
-              const flatFallbackDamage = typeof ev.payload?.damage === 'number' ? ev.payload.damage : 0;
+              const dmg = typeof ev.payload?.damage === 'number' && ev.payload.damage > 0
+                ? ev.payload.damage
+                : (fallbackDamageMap[ev.type] ?? 1000);
               const targetShipId = ev.payload?.targetShipId;
               const attackerName = ev.attackerName || 'قبطان معادٍ';
 
@@ -4216,9 +4178,6 @@ export default function App() {
 
                   const maxH = getShipMaxHeart(normalized);
                   const curH = typeof normalized.heart === 'number' ? Math.min(normalized.heart, maxH) : maxH;
-                  const dmg = typeof damagePercent === 'number'
-                    ? calculateWeaponShipDamage(maxH, damagePercent)
-                    : flatFallbackDamage;
 
                   const newH = Math.max(0, curH - dmg);
                   return {
@@ -4850,11 +4809,13 @@ export default function App() {
       ? targetedFish 
       : shipFishTypes[Math.floor(Math.random() * shipFishTypes.length)];
     
-    const fishInfo = FISH_REWARD_DATA[randomFishName] || { 
-      fullName: `${randomFishName} 🐟`, 
-      valPerFish: 1,
-      emoji: '🐟'
-    };
+    const fishInfo = (typeof selectedShip.level === 'number' && selectedShip.level >= 32)
+      ? rollSubmarineFishCatch(selectedShip.level)
+      : (FISH_REWARD_DATA[randomFishName] || { 
+          fullName: `${randomFishName} 🐟`, 
+          valPerFish: 1,
+          emoji: '🐟'
+        });
 
     const baseAmount = Math.max(20, Math.floor(cargo * (0.25 + Math.random() * 0.35)));
     let totalAmount = (isNetUpgraded ? baseAmount * 2 : baseAmount) + crewPowerBonus;
@@ -4925,7 +4886,7 @@ export default function App() {
             moving: true,
             lastMoveTime: now,
             status: 'fishing',
-            left: fishSpots[s.id]?.l || '80%',
+            left: fishSpots[s.id]?.l || '55%',
             top: fishSpots[s.id]?.t || '41%',
             transitionDuration: `${sailOutDuration}ms`,
             ...(!isAutoActive
@@ -5207,11 +5168,13 @@ export default function App() {
         ? targetedFish
         : shipFishTypes[0];
 
-      const fishInfo = FISH_REWARD_DATA[randomFishName] || {
-        fullName: `${randomFishName} 🐟`,
-        valPerFish: 1,
-        emoji: '🐟'
-      };
+      const fishInfo = (typeof ship.level === 'number' && ship.level >= 32)
+        ? rollSubmarineFishCatch(ship.level)
+        : (FISH_REWARD_DATA[randomFishName] || {
+            fullName: `${randomFishName} 🐟`,
+            valPerFish: 1,
+            emoji: '🐟'
+          });
 
       const baseAmount = Math.max(20, Math.floor(cargo * 0.35));
       let singleCatchAmount = (isNetUpgraded ? baseAmount * 2 : baseAmount) + crewPowerBonus;
@@ -5422,7 +5385,7 @@ export default function App() {
               status: 'fishing',
               // تطابق نسبة تقدم كل سفينة مع القيمة العامة لضمان التزامن
               progress: Math.min(1, globalProgress),
-              left: fishSpots[s.id]?.l || '70%',
+              left: fishSpots[s.id]?.l || '55%',
               top: fishSpots[s.id]?.t || '41%',
               transitionDuration: `${FLEET_SAIL_OUT_MS}ms`
             };
@@ -7260,14 +7223,14 @@ export default function App() {
             100% { transform: translateX(-50%) scale(1.5); opacity: 0; }
         }
 
-        /* Underwater drag and sway animation for the fishing nets */
+        /* Forward-cast drag and sway animation for the fishing net anchored at the ship bow */
         @keyframes net-sway-anim {
-            0%, 100% { transform: translateX(-50%) rotate(-4deg) scaleY(1); opacity: 0.95; }
-            50% { transform: translateX(-50%) rotate(4deg) scaleY(0.95) skewX(2deg); opacity: 0.85; }
+            0%, 100% { transform: rotate(-2deg) scaleY(1); opacity: 0.96; }
+            50% { transform: rotate(2.5deg) scaleX(1.03) scaleY(0.97); opacity: 1; }
         }
         .fishing-net-animation {
-            animation: net-sway-anim 4.5s infinite ease-in-out;
-            transform-origin: top center;
+            animation: net-sway-anim 3.8s infinite ease-in-out;
+            transform-origin: left center;
             transition: opacity 0.5s ease-in-out;
         }
 
@@ -8879,31 +8842,29 @@ export default function App() {
                           )}
 
                         </div>
-                        
-                        {/* Fishing Net hanging down under the boat when fishing or returning with catch */}
-                        {ship.status === 'fishing' && showNets && (
-                          <div 
+
+                        {/* Fishing Net positioned directly below the front bow of the ship */}
+                        {!isShipDestroyed && ship.status === 'fishing' && (
+                          <div
                             className="fishing-net-animation"
                             style={{
                               position: 'absolute',
-                              bottom: 'calc(var(--ship-render-width) * -0.25)', // Hangs down realistically from the hull
-                              left: '50%',
-                              transform: 'translateX(-50%)',
-                              width: 'calc(var(--ship-render-width) * 0.68)', // Perfectly scaled for the ship's width
-                              zIndex: -1, // Places the net behind/underneath the ship's body
+                              top: '58%',
+                              left: '83%',
+                              width: 'calc(var(--ship-render-width) * 0.45)',
+                              zIndex: 3,
                               pointerEvents: 'none',
                             }}
                           >
-                            <img 
-                              src="https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/copilot_image_1784650557500.jpeg"
+                            <img
+                              src="https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/golden_fishing_net.png"
                               alt="شبكة صيد"
                               referrerPolicy="no-referrer"
                               style={{
                                 width: '100%',
                                 height: 'auto',
                                 display: 'block',
-                                mixBlendMode: 'multiply',
-                                filter: 'contrast(1.4) brightness(1.15) drop-shadow(0 4px 6px rgba(0,0,0,0.5))',
+                                filter: 'drop-shadow(0 0 8px rgba(56, 189, 248, 0.5)) drop-shadow(0 4px 6px rgba(0,0,0,0.5))',
                               }}
                             />
                           </div>
@@ -10396,6 +10357,14 @@ export default function App() {
                                   : currentSpec.name
                                 }
                               </div>
+                              {isSubmarineCard && (() => {
+                                const subFish = getSubmarineFishInfo(currentLevel);
+                                return subFish ? (
+                                  <div style={{ fontSize: '10.5px', color: '#fde047', fontWeight: '800', marginTop: '2px' }}>
+                                    {subFish.starLabel} • {subFish.fishName} ({subFish.priceLabel})
+                                  </div>
+                                ) : null;
+                              })()}
                             </div>
 
                             {/* Action Button */}
@@ -13864,9 +13833,9 @@ export default function App() {
                     </div>
                     <div style={{ textAlign: 'left', flex: 1, paddingRight: '14px' }}>
                       <div style={{ fontSize: '17px', fontWeight: '900', color: '#4ade80' }}>رسالة التفجير</div>
-                      <div style={{ fontSize: '14px', color: '#86efac', fontWeight: '900', marginTop: '2px' }}>ضرر 35% من الطاقة 💥 (50 💎)</div>
+                      <div style={{ fontSize: '14px', color: '#86efac', fontWeight: '900', marginTop: '2px' }}>ضرر 20,000 💥 (50 💎)</div>
                       <div style={{ fontSize: '13px', color: '#e2e8f0', lineHeight: '1.4', marginTop: '3px' }}>
-                        إنقاص 35% من طاقة جميع سفن الخصم مع بث رسالة وتثبيتها
+                        إنقاص 20,000 من طاقة جميع سفن الخصم مع بث رسالة وتثبيتها
                       </div>
                     </div>
                   </div>
@@ -13918,9 +13887,9 @@ export default function App() {
                     </div>
                     <div style={{ textAlign: 'left', flex: 1, paddingRight: '14px' }}>
                       <div style={{ fontSize: '17px', fontWeight: '900', color: '#fca5a5' }}>قنبلة الموت الأسود</div>
-                      <div style={{ fontSize: '14px', color: '#fca5a5', fontWeight: '900', marginTop: '2px' }}>ضرر 75% من الطاقة 💥 (150 💎)</div>
+                      <div style={{ fontSize: '14px', color: '#fca5a5', fontWeight: '900', marginTop: '2px' }}>ضرر 70,000 💥 (150 💎)</div>
                       <div style={{ fontSize: '13px', color: '#e2e8f0', lineHeight: '1.4', marginTop: '3px' }}>
-                        قنبلة فتاكة تنقص 75% من طاقة جميع سفن الأسطول
+                        قنبلة فتاكة تنقص 70,000 من طاقة جميع سفن الأسطول
                       </div>
                     </div>
                   </div>
@@ -13972,9 +13941,9 @@ export default function App() {
                     </div>
                     <div style={{ textAlign: 'left', flex: 1, paddingRight: '14px' }}>
                       <div style={{ fontSize: '17px', fontWeight: '900', color: '#fed7aa' }}>صاروخ صغير</div>
-                      <div style={{ fontSize: '14px', color: '#facc15', fontWeight: '900', marginTop: '2px' }}>ضرر 10% من الطاقة ⚔️ (100,000 🪙)</div>
+                      <div style={{ fontSize: '14px', color: '#facc15', fontWeight: '900', marginTop: '2px' }}>ضرر 1,000 ⚔️ (100,000 🪙)</div>
                       <div style={{ fontSize: '13px', color: '#e2e8f0', lineHeight: '1.4', marginTop: '3px' }}>
-                        صاروخ صغير وسريع لتوجيه ضربة مباشرة تنقص 10% من طاقة السفينة
+                        صاروخ صغير وسريع لتوجيه ضربة مباشرة بقوة 1,000
                       </div>
                     </div>
                   </div>
@@ -14026,9 +13995,9 @@ export default function App() {
                     </div>
                     <div style={{ textAlign: 'left', flex: 1, paddingRight: '14px' }}>
                       <div style={{ fontSize: '17px', fontWeight: '900', color: '#fed7aa' }}>صاروخ المتوسط</div>
-                      <div style={{ fontSize: '14px', color: '#facc15', fontWeight: '900', marginTop: '2px' }}>ضرر 25% من الطاقة ⚔️ (200,000 🪙)</div>
+                      <div style={{ fontSize: '14px', color: '#facc15', fontWeight: '900', marginTop: '2px' }}>ضرر 5,000 ⚔️ (200,000 🪙)</div>
                       <div style={{ fontSize: '13px', color: '#e2e8f0', lineHeight: '1.4', marginTop: '3px' }}>
-                        صاروخ متوسط القوة يخترق الدروع وينقص 25% من طاقة السفينة
+                        صاروخ متوسط القوة يخترق الدروع بقوة 5,000
                       </div>
                     </div>
                   </div>
@@ -14080,9 +14049,9 @@ export default function App() {
                     </div>
                     <div style={{ textAlign: 'left', flex: 1, paddingRight: '14px' }}>
                       <div style={{ fontSize: '17px', fontWeight: '900', color: '#fef08a' }}>صاروخ كبير</div>
-                      <div style={{ fontSize: '14px', color: '#facc15', fontWeight: '900', marginTop: '2px' }}>ضرر 50% من الطاقة 💥 (300,000 🪙)</div>
+                      <div style={{ fontSize: '14px', color: '#facc15', fontWeight: '900', marginTop: '2px' }}>ضرر 10,000 💥 (300,000 🪙)</div>
                       <div style={{ fontSize: '13px', color: '#e2e8f0', lineHeight: '1.4', marginTop: '3px' }}>
-                        صاروخ فتاك يوجه ضربة مدمرة تنقص 50% من طاقة السفينة المستهدفة
+                        صاروخ فتاك يوجه ضربة مدمرة للسفينة المستهدفة بقوة 10,000
                       </div>
                     </div>
                   </div>
@@ -15150,10 +15119,11 @@ export default function App() {
             {/* Fish List */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '350px', overflowY: 'auto', paddingRight: '4px' }}>
               {shipFishes.map((fishName, idx) => {
+                const subFishInfo = getSubmarineFishInfo(typeof targetShip.level === 'number' ? targetShip.level : undefined);
                 const isSelected = currentTarget === fishName;
-                const emoji = getFishEmoji(fishName);
+                const emoji = subFishInfo?.emoji || getFishEmoji(fishName);
                 const info = FISH_REWARD_DATA[fishName] || FISH_REWARD_DATA[fishName.replace(/^ال/, '').trim()];
-                const price = info?.valPerFish;
+                const priceLabel = subFishInfo ? subFishInfo.priceLabel : (info?.valPerFish !== undefined ? `${info.valPerFish}` : undefined);
 
                 return (
                   <div
@@ -15178,7 +15148,7 @@ export default function App() {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      {getFishImageUrl(fishName, typeof targetShip.level === 'number' ? targetShip.level : undefined) ? (
+                      {(subFishInfo?.image || getFishImageUrl(fishName, typeof targetShip.level === 'number' ? targetShip.level : undefined)) ? (
                         <div
                           style={{
                             width: '112px',
@@ -15194,7 +15164,7 @@ export default function App() {
                           }}
                         >
                           <img
-                            src={getFishImageUrl(fishName, typeof targetShip.level === 'number' ? targetShip.level : undefined)}
+                            src={subFishInfo?.image || getFishImageUrl(fishName, typeof targetShip.level === 'number' ? targetShip.level : undefined)}
                             alt={fishName}
                             style={{
                               width: '102px',
@@ -15211,9 +15181,9 @@ export default function App() {
                         <div style={{ fontSize: '14.5px', fontWeight: 'bold', color: isSelected ? '#fef08a' : '#f8fafc' }}>
                           {fishName}
                         </div>
-                        {price !== undefined && (
+                        {priceLabel !== undefined && (
                           <div style={{ fontSize: '10.5px', color: '#fbbf24' }}>
-                            قيمة السمكة: {price} 🪙 ذهب
+                            قيمة السمكة: {priceLabel} 🪙 ذهب
                           </div>
                         )}
                       </div>
@@ -15383,194 +15353,319 @@ export default function App() {
       )}
 
       {/* ----------------- SHIP SELECTION ACTION MENU ----------------- */}
-      {menu.visible && (
-        <div 
-          id="ship-menu" 
-          ref={shipMenuRef}
-          dir="rtl"
-          style={{ 
-            display: 'flex', 
-            position: 'fixed',
-            left: `${menu.x}px`, 
-            top: `${menu.y}px`,
-            maxWidth: 'calc(100vw - 24px)',
-            boxSizing: 'border-box',
-            zIndex: 120 
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {(() => {
-            const activeShip = ships.find(s => s.id === (currentShipId || menu.shipId));
-            const shipStatus = activeShip?.status || menu.status;
-            if (shipStatus === 'docked') {
-              const durationMs = activeShip ? getShipFishingDurationMs(activeShip) : 30000;
-              return (
-                <div className="menu-btn" onClick={() => act('fish')}>
-                  <div className="menu-icon">🎣</div>
-                  <div>صيد</div>
-                  <div style={{ fontSize: '10px', color: '#7dd3fc', fontVariantNumeric: 'tabular-nums', direction: 'ltr', marginTop: '1px' }}>
-                    ⏱ {formatFishingCountdown(durationMs)}
-                  </div>
-                </div>
-              );
-            }
+      {menu.visible && (() => {
+        const activeShip = ships.find(s => s.id === (currentShipId || menu.shipId));
+        const shipStatus = activeShip?.status || menu.status;
+        const timerState = activeShip ? getShipFishingTimerState(activeShip, timerNow) : null;
+        const isFishingActive = shipStatus !== 'docked' && timerState && !timerState.isAutoFishing && timerState.remainingMs > 0;
+        const isReadyToCollect = shipStatus !== 'docked' && Boolean(timerState?.isReady);
+        const gemCost = isFishingActive && timerState ? getSpeedUpGemCost(timerState.remainingMs) : 0;
 
-            const timerState = activeShip ? getShipFishingTimerState(activeShip, timerNow) : null;
-            if (timerState && !timerState.isAutoFishing && timerState.remainingMs > 0 && activeShip) {
-              const gemCost = getSpeedUpGemCost(timerState.remainingMs);
-              return (
-                <>
-                  <div
-                    className="menu-btn"
-                    onClick={() => act('collect')}
-                    style={{
-                      background: 'linear-gradient(135deg, #0f172a, #1e293b)',
-                      border: '1px solid #38bdf8',
-                      color: '#e0f2fe',
-                    }}
-                    title="السفينة ما زالت في رحلة الصيد"
-                  >
-                    <div className="menu-icon">⏳</div>
-                    <div style={{ fontSize: '10px', color: '#bae6fd' }}>جاري الصيد</div>
-                    <div style={{ fontSize: '11px', fontWeight: '900', color: '#38bdf8', fontVariantNumeric: 'tabular-nums', direction: 'ltr' }}>
-                      {formatFishingCountdown(timerState.remainingMs)}
-                    </div>
-                  </div>
-                  <div
-                    className="menu-btn"
-                    onClick={() => {
-                      setMenu(prev => ({ ...prev, visible: false }));
-                      speedUpShipFishing(activeShip.id);
-                    }}
-                    style={{
-                      background: 'linear-gradient(135deg, #0284c7, #0369a1)',
-                      border: '1px solid #7dd3fc',
-                      color: '#fff',
-                    }}
-                    title={`إنهاء مؤقت الصيد فوراً مقابل ${gemCost} جوهرة`}
-                  >
-                    <div className="menu-icon">⚡</div>
-                    <div style={{ fontSize: '10px', fontWeight: 'bold' }}>إنهاء الآن</div>
-                    <div style={{ fontSize: '11px', fontWeight: '900', color: '#fde047' }}>
-                      💎 {gemCost}
-                    </div>
-                  </div>
-                </>
-              );
-            }
+        const handleFishingAction = () => {
+          if (shipStatus === 'docked') {
+            act('fish');
+          } else if (isReadyToCollect) {
+            act('collect');
+          } else if (isFishingActive && activeShip) {
+            setMenu(prev => ({ ...prev, visible: false }));
+            speedUpShipFishing(activeShip.id);
+          } else {
+            act('collect');
+          }
+        };
 
-            return (
-              <div
-                className="menu-btn"
-                onClick={() => act('collect')}
-                style={
-                  timerState?.isReady
-                    ? {
-                        background: 'linear-gradient(135deg, #065f46, #047857)',
-                        border: '1px solid #34d399',
-                        color: '#ecfdf5',
-                      }
-                    : undefined
-                }
+        return (
+          <div
+            className="fixed inset-0 z-[135] flex items-center justify-center bg-black/55 backdrop-blur-[2px] p-4"
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenu(prev => ({ ...prev, visible: false }));
+            }}
+          >
+            <div
+              id="ship-menu"
+              ref={shipMenuRef}
+              dir="rtl"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: 'relative',
+                display: 'block',
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                width: '100%',
+                maxWidth: '420px',
+                aspectRatio: '1080 / 970',
+                borderRadius: '18px',
+                overflow: 'hidden',
+                boxShadow: '0 24px 60px rgba(0,0,0,0.92), 0 0 32px rgba(34, 211, 238, 0.25)',
+                userSelect: 'none',
+              }}
+            >
+              <img
+                src="/assets/aistudio/IMG-20261122-WA0011_5b6da652.jpg"
+                alt="خيارات السفينة"
+                className="w-full h-full object-fill block pointer-events-none"
+              />
+
+              {/* 1. الذهاب للصيد / جمع / إنهاء */}
+              <button
+                type="button"
+                aria-label="الذهاب للصيد"
+                onClick={handleFishingAction}
+                className="absolute cursor-pointer bg-transparent hover:bg-cyan-300/10 active:bg-cyan-300/20 active:scale-[0.985] transition-all rounded-xl"
+                style={{ top: '15.5%', height: '17.5%', left: '18%', width: '64%' }}
               >
-                <div className="menu-icon">🪣</div>
-                <div>اجمع</div>
-                {timerState?.isReady && (
-                  <div style={{ fontSize: '10px', color: '#6ee7b7', fontWeight: '900' }}>✅ جاهز</div>
+                {isReadyToCollect && (
+                  <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-emerald-600 border border-emerald-300 text-white text-[11px] font-black shadow-md whitespace-nowrap">
+                    🪣 جاهز للجمع ✅
+                  </span>
                 )}
-              </div>
-            );
-          })()}
+                {isFishingActive && timerState && (
+                  <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-sky-900/95 border border-sky-300 text-sky-100 text-[11px] font-black shadow-md whitespace-nowrap">
+                    ⏳ {formatFishingCountdown(timerState.remainingMs)} • ⚡💎 {gemCost}
+                  </span>
+                )}
+              </button>
 
-          {/* Golden Hunter Auto-Fishing Pause/Play Quick Toggle in Action Menu */}
-          {(() => {
-            const activeShip = ships.find(s => s.id === (currentShipId || menu.shipId));
-            const hasGH = activeShip?.assignedCrew?.some(c => c === 'golden_hunter' || c === 'gold_fisher');
-            if (hasGH && activeShip) {
-              return (
-                <div 
-                  className="menu-btn" 
-                  onClick={() => {
-                    toggleAutoFishing(activeShip.id);
-                    setMenu(prev => ({ ...prev, visible: false }));
-                  }}
-                  style={{
-                    background: activeShip.autoFishingPaused ? 'linear-gradient(135deg, #059669, #047857)' : 'linear-gradient(135deg, #b45309, #78350f)',
-                    color: '#fff',
-                    border: activeShip.autoFishingPaused ? '1px solid #34d399' : '1px solid #fde047'
-                  }}
-                  title={activeShip.autoFishingPaused ? "تشغيل الصيد التلقائي" : "إيقاف الصيد التلقائي"}
-                >
-                  <div className="menu-icon">{activeShip.autoFishingPaused ? '▶️' : '⏸️'}</div>
-                  {activeShip.autoFishingPaused ? 'تشغيل الآلي' : 'إيقاف الآلي'}
-                </div>
-              );
-            }
-            return null;
-          })()}
+              {/* 2. إصلاح */}
+              <button
+                type="button"
+                aria-label="إصلاح"
+                onClick={() => act('repair')}
+                className="absolute cursor-pointer bg-transparent hover:bg-amber-300/10 active:bg-amber-300/20 active:scale-[0.985] transition-all rounded-xl"
+                style={{ top: '35.5%', height: '17.5%', left: '18%', width: '64%' }}
+              />
 
-          {/* Repair / Maintenance Button in Action Menu */}
-          {(() => {
-            const activeShip = ships.find(s => s.id === (currentShipId || menu.shipId));
-            const maxH = getShipMaxHeart(activeShip);
-            const curH = typeof activeShip?.heart === 'number' ? Math.min(Math.max(0, activeShip.heart), maxH) : maxH;
-            const isDamaged = activeShip && (portDestroyed || curH < maxH);
-            if (isDamaged) {
-              const isDestroyed = typeof activeShip?.heart === 'number' ? curH <= 0 : portDestroyed;
-              return (
-                <div 
-                  className="menu-btn" 
-                  onClick={() => act('repair')}
-                  style={{
-                    background: isDestroyed ? 'linear-gradient(135deg, #b91c1c, #991b1b)' : 'linear-gradient(135deg, #059669, #047857)',
-                    color: '#fff',
-                    border: isDestroyed ? '1px solid #fca5a5' : '1px solid #6ee7b7'
-                  }}
-                  title="صيانة وترميم هيكل السفينة"
-                >
-                  <div className="menu-icon">🔧</div>
-                  {isDestroyed ? 'إصلاح وترميم' : 'صيانة'}
-                </div>
-              );
-            }
-            return null;
-          })()}
+              {/* 3. تفاصيل السفينة */}
+              <button
+                type="button"
+                aria-label="تفاصيل السفينة"
+                onClick={() => {
+                  const targetId = activeShip?.id || currentShipId || menu.shipId;
+                  setMenu(prev => ({ ...prev, visible: false }));
+                  if (targetId) {
+                    setCurrentShipId(targetId);
+                    setShipDetailsModalShipId(targetId);
+                  }
+                }}
+                className="absolute cursor-pointer bg-transparent hover:bg-emerald-300/10 active:bg-emerald-300/20 active:scale-[0.985] transition-all rounded-xl"
+                style={{ top: '54.5%', height: '17.5%', left: '18%', width: '64%' }}
+              />
 
-          {/* Guide Expected Fish Quick Selector in Action Menu */}
-          {(() => {
-            const activeShip = ships.find(s => s.id === (currentShipId || menu.shipId));
-            const hasGuide = activeShip?.assignedCrew?.includes('guide');
-            if (hasGuide && activeShip) {
-              const curExpected = activeShip.expectedFish || (activeShip.fishTypes && activeShip.fishTypes[activeShip.fishTypes.length - 1]) || 'السردين';
-              return (
-                <div 
-                  className="menu-btn" 
-                  onClick={() => {
-                    setExpectedFishModalShipId(activeShip.id);
-                    setMenu(prev => ({ ...prev, visible: false }));
-                  }}
-                  style={{
-                    background: 'linear-gradient(135deg, #0284c7, #0369a1)',
-                    color: '#fff',
-                    border: '1px solid #7dd3fc'
-                  }}
-                  title="تحديد وتوقع نوع السمك المستهدف بالمرشد"
-                >
-                  <div className="menu-icon">🧭</div>
-                  <div style={{ fontSize: '9px', lineHeight: 1.15, textAlign: 'center' }}>
-                    <div style={{ color: '#bae6fd' }}>صيد متوقع:</div>
-                    <div style={{ color: '#fef08a', fontWeight: 'bold' }}>{curExpected}</div>
+              {/* 4. إلغاء */}
+              <button
+                type="button"
+                aria-label="إلغاء"
+                onClick={() => setMenu(prev => ({ ...prev, visible: false }))}
+                className="absolute cursor-pointer bg-transparent hover:bg-rose-400/10 active:bg-rose-400/20 active:scale-[0.985] transition-all rounded-xl"
+                style={{ top: '74.0%', height: '17.5%', left: '18%', width: '64%' }}
+              />
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ----------------- SHIP DETAILS MODAL (تفاصيل السفينة) ----------------- */}
+      {shipDetailsModalShipId && (() => {
+        const detailShip = ships.find(s => s.id === shipDetailsModalShipId);
+        if (!detailShip) return null;
+        const shipLvl = typeof detailShip.level === 'number' ? detailShip.level : 0;
+        const shipSpec = SHOP_SHIPS.find(sp => sp.level === shipLvl);
+        const maxH = getShipMaxHeart(detailShip);
+        const curH = typeof detailShip.heart === 'number' ? Math.max(0, Math.min(detailShip.heart, maxH)) : (portDestroyed ? 0 : maxH);
+        const subFishInfo = getSubmarineFishInfo(shipLvl);
+        const fishList = detailShip.fishTypes && detailShip.fishTypes.length > 0 ? detailShip.fishTypes : (shipSpec?.fishTypes || ['سردين']);
+        const hasGH = Boolean(detailShip.assignedCrew?.some(c => c === 'golden_hunter' || c === 'gold_fisher'));
+        const hasGuide = Boolean(detailShip.assignedCrew?.includes('guide'));
+        const timerState = getShipFishingTimerState(detailShip, timerNow);
+
+        return (
+          <div
+            className="fixed inset-0 z-[140] flex items-center justify-center bg-black/75 backdrop-blur-sm p-3 sm:p-5 overflow-y-auto"
+            dir="rtl"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShipDetailsModalShipId(null);
+            }}
+          >
+            <div
+              className="w-full max-w-[500px] my-auto rounded-2xl border-2 border-cyan-500/70 bg-[#071324] text-white shadow-2xl overflow-hidden"
+              style={{
+                background: 'linear-gradient(180deg, #0b1c33 0%, #050c18 100%)',
+                boxShadow: '0 24px 60px rgba(0,0,0,0.9), 0 0 30px rgba(6,182,212,0.28)',
+              }}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-cyan-500/30 bg-[#0a192e]">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-2xl">⚓</span>
+                  <div>
+                    <h3 className="text-lg font-black text-cyan-200">{detailShip.name}</h3>
+                    <div className="text-xs font-bold text-amber-300">
+                      {shipLvl >= 32
+                        ? `غواصة الأعماق (${getSubmarineDisplayTier(shipLvl)})`
+                        : `المستوى ${shipLvl}`}
+                    </div>
                   </div>
                 </div>
-              );
-            }
-            return null;
-          })()}
+                <button
+                  type="button"
+                  onClick={() => setShipDetailsModalShipId(null)}
+                  className="w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-600 flex items-center justify-center text-white font-bold cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
 
-          <div className="menu-btn" onClick={() => act('crew')}><div className="menu-icon">👥</div>طاقم</div>
-          <div className="menu-btn" onClick={() => act('sell')}><div className="menu-icon">💰</div>بيع</div>
-        </div>
-      )}
+              <div className="p-4 sm:p-5 space-y-4">
+                {/* Ship Preview + Key Stats */}
+                <div className="flex flex-col sm:flex-row items-center gap-4 bg-[#06101e] border border-cyan-800/60 rounded-2xl p-3.5">
+                  <div className="shrink-0">
+                    <ShipImage level={shipLvl} width={145} plain />
+                  </div>
+                  <div className="flex-1 w-full grid grid-cols-2 gap-2 text-xs">
+                    <div className="bg-[#0b182c] border border-slate-700/70 rounded-xl p-2 text-center">
+                      <div className="text-slate-400 font-bold">السعة</div>
+                      <div className="text-sky-300 font-black text-sm mt-0.5 tabular-nums">
+                        {(detailShip.cargo || shipSpec?.cargo || 2000).toLocaleString('en-US')}
+                      </div>
+                    </div>
+                    <div className="bg-[#0b182c] border border-slate-700/70 rounded-xl p-2 text-center">
+                      <div className="text-slate-400 font-bold">الطاقة</div>
+                      <div className="text-emerald-300 font-black text-sm mt-0.5 tabular-nums">
+                        {curH.toLocaleString('en-US')} / {maxH.toLocaleString('en-US')}
+                      </div>
+                    </div>
+                    <div className="bg-[#0b182c] border border-slate-700/70 rounded-xl p-2 text-center">
+                      <div className="text-slate-400 font-bold">قوة الصيد</div>
+                      <div className="text-amber-300 font-black text-sm mt-0.5 tabular-nums">
+                        {(detailShip.hook || shipSpec?.hook || 25).toLocaleString('en-US')}
+                      </div>
+                    </div>
+                    <div className="bg-[#0b182c] border border-slate-700/70 rounded-xl p-2 text-center">
+                      <div className="text-slate-400 font-bold">مدة الرحلة</div>
+                      <div className="text-cyan-200 font-black text-sm mt-0.5">
+                        {formatFishingCountdown(getShipFishingDurationMs(detailShip))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Fish Types & Prices */}
+                <div className="bg-[#06101e] border border-cyan-800/50 rounded-2xl p-3">
+                  <div className="text-xs font-black text-amber-300 mb-2">
+                    🐟 أنواع السمك التي تصطادها السفينة:
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {fishList.map((fName, idx) => {
+                      const fImg = subFishInfo?.image || getFishImageUrl(fName, shipLvl);
+                      const fPrice = subFishInfo
+                        ? subFishInfo.priceLabel
+                        : `${FISH_REWARD_DATA[fName]?.valPerFish ?? FISH_REWARD_DATA[fName.replace(/^ال/, '').trim()]?.valPerFish ?? 1} ذهب`;
+                      return (
+                        <div
+                          key={idx}
+                          className="flex-1 min-w-[140px] flex items-center gap-2.5 bg-[#0c1a30] border border-cyan-500/35 rounded-xl p-2"
+                        >
+                          {fImg ? (
+                            <img src={fImg} alt={fName} className="w-14 h-9 object-contain shrink-0" />
+                          ) : (
+                            <span className="text-2xl">{subFishInfo?.emoji || getFishEmoji(fName)}</span>
+                          )}
+                          <div>
+                            <div className="text-xs font-black text-white">{fName}</div>
+                            <div className="text-[11px] font-bold text-amber-300">{fPrice} 🪙</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Ship Management Quick Actions */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentShipId(detailShip.id);
+                      setShipDetailsModalShipId(null);
+                      setCrewModal(true);
+                    }}
+                    className="py-2.5 px-3 rounded-xl bg-sky-900/70 hover:bg-sky-800/80 border border-sky-400/60 text-white font-black text-xs sm:text-sm cursor-pointer transition-all"
+                  >
+                    👥 الطاقم
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShipDetailsModalShipId(null);
+                      setRepairModalShip(detailShip);
+                    }}
+                    className="py-2.5 px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800/80 border border-emerald-400/60 text-white font-black text-xs sm:text-sm cursor-pointer transition-all"
+                  >
+                    🔧 الصيانة والإصلاح
+                  </button>
+
+                  {hasGuide && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShipDetailsModalShipId(null);
+                        setExpectedFishModalShipId(detailShip.id);
+                      }}
+                      className="py-2.5 px-3 rounded-xl bg-indigo-900/70 hover:bg-indigo-800/80 border border-indigo-400/60 text-white font-black text-xs sm:text-sm cursor-pointer transition-all"
+                    >
+                      🧭 تحديد الصيد المتوقع
+                    </button>
+                  )}
+
+                  {hasGH && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        toggleAutoFishing(detailShip.id);
+                      }}
+                      className={`py-2.5 px-3 rounded-xl border font-black text-xs sm:text-sm cursor-pointer transition-all ${
+                        detailShip.autoFishingPaused
+                          ? 'bg-emerald-800/80 border-emerald-400 text-white'
+                          : 'bg-amber-800/80 border-amber-400 text-white'
+                      }`}
+                    >
+                      {detailShip.autoFishingPaused ? '▶️ تشغيل الصيد التلقائي' : '⏸️ إيقاف الصيد التلقائي'}
+                    </button>
+                  )}
+
+                  {detailShip.status === 'fishing' && !timerState.isAutoFishing && timerState.remainingMs > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShipDetailsModalShipId(null);
+                        speedUpShipFishing(detailShip.id);
+                      }}
+                      className="py-2.5 px-3 rounded-xl bg-amber-700/80 hover:bg-amber-600/80 border border-amber-300 text-white font-black text-xs sm:text-sm cursor-pointer transition-all"
+                    >
+                      ⚡ إنهاء الآن (💎 {getSpeedUpGemCost(timerState.remainingMs)})
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentShipId(detailShip.id);
+                      setShipDetailsModalShipId(null);
+                      setConfirmModal(true);
+                    }}
+                    className="py-2.5 px-3 rounded-xl bg-rose-950/80 hover:bg-rose-900/80 border border-rose-500/60 text-rose-200 font-black text-xs sm:text-sm cursor-pointer transition-all"
+                  >
+                    💰 بيع السفينة
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ----------------- TOP BAR / RESOURCES HUD ----------------- */}
       <div className="top-bar" dir="rtl">

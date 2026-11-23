@@ -6,6 +6,7 @@ import {
   SUBMARINE_UPGRADE_RULES,
   getSubmarineUpgradeRule,
   getSubmarineDisplayTier,
+  getSubmarineFishInfo,
   getShipMaxHeart,
 } from '../data';
 import ShipImage from './ShipImage';
@@ -66,8 +67,10 @@ export const SubmarineUpgradeModal: React.FC<SubmarineUpgradeModalProps> = ({
 
   const currentLevel = activeSub.level || 32;
   const currentSpec = SHOP_SHIPS.find((s) => s.level === currentLevel);
+  const currentFishInfo = getSubmarineFishInfo(currentLevel);
   const rule = getSubmarineUpgradeRule(currentLevel);
   const nextSpec = rule ? SHOP_SHIPS.find((s) => s.level === rule.toLevel) : null;
+  const nextFishInfo = rule ? getSubmarineFishInfo(rule.toLevel) : null;
   const failStreak = Math.max(0, Math.min(2, activeSub.upgradeFailStreak || 0));
   const isGuaranteed = failStreak >= 2;
   const isMaxLevel = currentLevel >= 37 || !rule || !nextSpec;
@@ -267,7 +270,7 @@ export const SubmarineUpgradeModal: React.FC<SubmarineUpgradeModalProps> = ({
               <div className="flex flex-col items-center text-center gap-3 py-2">
                 <ShipImage level={37} width={210} plain />
                 <div className="px-5 py-1.5 rounded-full bg-amber-500/20 border border-amber-400 text-amber-300 font-black text-base">
-                  👑 الغواصة في أقصى مستوى (MAX)
+                  👑 الغواصة في أقصى مستوى (⭐⭐⭐⭐⭐ MAX)
                 </div>
                 <h3 className="text-xl sm:text-2xl font-black text-white">
                   {currentSpec?.name}
@@ -275,12 +278,35 @@ export const SubmarineUpgradeModal: React.FC<SubmarineUpgradeModalProps> = ({
                 <p className="text-sm sm:text-base text-slate-300 max-w-lg">
                   {currentSpec?.description}
                 </p>
+                {currentFishInfo && (
+                  <div className="w-full max-w-md mt-1 rounded-2xl border border-amber-400/50 bg-[#0d1930] p-3 flex items-center gap-3 text-right">
+                    <img
+                      src={currentFishInfo.image}
+                      alt={currentFishInfo.fishName}
+                      className="w-24 h-14 rounded-lg object-contain bg-[#060d1c] p-1 border border-sky-400/50 shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-black text-white">{currentFishInfo.fishName}</div>
+                      <div className="text-xs font-bold text-amber-300 mt-0.5">
+                        سعر القطعة: {currentFishInfo.priceLabel}
+                      </div>
+                      <div className="text-[11px] text-emerald-300 font-bold mt-0.5">
+                        أعلى سعر للقطعة الواحدة: 30 ذهب
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-11 items-center gap-4">
                 {/* Current Submarine */}
                 <div className="sm:col-span-5 flex flex-col items-center bg-[#0d1830] border border-slate-700/80 rounded-2xl p-4">
-                  <span className="text-xs font-black text-slate-400 mb-2">المستوى الحالي</span>
+                  <span className="text-xs font-black text-slate-400 mb-1">المستوى الحالي</span>
+                  {currentFishInfo && (
+                    <span className="text-[11px] font-black text-sky-300 mb-2">
+                      {currentFishInfo.starLabel}
+                    </span>
+                  )}
                   <ShipImage level={currentLevel} width={155} plain />
                   <div className="mt-2 text-base font-black text-white text-center">
                     {getSubmarineDisplayTier(currentLevel)}
@@ -288,6 +314,23 @@ export const SubmarineUpgradeModal: React.FC<SubmarineUpgradeModalProps> = ({
                   <div className="text-xs text-sky-300 font-bold mt-1 tabular-nums">
                     السعة: {(currentSpec?.cargo || 125000).toLocaleString('en-US')} سمكة
                   </div>
+                  {currentFishInfo && (
+                    <div className="w-full mt-3 rounded-xl bg-[#081022] border border-sky-500/35 p-2 flex items-center gap-2.5 text-right">
+                      <img
+                        src={currentFishInfo.image}
+                        alt={currentFishInfo.fishName}
+                        className="w-16 h-10 rounded-lg object-contain bg-[#060d1c] p-0.5 border border-sky-400/40 shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-black text-slate-100 truncate">
+                          {currentFishInfo.fishName}
+                        </div>
+                        <div className="text-[11px] font-black text-amber-300">
+                          {currentFishInfo.priceLabel}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Arrow */}
@@ -299,9 +342,14 @@ export const SubmarineUpgradeModal: React.FC<SubmarineUpgradeModalProps> = ({
 
                 {/* Next Submarine */}
                 <div className="sm:col-span-5 flex flex-col items-center bg-[#101c3a] border-2 border-amber-400/60 rounded-2xl p-4 shadow-lg">
-                  <span className="text-xs font-black text-amber-300 mb-2">
+                  <span className="text-xs font-black text-amber-300 mb-1">
                     {rule.title}
                   </span>
+                  {nextFishInfo && (
+                    <span className="text-[11px] font-black text-amber-200 mb-2">
+                      {nextFishInfo.starLabel}
+                    </span>
+                  )}
                   <ShipImage level={rule.toLevel} width={155} plain />
                   <div className="mt-2 text-base font-black text-amber-200 text-center">
                     {getSubmarineDisplayTier(rule.toLevel)}
@@ -309,20 +357,38 @@ export const SubmarineUpgradeModal: React.FC<SubmarineUpgradeModalProps> = ({
                   <div className="text-xs text-emerald-300 font-bold mt-1 tabular-nums">
                     السعة: {(nextSpec.cargo || 155000).toLocaleString('en-US')} سمكة
                   </div>
+                  {nextFishInfo && (
+                    <div className="w-full mt-3 rounded-xl bg-[#091229] border border-amber-400/45 p-2 flex items-center gap-2.5 text-right">
+                      <img
+                        src={nextFishInfo.image}
+                        alt={nextFishInfo.fishName}
+                        className="w-16 h-10 rounded-lg object-contain bg-[#060d1c] p-0.5 border border-amber-400/50 shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-black text-white truncate">
+                          {nextFishInfo.fishName}
+                        </div>
+                        <div className="text-[11px] font-black text-amber-300">
+                          {nextFishInfo.priceNote || nextFishInfo.priceLabel}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
           </div>
 
           {/* 5-Stage Upgrade Roadmap */}
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             {SUBMARINE_UPGRADE_RULES.map((step) => {
               const isCompleted = currentLevel >= step.toLevel;
               const isCurrent = rule?.stepNumber === step.stepNumber;
+              const stepFish = getSubmarineFishInfo(step.toLevel);
               return (
                 <div
                   key={step.stepNumber}
-                  className={`rounded-xl p-2.5 text-center border transition-all ${
+                  className={`rounded-xl p-2 text-center border transition-all flex flex-col items-center gap-1 ${
                     isCompleted
                       ? 'bg-emerald-950/60 border-emerald-500/70 text-emerald-200'
                       : isCurrent
@@ -330,14 +396,26 @@ export const SubmarineUpgradeModal: React.FC<SubmarineUpgradeModalProps> = ({
                       : 'bg-[#091222] border-slate-800 text-slate-400'
                   }`}
                 >
-                  <div className="text-xs font-black">
-                    {step.isMax ? '5 (MAX)' : `ترقية ${step.stepNumber}`}
+                  <div className="text-[11px] font-black">
+                    {step.isMax ? '⭐⭐⭐⭐⭐ MAX' : '⭐'.repeat(step.stepNumber)}
                   </div>
-                  <div className="text-[11px] font-bold mt-1 tabular-nums">
-                    {step.cost / 1_000_000} مليون
-                  </div>
-                  <div className="text-[11px] font-bold mt-0.5 tabular-nums">
-                    نجاح {step.successRate}%
+                  {stepFish && (
+                    <>
+                      <img
+                        src={stepFish.image}
+                        alt={stepFish.fishName}
+                        className="w-14 h-9 rounded object-contain bg-[#060d1c] p-0.5 border border-sky-400/35"
+                      />
+                      <div className="text-[10.5px] font-black text-white leading-tight">
+                        {stepFish.fishName}
+                      </div>
+                      <div className="text-[10px] font-extrabold text-amber-300 leading-tight">
+                        {stepFish.priceLabel}
+                      </div>
+                    </>
+                  )}
+                  <div className="text-[10px] font-bold tabular-nums opacity-90">
+                    {step.cost / 1_000_000} مليون | {step.successRate}%
                   </div>
                 </div>
               );

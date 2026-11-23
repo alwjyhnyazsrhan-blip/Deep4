@@ -78,6 +78,15 @@ const getFishVisualSpec = (name: string) => {
       bgGlow: 'radial-gradient(circle at 50% 30%, rgba(59, 130, 246, 0.35) 0%, rgba(10, 15, 35, 0.95) 75%)',
     };
   }
+  if (n.includes('سمكة الأعماق') || n.includes('شيطان البحر') || n.includes('الشيطان البحري')) {
+    return {
+      symbol: n.includes('شيطان') ? '🦈' : '🐡',
+      rarity: 'ملحمي' as const,
+      rarityStyle: 'bg-indigo-900/90 border border-indigo-400 text-indigo-200 shadow-[0_0_10px_rgba(99,102,241,0.7)]',
+      cardBorder: 'border-2 border-indigo-500 shadow-[0_0_18px_rgba(99,102,241,0.45)]',
+      bgGlow: 'radial-gradient(circle at 50% 30%, rgba(99, 102, 241, 0.32) 0%, rgba(10, 15, 35, 0.95) 75%)',
+    };
+  }
   if (n.includes('قمر') || n.includes('أحمر')) {
     return {
       symbol: '🐠',
@@ -184,18 +193,28 @@ const FishHouseComponent: React.FC<FishHouseComponentProps> = ({
     return Object.values(displayInventory).reduce((sum: number, val: number) => sum + val, 0);
   }, [displayInventory]);
 
-  // Base value calculation
+  // Base value calculation (capped at 30 max for single piece price)
   const getFishUnitVal = (name: string) => {
     const trimmed = name.trim();
-    if (FISH_REWARD_DATA[trimmed]) return FISH_REWARD_DATA[trimmed].valPerFish;
+    const inlinePriceMatch = trimmed.match(/\((\d+)\s*🪙?\)/);
+    if (inlinePriceMatch) {
+      const parsedPrice = Number(inlinePriceMatch[1]);
+      if (!Number.isNaN(parsedPrice) && parsedPrice > 0) {
+        return Math.min(30, parsedPrice);
+      }
+    }
+    if (FISH_REWARD_DATA[trimmed]) return Math.min(30, FISH_REWARD_DATA[trimmed].valPerFish);
     const stripped = trimmed
+      .replace(/\([^)]*\)/g, '')
+      .replace(/⭐+/g, '')
       .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\uFE0F]/gu, '')
+      .replace(/\s+/g, ' ')
       .trim();
-    if (FISH_REWARD_DATA[stripped]) return FISH_REWARD_DATA[stripped].valPerFish;
+    if (FISH_REWARD_DATA[stripped]) return Math.min(30, FISH_REWARD_DATA[stripped].valPerFish);
     const noAl = stripped.replace(/^ال/, '').trim();
-    if (FISH_REWARD_DATA[noAl]) return FISH_REWARD_DATA[noAl].valPerFish;
+    if (FISH_REWARD_DATA[noAl]) return Math.min(30, FISH_REWARD_DATA[noAl].valPerFish);
     const withAl = `ال${noAl}`;
-    if (FISH_REWARD_DATA[withAl]) return FISH_REWARD_DATA[withAl].valPerFish;
+    if (FISH_REWARD_DATA[withAl]) return Math.min(30, FISH_REWARD_DATA[withAl].valPerFish);
     return 1;
   };
 
@@ -411,17 +430,22 @@ const FishHouseComponent: React.FC<FishHouseComponentProps> = ({
                         {name}
                       </div>
 
-                      {/* Bottom Quantity Pill */}
+                      {/* Bottom Quantity & Unit Price Bar */}
                       <div 
-                        className="w-full py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 border border-sky-400/30"
+                        className="w-full py-1.5 px-2 rounded-lg flex items-center justify-between gap-1.5 border border-sky-400/30"
                         style={{
                           background: 'rgba(2, 6, 23, 0.75)',
                           backdropFilter: 'blur(4px)',
                         }}
                       >
-                        <span className="text-sm">🐟</span>
-                        <span className="text-xs sm:text-sm font-black text-sky-200">
-                          x {count.toLocaleString()}
+                        <div className="flex items-center gap-1">
+                          <span className="text-sm">🐟</span>
+                          <span className="text-xs sm:text-sm font-black text-sky-200">
+                            x {count.toLocaleString()}
+                          </span>
+                        </div>
+                        <span className="text-[11px] font-black text-amber-300 bg-amber-950/70 px-1.5 py-0.5 rounded border border-amber-500/40">
+                          {getFishUnitVal(name)} 🪙
                         </span>
                       </div>
                     </div>

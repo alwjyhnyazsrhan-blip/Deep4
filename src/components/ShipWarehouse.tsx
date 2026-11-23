@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ShipState } from '../types';
 import ShipImage from './ShipImage';
 import ShipCrewMember, { CREW_VISUAL_MAP, sanitizeShipCrew } from './ShipCrewMember';
-import { SHOP_SHIPS, GOLD_COIN_ICON, getShipDataByLevel, ShipData, SHIP_BACKGROUND_IMAGE, FISH_REWARD_DATA, getSubmarineDisplayTier, getSubmarineTag, getSubmarineUpgradeRule, getFishImageUrl, normalizeShipEnergyToCargo } from '../data';
+import { SHOP_SHIPS, GOLD_COIN_ICON, getShipDataByLevel, ShipData, SHIP_BACKGROUND_IMAGE, FISH_REWARD_DATA, getSubmarineDisplayTier, getSubmarineTag, getSubmarineUpgradeRule, getSubmarineFishInfo, getFishImageUrl, normalizeShipEnergyToCargo } from '../data';
 import { executeFinancialTransaction, isNetworkOnline, notifyOfflineBlocked } from '../services/financialTransaction';
 import { SubmarineUpgradeModal } from './SubmarineUpgradeModal';
 import {
@@ -712,9 +712,12 @@ export default function ShipWarehouse({
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))', gap: '10px', width: '100%' }}>
                           {spec.fishTypes && spec.fishTypes.map((fishName: string, fIdx: number) => {
-                            const fPrice = FISH_REWARD_DATA[fishName]?.valPerFish ?? FISH_REWARD_DATA[fishName.replace(/^ال/, '').trim()]?.valPerFish;
-                            const fEmoji = getFishEmoji(fishName);
-                            const fImg = getFishImageUrl(fishName, spec.level);
+                            const subFishInfo = getSubmarineFishInfo(spec.level);
+                            const fPriceLabel = subFishInfo
+                              ? subFishInfo.priceLabel
+                              : (FISH_REWARD_DATA[fishName]?.valPerFish ?? FISH_REWARD_DATA[fishName.replace(/^ال/, '').trim()]?.valPerFish);
+                            const fEmoji = subFishInfo?.emoji || getFishEmoji(fishName);
+                            const fImg = subFishInfo?.image || getFishImageUrl(fishName, spec.level);
                             return (
                               <div
                                 key={fIdx}
@@ -758,9 +761,9 @@ export default function ShipWarehouse({
                                   )}
                                 </div>
                                 <div style={{ color: '#f8fafc', fontWeight: '900', fontSize: '13.5px', textAlign: 'center' }}>{fishName}</div>
-                                {fPrice !== undefined && (
+                                {fPriceLabel !== undefined && (
                                   <div style={{ color: '#fbbf24', fontSize: '12px', fontWeight: 'bold', background: 'rgba(0,0,0,0.45)', padding: '2px 10px', borderRadius: '6px', border: '1px solid rgba(251,191,36,0.3)' }}>
-                                    {fPrice} 🪙
+                                    {fPriceLabel} 🪙
                                   </div>
                                 )}
                               </div>
@@ -1285,9 +1288,12 @@ export default function ShipWarehouse({
                     flexWrap: 'wrap'
                   }}>
                     {currentSpec.fishTypes && currentSpec.fishTypes.map((fish: string, idx: number) => {
-                      const emoji = getFishEmoji(fish);
-                      const fImg = getFishImageUrl(fish, currentLevel);
-                      const fPrice = FISH_REWARD_DATA[fish]?.valPerFish ?? FISH_REWARD_DATA[fish.replace(/^ال/, '').trim()]?.valPerFish;
+                      const subFishInfo = getSubmarineFishInfo(currentLevel);
+                      const emoji = subFishInfo?.emoji || getFishEmoji(fish);
+                      const fImg = subFishInfo?.image || getFishImageUrl(fish, currentLevel);
+                      const fPriceLabel = subFishInfo
+                        ? subFishInfo.priceLabel
+                        : (FISH_REWARD_DATA[fish]?.valPerFish ?? FISH_REWARD_DATA[fish.replace(/^ال/, '').trim()]?.valPerFish);
                       return (
                         <div
                           key={idx}
@@ -1334,9 +1340,9 @@ export default function ShipWarehouse({
                             )}
                           </div>
                           <span style={{ fontWeight: '900', fontSize: '13.5px', color: '#f8fafc', textAlign: 'center' }}>{fish}</span>
-                          {fPrice !== undefined && (
+                          {fPriceLabel !== undefined && (
                             <span style={{ color: '#fbbf24', fontSize: '11.5px', fontWeight: 'bold', background: 'rgba(0,0,0,0.45)', padding: '2px 8px', borderRadius: '6px', border: '1px solid rgba(251,191,36,0.28)' }}>
-                              {fPrice} 🪙
+                              {fPriceLabel} 🪙
                             </span>
                           )}
                         </div>

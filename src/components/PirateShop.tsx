@@ -1131,7 +1131,7 @@ export default function PirateShop({
                         marginBottom: '6px'
                       }}
                     >
-                      ⚔️ الضرر: {item.damagePercent}% من الطاقة
+                      ⚔️ الضرر: {item.damage.toLocaleString()} نقطة
                     </div>
 
                     {/* QUANTITY BOX & CONTROLS (خانة إضافة الكمية حسب رغبتك) */}

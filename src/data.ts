@@ -137,6 +137,123 @@ export const getSubmarineTag = (level: number): string => {
   return 'Max ⭐';
 };
 
+export interface SubmarineFishTierInfo {
+  level: number;
+  stars: number;
+  starLabel: string;
+  fishName: string;
+  image: string;
+  emoji: string;
+  minPrice: number;
+  maxPrice: number;
+  priceTiers: number[];
+  priceLabel: string;
+  priceNote?: string;
+}
+
+export const SUBMARINE_FISH_BY_LEVEL: Record<number, SubmarineFishTierInfo> = {
+  32: {
+    level: 32,
+    stars: 0,
+    starLabel: 'بدون ترقية',
+    fishName: 'سمكة الشيطان البحري',
+    image: '/fish/sea_devil_ray.png',
+    emoji: '🦈',
+    minPrice: 15,
+    maxPrice: 15,
+    priceTiers: [15],
+    priceLabel: '15 ذهب',
+  },
+  33: {
+    level: 33,
+    stars: 1,
+    starLabel: 'النجمة الأولى ⭐',
+    fishName: 'سمكة الشيطان البحري',
+    image: '/fish/sea_devil_ray.png',
+    emoji: '🦈',
+    minPrice: 15,
+    maxPrice: 15,
+    priceTiers: [15],
+    priceLabel: '15 ذهب',
+  },
+  34: {
+    level: 34,
+    stars: 2,
+    starLabel: 'النجمة الثانية ⭐⭐',
+    fishName: 'سمكة الشيطان البحري',
+    image: '/fish/sea_devil_ray.png',
+    emoji: '🦈',
+    minPrice: 17,
+    maxPrice: 17,
+    priceTiers: [17],
+    priceLabel: '17 ذهب',
+    priceNote: 'يرتفع سعر القطعة من 15 إلى 17 ذهب',
+  },
+  35: {
+    level: 35,
+    stars: 3,
+    starLabel: 'النجمة الثالثة ⭐⭐⭐',
+    fishName: 'سمكة الأعماق',
+    image: '/fish/deep_sea_fish.png',
+    emoji: '🐡',
+    minPrice: 18,
+    maxPrice: 22,
+    priceTiers: [18, 19, 20, 21, 22],
+    priceLabel: '18 - 22 ذهب',
+    priceNote: 'يرتفع سعر القطعة من 18 إلى 22 ذهب',
+  },
+  36: {
+    level: 36,
+    stars: 4,
+    starLabel: 'النجمة الرابعة ⭐⭐⭐⭐',
+    fishName: 'سمكة الأعماق',
+    image: '/fish/deep_sea_fish.png',
+    emoji: '🐡',
+    minPrice: 18,
+    maxPrice: 22,
+    priceTiers: [18, 19, 20, 21, 22],
+    priceLabel: '18 - 22 ذهب',
+    priceNote: 'نفس السعر (18 إلى 22 ذهب)',
+  },
+  37: {
+    level: 37,
+    stars: 5,
+    starLabel: 'النجمة الخامسة ⭐⭐⭐⭐⭐ MAX',
+    fishName: 'الحوت الصيني',
+    image: '/fish/chinese_whale.png',
+    emoji: '🐋',
+    minPrice: 20,
+    maxPrice: 30,
+    priceTiers: [20, 25, 30],
+    priceLabel: '20 - 25 - 30 ذهب',
+    priceNote: 'يرتفع سعر القطعة من 20 إلى 25 إلى 30 ذهب (أعلى سعر 30)',
+  },
+};
+
+export const getSubmarineFishInfo = (shipLevel?: number): SubmarineFishTierInfo | null => {
+  if (typeof shipLevel !== 'number' || shipLevel < 32) return null;
+  const clamped = Math.max(32, Math.min(37, shipLevel));
+  return SUBMARINE_FISH_BY_LEVEL[clamped] || SUBMARINE_FISH_BY_LEVEL[32];
+};
+
+export const rollSubmarineFishCatch = (shipLevel: number): FishRewardItem => {
+  const tier = getSubmarineFishInfo(shipLevel) || SUBMARINE_FISH_BY_LEVEL[32];
+  const rolledPrice = Math.min(
+    30,
+    tier.priceTiers[Math.floor(Math.random() * tier.priceTiers.length)] ?? tier.minPrice
+  );
+  const fullName =
+    tier.level <= 33
+      ? `${tier.fishName} ${tier.emoji}`
+      : `${tier.fishName} (${rolledPrice} 🪙) ${tier.emoji}`;
+  return {
+    fullName,
+    valPerFish: rolledPrice,
+    emoji: tier.emoji,
+    image: tier.image,
+  };
+};
+
 export interface SubmarineUpgradeRule {
   fromLevel: number;
   toLevel: number;
@@ -291,12 +408,12 @@ export const SHOP_SHIPS: ShopShipSpec[] = [
   { level: 29, name: 'المدمرة الملكية', subName: 'المدمرة الملكية الحربية الفائقة', hook: 10485760000, cargo: 85000, heart: 104857600000, durationStr: '3ي 4س 22د', power: 209715200, armor: 209715200, fishTypes: ['سمكة البلور الملكية', 'سمكة الشراع الجليدية'], price: 8000000, emoji: '🔱', image: "https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/ship-29.png", rarity: 'أسطوري', description: 'المدمرة الملكية المزودة بمدافع الطاقة الزرقاء، تكتسح مياه المحيط وتجذب أندر الأسماك البلورية والجليدية...' },
   { level: 30, name: 'طوفان البحر', subName: 'طوفان البحر الكاسح الحاكم لأعماق المحيط', hook: 20971520000, cargo: 90000, heart: 209715200000, durationStr: '3ي 7س 16د', power: 419430400, armor: 419430400, fishTypes: ['تمساح البحر', 'تنين الأرض'], price: 9500000, emoji: '🌊', image: "https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/ship-30.png", rarity: 'أسطوري', description: 'يرتجف المحيط خوفاً من طوفان البحر الكاسح وقوته التدميرية المطلقة وسعته العملاقة للذهب...' },
   { level: 31, name: 'سفينة ملوك المحيط', subName: 'مفخرة ملوك المحيط الخارقة والنهائية', hook: 41943040000, cargo: 100000, heart: 419430400000, durationStr: '3ي 8س', power: 838860800, armor: 838860800, fishTypes: ['الحوت القاتل', 'الحوت الأسطوري', 'الحوت الصيني'], price: 12000000, emoji: '👑', image: "/ships/ship_31.webp", rarity: 'أسطورة', description: 'أعظم سفينة صُنعت في التاريخ، قوة دمار شامل وسعة ذهب أسطورية غير متناهية تمثل التتويج الأقصى لأي قبطان محترف للبحار السبعة الكبرى...' },
-  { level: 32, name: 'غواصة الأعماق الأسطورية (المستوى الأساسي 0)', subName: 'الغواصة الحربية الخارقة حارسة الهاوية والأعماق السحيقة (المستوى الأساسي 0)', hook: 83886080000, cargo: 125000, heart: 838860800000, durationStr: '4h 15m', power: 1677721600, armor: 1677721600, fishTypes: ['الحوت القاتل', 'الحوت الأسطوري', 'الحوت الصيني'], price: 15000000, emoji: '🤿', image: "https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/submarine_6_saudi_classic.png", rarity: 'أسطورة', description: 'غواصة الأعماق السحيقة التكتيكية الفائقة (المستوى الأساسي 0)، قادرة على الهبوط لأعمق نقاط البحر الميت وجمع أغلى المرجانيات والكنوز الغارقة مع صيانة ذاتية مستمرة.' },
-  { level: 33, name: 'غواصة الأعماق الأسطورية (المستوى 1)', subName: 'غواصة الأعماق الأسطورية المطورة بهالة الذهب الناري (المستوى 1)', hook: 167772160000, cargo: 155000, heart: 1677721600000, durationStr: '4h 30m', power: 3355443200, armor: 3355443200, fishTypes: ['الحوت القاتل', 'الحوت الأسطوري', 'الحوت الصيني'], price: 10000000, emoji: '🤿', image: "https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/submarine_1_gold_saudi%20(1).png", rarity: 'أسطورة', description: 'المستوى الأول المطور لغواصة الأعماق الأسطورية، مجهزة بهيكل معدني معزز وهالة ذهبية متوهجة وقوة صيد مضاعفة.' },
-  { level: 34, name: 'غواصة الأعماق الأسطورية (المستوى 2)', subName: 'غواصة الأعماق الأسطورية المشعة بهالة الزمرد الأخضر (المستوى 2)', hook: 335544320000, cargo: 190000, heart: 3355443200000, durationStr: '4h 45m', power: 6710886400, armor: 6710886400, fishTypes: ['الحوت القاتل', 'الحوت الأسطوري', 'الحوت الصيني'], price: 15000000, emoji: '🤿', image: "https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/submarine_2_green_aura.png", rarity: 'أسطورة', description: 'المستوى الثاني الخارق، مشعة بهالة زمردية خضراء متوهجة ومصفحة كلياً بنواة طاقة خضراء وأنظمة صيد نووية متطورة لكشف أسرار قاع المحيط.' },
-  { level: 35, name: 'غواصة الأعماق الأسطورية (المستوى 3)', subName: 'غواصة الأعماق الأسطورية المشعة بهالة البلازما الزرقاء (المستوى 3)', hook: 671088640000, cargo: 225000, heart: 6710886400000, durationStr: '5h 0m', power: 13421772800, armor: 13421772800, fishTypes: ['الحوت القاتل', 'الحوت الأسطوري', 'الحوت الصيني'], price: 20000000, emoji: '🤿', image: "https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/submarine_3_blue_aura.png", rarity: 'أسطورة', description: 'المستوى الثالث الخارق، مشعة بهالة بلازما زرقاء ساطعة ومدمجة بنواة طاقة المحيط الأزرق العميق وهيكل فولاذي خارق لتحدي أعتى أعماق الهاوية.' },
-  { level: 36, name: 'غواصة الأعماق الأسطورية (المستوى 4)', subName: 'غواصة الأعماق الأسطورية المشعة بهالة الطاقة الوردية الخارقة (المستوى 4)', hook: 1342177280000, cargo: 260000, heart: 13421772800000, durationStr: '5h 15m', power: 26843545600, armor: 26843545600, fishTypes: ['الحوت القاتل', 'الحوت الأسطوري', 'الحوت الصيني'], price: 25000000, emoji: '🤿', image: "https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/submarine_4_pink_aura.png", rarity: 'أسطورة', description: 'المستوى الرابع الخارق، متوهجة بهالة وردية/ماجينتا نفاثة وتمتلك أنظمة دفع ذرية ورادارات سحيقة تكشف نوادر أعماق البحار وتمنح القبطان سيطرة تامة.' },
-  { level: 37, name: 'غواصة الأعماق الأسطورية (المستوى Max ⭐)', subName: 'قمة التطور المطلق - تنين الأعماق الأحمر الأسطوري الخارق (المستوى Max ⭐)', hook: 2684354560000, cargo: 300000, heart: 26843545600000, durationStr: '5h 30m', power: 53687091200, armor: 53687091200, fishTypes: ['الحوت القاتل', 'الحوت الأسطوري', 'الحوت الصيني'], price: 30000000, emoji: '🤿', image: "https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/submarine_5_red_dragon.png", rarity: 'أسطورة', description: 'المستوى الأقصى والنهائي المطلق (Max ⭐) لغواصة الأعماق، مدمجة بقوة تنين الأعماق الأحمر الناري وسعة ذهب أسطورية غير مسبوقة تمثل القمة العليا والسيادة المطلقة على كافة بحار العالم.' }
+  { level: 32, name: 'غواصة الأعماق الأسطورية (المستوى الأساسي 0)', subName: 'الغواصة الحربية الخارقة حارسة الهاوية والأعماق السحيقة (المستوى الأساسي 0)', hook: 83886080000, cargo: 125000, heart: 838860800000, durationStr: '4h 15m', power: 1677721600, armor: 1677721600, fishTypes: ['سمكة الشيطان البحري'], price: 15000000, emoji: '🤿', image: "https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/submarine_6_saudi_classic.png", rarity: 'أسطورة', description: 'غواصة الأعماق السحيقة التكتيكية الفائقة (المستوى الأساسي 0)، تصطاد سمكة الشيطان البحري بسعر 15 ذهب للقطعة وتجمع أغلى كنوز القاع.' },
+  { level: 33, name: 'غواصة الأعماق الأسطورية (المستوى 1)', subName: 'غواصة الأعماق الأسطورية المطورة بهالة الذهب الناري (المستوى 1)', hook: 167772160000, cargo: 155000, heart: 1677721600000, durationStr: '4h 30m', power: 3355443200, armor: 3355443200, fishTypes: ['سمكة الشيطان البحري'], price: 10000000, emoji: '🤿', image: "https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/submarine_1_gold_saudi%20(1).png", rarity: 'أسطورة', description: 'النجمة الأولى ⭐ لغواصة الأعماق الأسطورية، تصطاد سمكة الشيطان البحري بسعر 15 ذهب للقطعة مع هيكل معزز وقوة صيد مضاعفة.' },
+  { level: 34, name: 'غواصة الأعماق الأسطورية (المستوى 2)', subName: 'غواصة الأعماق الأسطورية المشعة بهالة الزمرد الأخضر (المستوى 2)', hook: 335544320000, cargo: 190000, heart: 3355443200000, durationStr: '4h 45m', power: 6710886400, armor: 6710886400, fishTypes: ['سمكة الشيطان البحري'], price: 15000000, emoji: '🤿', image: "https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/submarine_2_green_aura.png", rarity: 'أسطورة', description: 'النجمة الثانية ⭐⭐ لغواصة الأعماق، تصطاد سمكة الشيطان البحري ويرتفع سعر القطعة من 15 إلى 17 ذهب!' },
+  { level: 35, name: 'غواصة الأعماق الأسطورية (المستوى 3)', subName: 'غواصة الأعماق الأسطورية المشعة بهالة البلازما الزرقاء (المستوى 3)', hook: 671088640000, cargo: 225000, heart: 6710886400000, durationStr: '5h 0m', power: 13421772800, armor: 13421772800, fishTypes: ['سمكة الأعماق'], price: 20000000, emoji: '🤿', image: "https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/submarine_3_blue_aura.png", rarity: 'أسطورة', description: 'النجمة الثالثة ⭐⭐⭐ لغواصة الأعماق، تفتح صيد سمكة الأعماق ويرتفع سعر القطعة من 18 إلى 22 ذهب!' },
+  { level: 36, name: 'غواصة الأعماق الأسطورية (المستوى 4)', subName: 'غواصة الأعماق الأسطورية المشعة بهالة الطاقة الوردية الخارقة (المستوى 4)', hook: 1342177280000, cargo: 260000, heart: 13421772800000, durationStr: '5h 15m', power: 26843545600, armor: 26843545600, fishTypes: ['سمكة الأعماق'], price: 25000000, emoji: '🤿', image: "https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/submarine_4_pink_aura.png", rarity: 'أسطورة', description: 'النجمة الرابعة ⭐⭐⭐⭐ لغواصة الأعماق، تصطاد سمكة الأعماق بنفس السعر (18 إلى 22 ذهب للقطعة) مع سعة وقوة صيد فائقة.' },
+  { level: 37, name: 'غواصة الأعماق الأسطورية (المستوى Max ⭐)', subName: 'قمة التطور المطلق - تنين الأعماق الأحمر الأسطوري الخارق (المستوى Max ⭐)', hook: 2684354560000, cargo: 300000, heart: 26843545600000, durationStr: '5h 30m', power: 53687091200, armor: 53687091200, fishTypes: ['الحوت الصيني'], price: 30000000, emoji: '🤿', image: "https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/submarine_5_red_dragon.png", rarity: 'أسطورة', description: 'النجمة الخامسة MAX ⭐⭐⭐⭐⭐ لغواصة الأعماق، تفتح صيد الحوت الصيني ويرتفع سعر القطعة من 20 إلى 25 إلى 30 ذهب (أعلى سعر في اللعبة: 30 ذهب).' }
 ];
 
 export interface FishHouseLevel {
@@ -407,7 +524,7 @@ export interface WeaponItemData {
   key: string;
   name: string;
   damage: number;
-  damagePercent: number;
+  damagePercent?: number;
   splashDamagePercent?: number;
   price: number;
   costType: 'gems' | 'gold';
@@ -423,65 +540,60 @@ export const WEAPONS_DATA: WeaponItemData[] = [
     key: 'adBomb',
     name: 'رسالة التفجير',
     damage: 20000,
-    damagePercent: 35,
     price: 50,
     costType: 'gems',
     icon: '📡',
     image: WEAPON_MEDIA_BOMB_ICON,
     bgImage: WEAPON_MEDIA_BOMB_BG,
-    desc: 'رسالة تفجيرية فتاكة تنقص 35% من طاقة كل سفن العدو مع بث رسالة وتثبيتها',
+    desc: 'رسالة تفجيرية فتاكة تنقص 20,000 من طاقة كل سفن العدو مع بث رسالة وتثبيتها',
   },
   {
     id: 'atomicBomb',
     key: 'atomicBomb',
     name: 'قنبلة الموت الأسود',
     damage: 70000,
-    damagePercent: 75,
     price: 150,
     costType: 'gems',
     icon: '💣',
     image: WEAPON_ATOMIC_BOMB_ICON,
     bgImage: WEAPON_ATOMIC_BOMB_BG,
-    desc: 'قنبلة الموت الأسود الكاسحة تنقص 75% من طاقة جميع سفن الأسطول وتدمرها',
+    desc: 'قنبلة الموت الأسود الكاسحة تنقص 70,000 من طاقة جميع سفن الأسطول وتدمرها',
   },
   {
     id: 'smallRocket',
     key: 'smallRocket',
     name: 'صاروخ صغير',
     damage: 1000,
-    damagePercent: 10,
     price: 100000,
     costType: 'gold',
     icon: '🚀',
     image: WEAPON_SMALL_MISSILE_ICON,
     bgImage: WEAPON_SMALL_MISSILE_BG,
-    desc: 'صاروخ صغير وسريع لتوجيه ضربة مباشرة تنقص 10% من طاقة السفينة',
+    desc: 'صاروخ صغير وسريع لتوجيه ضربة مباشرة بضرر 1,000 نقطة',
   },
   {
     id: 'mediumRocket',
     key: 'mediumRocket',
     name: 'صاروخ المتوسط',
     damage: 5000,
-    damagePercent: 25,
     price: 200000,
     costType: 'gold',
     icon: '🚀',
     image: WEAPON_MEDIUM_MISSILE_ICON,
     bgImage: WEAPON_MEDIUM_MISSILE_BG,
-    desc: 'صاروخ متوسط القوة يخترق الدروع وينقص 25% من طاقة السفينة',
+    desc: 'صاروخ متوسط القوة يخترق الدروع ويلحق ضرر 5,000 نقطة',
   },
   {
     id: 'largeRocket',
     key: 'largeRocket',
     name: 'صاروخ كبير',
-    damage: 100000,
-    damagePercent: 50,
+    damage: 10000,
     price: 300000,
     costType: 'gold',
     icon: '🚀',
     image: WEAPON_LARGE_MISSILE_ICON,
     bgImage: WEAPON_LARGE_MISSILE_BG,
-    desc: 'صاروخ كبير فتاك يوجه ضربة مدمرة تنقص 50% من طاقة السفينة المستهدفة',
+    desc: 'صاروخ كبير فتاك يوجه ضربة مدمرة بضرر 10,000 نقطة للسفينة المستهدفة',
   },
 ];
 export const SHIP_GUARDIAN_ICON = "https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/ship-guardian-cutout.png";
@@ -865,17 +977,23 @@ export const FISH_REWARD_DATA: Record<string, FishRewardItem> = {
   'الحوت مقوس الرأس': { fullName: 'الحوت مقوس الرأس 🐋', valPerFish: 29, emoji: '🐋' },
   'الحوت الأزرق': { fullName: 'الحوت الأزرق 🐋', valPerFish: 30, emoji: '🐋' },
 
-  // المستوى 31
+  // المستوى 31 + الغواصات (32-37)
   'الحوت القاتل': { fullName: 'الحوت القاتل 🐬', valPerFish: 29, emoji: '🐬' },
   'الحوت الأسطوري': { fullName: 'الحوت الأسطوري 🌌', valPerFish: 30, emoji: '🌌' },
-  'الحوت الصيني': { fullName: 'الحوت الصيني 🐉', valPerFish: 31, emoji: '🐉' },
+  'الحوت الصيني': { fullName: 'الحوت الصيني 🐋', valPerFish: 30, emoji: '🐋', image: '/fish/chinese_whale.png' },
+  'سمكة الشيطان البحري': { fullName: 'سمكة الشيطان البحري 🦈', valPerFish: 15, emoji: '🦈', image: '/fish/sea_devil_ray.png' },
+  'الشيطان البحري': { fullName: 'سمكة الشيطان البحري 🦈', valPerFish: 15, emoji: '🦈', image: '/fish/sea_devil_ray.png' },
+  'سمكة الأعماق': { fullName: 'سمكة الأعماق 🐡', valPerFish: 20, emoji: '🐡', image: '/fish/deep_sea_fish.png' },
 };
 
 export const getFishImageUrl = (fishName?: string, shipLevel?: number): string | undefined => {
   if (!fishName) return undefined;
   const trimmed = fishName.trim();
   const stripped = trimmed
+    .replace(/\([^)]*\)/g, '')
+    .replace(/⭐+/g, '')
     .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\uFE0F]/gu, '')
+    .replace(/\s+/g, ' ')
     .trim();
   const noAl = stripped.replace(/^ال/, '').trim();
 

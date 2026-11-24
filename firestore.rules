@@ -1,58 +1,73 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ==========================================
+    // --- الدوال المساعدة للتأكد من الأمان ---
+    // ==========================================
+    
+    // التحقق من تسجيل الدخول
     function isSignedIn() {
       return request.auth != null;
     }
 
+    // التحقق من أن المستخدم هو صاحب الحساب نفسه
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // USERS COLLECTION
-    // All players can read profiles for multiplayer leaderboards, clan rosters, and harbor visits
+    // ==========================================
+    // --- قواعد المجموعات والبيانات ---
+    // ==========================================
+
+    // 1. ملفات المستخدمين (User Profiles)
+    // - القراءة: مسموحة لجميع المسجلين (لعرض قوائم المتصدرين والميناء)
+    // - الكتابة والتعديل والحذف: مسموحة حصراً لصاحب الحساب نفسه
     match /users/{userId} {
-      allow read: if true;
-      allow create, update: if true;
-      allow delete: if isOwner(userId);
+      allow read: if isSignedIn();
+      allow create, update, delete: if isOwner(userId);
     }
 
-    // TRIBES COLLECTION
-    // Allows viewing, creating, joining, leaving, and donating to clans
-    match /tribes/{tribeId} {
-      allow read: if true;
-      allow create: if true;
-      allow update: if true;
-      allow delete: if isSignedIn();
+    // 2. الشات العام (Global Chat)
+    // - القراءة: للمسجلين
+    // - الإنشاء: بشرط أن يكون senderId في الرسالة مطابقاً لمعرف اللاعب المسجل
+    // - التعديل والحذف: فقط لصاحب الرسالة نفسه
+    match /chats/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() 
+                    && request.resource.data.senderId == request.auth.uid;
+      allow update, delete: if isSignedIn() 
+                            && resource.data.senderId == request.auth.uid;
     }
 
-    // CHATS COLLECTION
-    match /chats/{chatId} {
-      allow read, write: if true;
-    }
-
-    // FRIEND REQUESTS
+    // 3. نظام طلبات الصداقة (Friend Requests)
+    // - القراءة والتعديل: فقط للمرسل أو المستلم
+    // - الإنشاء: بشرط أن يضع المرسل معرّفه الحقيقي في senderId
     match /friendRequests/{requestId} {
-      allow read, write: if true;
+      allow read, update, delete: if isSignedIn() 
+                                  && (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
+      allow create: if isSignedIn() 
+                    && request.resource.data.senderId == request.auth.uid;
     }
 
-    // SUPPORT TICKETS
-    match /support_tickets/{ticketId} {
-      allow read, write: if true;
-    }
-
-    // HARBOR EVENTS & NOTIFICATIONS
+    // 4. أحداث الميناء والهجوم (PvP Harbor Events)
+    // - القراءة: مسموحة لجميع المسجلين
+    // - الإنشاء: المهاجم فقط هو من ينشئ الحدث برقم معرّفه في attackerId
+    // - التعديل والحذف: للمهاجم أو المدافع المعنيين بالحدث فقط
     match /harborEvents/{eventId} {
-      allow read, write: if true;
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() 
+                    && request.resource.data.attackerId == request.auth.uid;
+      allow update, delete: if isSignedIn() 
+                            && (resource.data.attackerId == request.auth.uid || resource.data.defenderId == request.auth.uid);
     }
 
-    match /globalNotifications/{notifId} {
-      allow read, write: if true;
-    }
-
-    // TEST CONNECTION
-    match /test/{docId} {
-      allow read, write: if true;
+    // ==========================================
+    // --- شبكة الأمان الشاملة (Global Safeguard) ---
+    // ==========================================
+    // إغلاق تام لأي مسار أو مجلد لم يتم ذكره أعلاه
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

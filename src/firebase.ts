@@ -56,13 +56,15 @@ export const db = customDbId ? getFirestore(app, customDbId) : getFirestore(app)
 
 console.log("[FIREBASE] Initialized Firebase Auth and Cloud Firestore with database:", customDbId || '(default)');
 
-// Graceful connection test without throwing unhandled exceptions
+// Validate live connection to Firestore at startup
 export async function testConnection() {
   try {
-    const { getDoc } = await import('firebase/firestore');
-    await getDoc(doc(db, 'test', 'connection')).catch(() => null);
-  } catch {
-    // Offline or connection pending - Firestore automatically handles offline persistence
+    const { getDocFromServer } = await import('firebase/firestore');
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error('Please check your Firebase configuration.');
+    }
   }
 }
 testConnection();

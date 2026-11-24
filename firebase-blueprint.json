@@ -7,7 +7,9 @@
       "properties": {
         "userId": {
           "type": "string",
-          "description": "The unique user ID"
+          "description": "The unique user ID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
         },
         "username": {
           "type": "string",
@@ -17,11 +19,12 @@
         "email": {
           "type": "string",
           "description": "Email address of the player",
-          "maxLength": 100
+          "maxLength": 120
         },
         "avatar": {
           "type": "string",
-          "description": "Avatar icon or image"
+          "description": "Avatar icon or image",
+          "maxLength": 500
         },
         "gold": {
           "type": "number",
@@ -31,29 +34,47 @@
           "type": "number",
           "description": "Total precious gems"
         },
+        "redGems": {
+          "type": "number",
+          "description": "Total red gems"
+        },
         "exp": {
           "type": "number",
           "description": "Experience points"
         },
         "server": {
           "type": "string",
-          "description": "Active server region"
+          "description": "Active server region",
+          "maxLength": 64
+        },
+        "pirateClass": {
+          "type": "string",
+          "description": "Player class title",
+          "maxLength": 64
         },
         "tribeId": {
           "type": "string",
-          "description": "ID of the tribe the user belongs to"
+          "description": "ID of the tribe the user belongs to",
+          "maxLength": 128
         },
         "tribeName": {
           "type": "string",
-          "description": "Name of the tribe the user belongs to"
+          "description": "Name of the tribe the user belongs to",
+          "maxLength": 100
+        },
+        "portDestroyed": {
+          "type": "boolean",
+          "description": "Whether all ships in the harbor are destroyed"
         },
         "createdAt": {
           "type": "string",
-          "description": "Creation timestamp"
+          "description": "Creation timestamp",
+          "maxLength": 64
         },
         "updatedAt": {
           "type": "string",
-          "description": "Last updated timestamp"
+          "description": "Last updated timestamp",
+          "maxLength": 64
         }
       },
       "required": ["userId"]
@@ -70,19 +91,24 @@
         },
         "description": {
           "type": "string",
-          "description": "Tribe motto and description"
+          "description": "Tribe motto and description",
+          "maxLength": 500
         },
         "emblem": {
           "type": "string",
-          "description": "Tribe icon or emoji"
+          "description": "Tribe icon or emoji",
+          "maxLength": 64
         },
         "leaderId": {
           "type": "string",
-          "description": "User ID of the tribe leader"
+          "description": "User ID of the tribe leader",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
         },
         "leaderName": {
           "type": "string",
-          "description": "Display name of the tribe leader"
+          "description": "Display name of the tribe leader",
+          "maxLength": 64
         },
         "level": {
           "type": "number",
@@ -106,28 +132,112 @@
         },
         "lastUpdated": {
           "type": "string",
-          "description": "Last updated timestamp"
+          "description": "Last updated timestamp",
+          "maxLength": 64
         },
         "createdAt": {
           "type": "string",
-          "description": "Creation timestamp"
+          "description": "Creation timestamp",
+          "maxLength": 64
         }
       },
-      "required": ["name"]
+      "required": ["name", "leaderId"]
     },
     "Chat": {
       "title": "Chat",
       "description": "Global and clan chat messages",
       "type": "object",
       "properties": {
-        "sender": { "type": "string" },
-        "avatar": { "type": "string" },
-        "text": { "type": "string" },
-        "time": { "type": "string" },
-        "userId": { "type": "string" },
-        "createdAt": { "type": "string" }
+        "sender": { "type": "string", "maxLength": 64 },
+        "senderId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "userId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "avatar": { "type": "string", "maxLength": 500 },
+        "text": { "type": "string", "maxLength": 1000 },
+        "time": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "maxLength": 64 }
       },
-      "required": ["text"]
+      "required": ["senderId", "userId", "text", "createdAt"]
+    },
+    "FriendRequest": {
+      "title": "FriendRequest",
+      "description": "Multiplayer friend requests between captains",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "senderName": { "type": "string", "maxLength": 64 },
+        "senderAvatar": { "type": "string", "maxLength": 500 },
+        "receiverId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "status": {
+          "type": "string",
+          "enum": ["PENDING", "ACCEPTED", "DECLINED"],
+          "maxLength": 20
+        },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["senderId", "receiverId", "status", "createdAt"]
+    },
+    "SupportTicket": {
+      "title": "SupportTicket",
+      "description": "Player support tickets",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "username": { "type": "string", "maxLength": 64 },
+        "email": { "type": "string", "maxLength": 120 },
+        "subject": { "type": "string", "maxLength": 200 },
+        "message": { "type": "string", "maxLength": 2000 },
+        "status": {
+          "type": "string",
+          "enum": ["open", "closed", "resolved"],
+          "maxLength": 20
+        },
+        "createdAt": { "type": "string", "description": "Server timestamp" }
+      },
+      "required": ["userId", "subject", "message", "status", "createdAt"]
+    },
+    "HarborEvent": {
+      "title": "HarborEvent",
+      "description": "Asynchronous harbor attacks, repairs, donations, and messages",
+      "type": "object",
+      "properties": {
+        "attackerId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "attackerName": { "type": "string", "maxLength": 64 },
+        "attackerAvatar": { "type": "string", "maxLength": 500 },
+        "defenderId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "type": { "type": "string", "maxLength": 40 },
+        "payload": { "type": "object" },
+        "status": {
+          "type": "string",
+          "enum": ["PENDING", "PROCESSED", "RESOLVED"],
+          "maxLength": 20
+        },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["attackerId", "defenderId", "type", "status", "createdAt"]
+    },
+    "GlobalNotification": {
+      "title": "GlobalNotification",
+      "description": "Live global game event notifications broadcast across players",
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["ATTACK", "SUPPORT", "MILESTONE", "SYSTEM"],
+          "maxLength": 32
+        },
+        "title": { "type": "string", "maxLength": 120 },
+        "message": { "type": "string", "maxLength": 500 },
+        "icon": { "type": "string", "maxLength": 64 },
+        "authorId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "senderId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "authorName": { "type": "string", "maxLength": 64 },
+        "senderName": { "type": "string", "maxLength": 64 },
+        "targetName": { "type": "string", "maxLength": 64 },
+        "targetId": { "type": "string", "maxLength": 128 },
+        "details": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["type", "title", "message", "authorId", "senderId", "createdAt"]
     }
   },
   "firestore": {
@@ -144,19 +254,19 @@
       "description": "Collection storing public and tribe chat messages"
     },
     "/friendRequests/{requestId}": {
-      "schema": "object",
+      "schema": "FriendRequest",
       "description": "Collection storing friend requests"
     },
     "/support_tickets/{ticketId}": {
-      "schema": "object",
+      "schema": "SupportTicket",
       "description": "Collection storing support tickets"
     },
     "/harborEvents/{eventId}": {
-      "schema": "object",
+      "schema": "HarborEvent",
       "description": "Collection storing harbor events and raids"
     },
     "/globalNotifications/{notifId}": {
-      "schema": "object",
+      "schema": "GlobalNotification",
       "description": "Collection storing global game notifications"
     }
   }

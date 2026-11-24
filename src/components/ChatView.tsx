@@ -323,9 +323,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const recentSenders = Array.from(new Set(baseMessages.map(m => m.sender.replace(/[👑🔱]/g, '').trim()))).filter(Boolean);
 
   useEffect(() => {
-    if (chatScrollRef.current) {
-      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
-    }
+    const el = chatScrollRef.current;
+    if (!el) return;
+    const rafId = requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight;
+    });
+    return () => cancelAnimationFrame(rafId);
   }, [filteredMessages.length, activeTab]);
 
   // Map avatar to cropped character artwork
@@ -357,10 +360,15 @@ export const ChatView: React.FC<ChatViewProps> = ({
     <div 
       style={{
         position: 'fixed',
-        inset: 0,
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
         zIndex: 9999,
-        width: '100vw',
-        height: '100vh',
+        width: '100%',
+        height: '100dvh',
+        maxHeight: '100%',
+        minHeight: 0,
         background: 'radial-gradient(circle at 50% 15%, #082642 0%, #06182c 45%, #020b14 100%)',
         color: '#f8fafc',
         fontFamily: "'Cairo', 'Tajawal', sans-serif",
@@ -392,8 +400,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
           zIndex: 1,
           width: '100%',
           height: '100%',
+          flex: '1 1 0%',
+          minHeight: 0,
           display: 'flex',
           flexDirection: 'column',
+          overflow: 'hidden',
           boxSizing: 'border-box',
           padding: '10px 12px 14px 12px',
           background: 'linear-gradient(180deg, rgba(7, 26, 44, 0.95) 0%, rgba(3, 13, 24, 0.98) 100%)',
@@ -446,6 +457,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
             paddingBottom: '10px',
             borderBottom: '1.5px solid rgba(212, 175, 55, 0.45)',
             marginBottom: '10px',
+            flexShrink: 0,
           }}
         >
           {/* The 4 Tab Buttons */}
@@ -617,6 +629,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               justifyContent: 'space-between',
               fontSize: '12px',
               color: '#38bdf8',
+              flexShrink: 0,
             }}
           >
             <span>💬 المحادثات الخاصة والهمس المباشر بين القادة</span>
@@ -657,6 +670,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               justifyContent: 'space-between',
               fontSize: '12px',
               color: '#fef08a',
+              flexShrink: 0,
             }}
           >
             <span>🛡️ انضم أو أنشئ قبيلة للدردشة مع تحالفك البحري!</span>
@@ -684,10 +698,16 @@ export const ChatView: React.FC<ChatViewProps> = ({
         <div
           ref={chatScrollRef}
           style={{
-            flex: 1,
+            flex: '1 1 0%',
+            minHeight: 0,
             overflowY: 'auto',
+            overflowX: 'hidden',
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehavior: 'contain',
+            touchAction: 'pan-y',
             paddingRight: '4px',
             paddingLeft: '4px',
+            paddingBottom: '12px',
             display: 'flex',
             flexDirection: 'column',
             gap: '14px',
@@ -1028,10 +1048,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
           style={{
             marginTop: '10px',
             paddingTop: '10px',
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
             borderTop: '1.5px solid rgba(212, 175, 55, 0.45)',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
+            flexShrink: 0,
+            position: 'relative',
+            zIndex: 10,
             direction: 'ltr', // LTR layout: Megaphone & Settings on left, Input in center, Send on right
           }}
         >
@@ -1041,8 +1065,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
             onClick={() => setShowMegaphoneModal(true)}
             title="بوق الإعلانات العالمي"
             style={{
-              width: '44px',
-              height: '44px',
+              width: '48px',
+              height: '48px',
               borderRadius: '10px',
               background: 'linear-gradient(180deg, #163658 0%, #0a1c30 100%)',
               border: '1.5px solid rgba(212, 175, 55, 0.65)',
@@ -1064,8 +1088,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
             onClick={() => setShowSettingsModal(true)}
             title="إعدادات الشات والحظر"
             style={{
-              width: '44px',
-              height: '44px',
+              width: '48px',
+              height: '48px',
               borderRadius: '10px',
               background: 'linear-gradient(180deg, #163658 0%, #0a1c30 100%)',
               border: '1.5px solid rgba(212, 175, 55, 0.65)',
@@ -1087,6 +1111,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
             onSubmit={sendChatMessage}
             style={{
               flex: 1,
+              minWidth: 0,
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
@@ -1097,6 +1122,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               style={{
                 position: 'relative',
                 flex: 1,
+                minWidth: 0,
                 display: 'flex',
                 alignItems: 'center',
               }}
@@ -1110,24 +1136,27 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       : 'اكتب رسالتك الخاصة...'
                     : activeTab === 'tribe'
                     ? 'اكتب في شات القبيلة...'
-                    : 'اكتب رسالتك'
+                    : 'اكتب رسالتك هنا...'
                 }
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 dir="rtl"
                 style={{
                   width: '100%',
-                  height: '44px',
+                  minWidth: 0,
+                  height: '48px',
                   background: 'rgba(6, 20, 35, 0.95)',
-                  border: '1.5px solid rgba(56, 189, 248, 0.45)',
+                  border: '1.5px solid rgba(56, 189, 248, 0.55)',
                   borderRadius: '10px',
-                  padding: '0 40px 0 14px', // Right padding for emoji button
+                  padding: '0 42px 0 14px', // Right padding for emoji button
                   color: '#ffffff',
-                  fontSize: '14px',
+                  fontSize: '15px',
                   fontWeight: '600',
                   outline: 'none',
                   boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.6)',
                   boxSizing: 'border-box',
+                  userSelect: 'text',
+                  WebkitUserSelect: 'text',
                 }}
               />
 
@@ -1158,8 +1187,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
               disabled={!chatInput.trim()}
               title="إرسال"
               style={{
-                width: '46px',
-                height: '44px',
+                width: '50px',
+                height: '48px',
                 borderRadius: '10px',
                 background: chatInput.trim()
                   ? 'linear-gradient(135deg, #facc15 0%, #eab308 50%, #ca8a04 100%)'

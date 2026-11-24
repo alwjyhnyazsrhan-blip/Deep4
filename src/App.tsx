@@ -16,6 +16,7 @@ import { playNotificationSound } from './utils/notificationSound';
 import { LargeRocketExplosion } from './components/LargeRocketExplosion';
 import { MediumRocketExplosion } from './components/MediumRocketExplosion';
 import { SmallRocketExplosion } from './components/SmallRocketExplosion';
+import { FlyingNavalMissile } from './components/NavalRocketEffects';
 import { AtomicBombExplosion } from './components/AtomicBombExplosion';
 import { 
   playLargeRocketIncomingSound, 
@@ -1089,18 +1090,26 @@ export default function App() {
     details?: string;
   }) => {
     const currentUser = auth.currentUser;
+    const safeTitle = String(params.title || 'إشعار بحري').slice(0, 120);
+    const safeMessage = String(params.message || '').slice(0, 500) || safeTitle;
+    const safeIcon = String(params.icon || (params.type === 'ATTACK' ? '⚔️' : params.type === 'SUPPORT' ? '🛡️' : '🏆')).slice(0, 64);
+    const safeAuthorName = String(username || 'قبطان_مجهول').slice(0, 100);
+    const safeTargetName = String(params.targetName || '').slice(0, 100);
+    const safeTargetId = String(params.targetId || '').slice(0, 128);
+    const safeDetails = String(params.details || '').slice(0, 500);
+
     const notifPayload: GlobalNotification = {
       type: params.type,
-      title: params.title,
-      message: params.message,
-      icon: params.icon || (params.type === 'ATTACK' ? '⚔️' : params.type === 'SUPPORT' ? '🛡️' : '🏆'),
+      title: safeTitle,
+      message: safeMessage,
+      icon: safeIcon,
       authorId: currentUser?.uid || 'anonymous',
       senderId: currentUser?.uid || 'anonymous',
-      authorName: username || 'قبطان_مجهول',
-      senderName: username || 'قبطان_مجهول',
-      targetName: params.targetName || '',
-      targetId: params.targetId || '',
-      details: params.details || '',
+      authorName: safeAuthorName,
+      senderName: safeAuthorName,
+      targetName: safeTargetName,
+      targetId: safeTargetId,
+      details: safeDetails,
       createdAt: new Date().toISOString()
     };
 
@@ -1112,7 +1121,7 @@ export default function App() {
       try {
         await addDoc(collection(db, 'globalNotifications'), notifPayload);
       } catch (err) {
-        console.error("Error creating global notification:", err);
+        handleFirestoreError(err, OperationType.CREATE, 'globalNotifications');
       }
     }
   };
@@ -1313,16 +1322,16 @@ export default function App() {
     const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
     try {
       await addDoc(collection(db, 'chats'), {
-        sender,
+        sender: String(sender || 'القبطان').slice(0, 100),
         senderId: currentUser.uid,
         userId: currentUser.uid,
-        avatar: avatarIcon || '⚓',
-        text,
+        avatar: String(avatarIcon || '⚓').slice(0, 2000),
+        text: String(text || '').slice(0, 1000),
         time: timeStr,
         createdAt: now.toISOString()
       });
     } catch (err: any) {
-      console.error("Error sending secure chat message:", err);
+      handleFirestoreError(err, OperationType.CREATE, 'chats');
     }
   };
 
@@ -1415,7 +1424,7 @@ export default function App() {
         targetId: defenderId
       });
     } catch (err: any) {
-      console.error("Error creating harbor event:", err);
+      handleFirestoreError(err, OperationType.CREATE, 'harborEvents');
       showToast('⚠️ تعذر إرسال حدث الميناء إلى السيرفر: ' + (err.message || 'خطأ في الاتصال'), 'error');
     }
   };
@@ -1950,7 +1959,7 @@ export default function App() {
 
     setTimeout(() => {
       setShowLargeRocketExplosion(false);
-    }, 2800);
+    }, 2050);
   };
 
   const handleDisableDefense = (type: 'rocket' | 'nuke' | 'ad') => {
@@ -4077,7 +4086,7 @@ export default function App() {
         }
       });
     }, (err) => {
-      console.warn("Error subscribing to globalNotifications:", err);
+      handleFirestoreError(err, OperationType.GET, 'globalNotifications');
     });
 
     return () => unsubscribe();
@@ -4383,7 +4392,7 @@ export default function App() {
         }
       }
     }, (err) => {
-      console.warn("Could not subscribe to harborEvents:", err.message || err);
+      handleFirestoreError(err, OperationType.GET, 'harborEvents');
     });
 
     return () => unsubscribe();
@@ -4407,7 +4416,7 @@ export default function App() {
       });
       setFriendRequests(list);
     }, (err) => {
-      console.warn("Could not subscribe to incoming friend requests:", err.message || err);
+      handleFirestoreError(err, OperationType.GET, 'friendRequests');
     });
 
     // 2. Listen to outgoing requests accepted by target players
@@ -11860,7 +11869,7 @@ export default function App() {
             />
 
             {/* Real-time particles overlay for visited port combat & destruction */}
-            <div style={{ position: 'absolute', inset: 0, zIndex: isAtomicBombActive ? 9999 : 4, pointerEvents: 'none' }}>
+            <div style={{ position: 'absolute', inset: 0, zIndex: (isAtomicBombActive || showSmallRocketExplosion || showMediumRocketExplosion || showLargeRocketExplosion) ? 9999 : 4, pointerEvents: 'none' }}>
               <ParticlesEffect portDestroyed={!!inspectedPlayer.portDestroyed} />
             </div>
 
@@ -12319,158 +12328,31 @@ export default function App() {
               </div>
             )}
 
-            {/* Rocket Launch Flash & Exhaust Ring Effect at Bottom-Right Corner */}
-            {(isSmallRocketActive || isMediumRocketActive || isLargeRocketActive) && (
-              <div 
-                style={{
-                  position: 'absolute',
-                  left: '96%',
-                  top: '96%',
-                  transform: 'translate(-50%, -50%)',
-                  zIndex: 9998,
-                  pointerEvents: 'none'
-                }}
-              >
-                <div 
-                  style={{
-                    width: '74px',
-                    height: '74px',
-                    borderRadius: '50%',
-                    background: 'radial-gradient(circle, #ffffff 15%, #fde047 40%, #ea580c 70%, transparent 100%)',
-                    animation: 'rocket-launch-flash 0.45s ease-out forwards',
-                    filter: 'drop-shadow(0 0 18px #f97316)'
-                  }} 
-                />
-              </div>
-            )}
-
-            {/* Small Rocket Flying Animation (Launching from Bottom Right) */}
+            {/* Small Rocket Diving Missile Animation (Diagonal Dive + Blazing Fire + Smoke Plume) */}
             {isSmallRocketActive && (
-              <div 
-                style={{
-                  position: 'absolute',
-                  zIndex: 9999,
-                  pointerEvents: 'none',
-                  animation: 'fly-rocket-small-targeted 0.75s cubic-bezier(0.2, 0.7, 0.35, 1) forwards',
-                  '--rocket-target-x': rocketTargetPos.l,
-                  '--rocket-target-y': rocketTargetPos.t,
-                  '--rocket-angle': getRocketLaunchAngle(rocketTargetPos.l, rocketTargetPos.t),
-                } as React.CSSProperties}
-              >
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <img 
-                    src={WEAPON_SMALL_MISSILE_ICON} 
-                    alt="صاروخ صغير طائر" 
-                    referrerPolicy="no-referrer"
-                    style={{ 
-                      width: '48px', 
-                      height: '48px', 
-                      objectFit: 'contain', 
-                      filter: 'drop-shadow(0 0 12px rgba(250, 204, 21, 0.95)) drop-shadow(0 2px 8px rgba(0,0,0,0.8))' 
-                    }} 
-                  />
-                  {/* Thruster exhaust flame behind the small missile */}
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '-10px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: '15px',
-                    height: '24px',
-                    borderRadius: '50% 50% 20% 20%',
-                    background: 'radial-gradient(ellipse at top, #ffffff 10%, #fef08a 35%, #f97316 70%, transparent 100%)',
-                    animation: 'thruster-flame 0.1s infinite alternate',
-                    filter: 'drop-shadow(0 0 8px #f97316)',
-                    zIndex: -1
-                  }} />
-                </div>
-              </div>
+              <FlyingNavalMissile
+                tier="small"
+                targetX={rocketTargetPos.l}
+                targetY={rocketTargetPos.t}
+              />
             )}
 
-            {/* Medium Rocket Flying Animation (Launching from Bottom Right) */}
+            {/* Medium Rocket Diving Missile Animation (Diagonal Dive + Blazing Fire + Smoke Plume) */}
             {isMediumRocketActive && (
-              <div 
-                style={{
-                  position: 'absolute',
-                  zIndex: 9999,
-                  pointerEvents: 'none',
-                  animation: 'fly-rocket-med-targeted 0.9s cubic-bezier(0.18, 0.72, 0.35, 1) forwards',
-                  '--rocket-target-x': rocketTargetPos.l,
-                  '--rocket-target-y': rocketTargetPos.t,
-                  '--rocket-angle': getRocketLaunchAngle(rocketTargetPos.l, rocketTargetPos.t),
-                } as React.CSSProperties}
-              >
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <img 
-                    src={WEAPON_MEDIUM_MISSILE_ICON} 
-                    alt="صاروخ متوسط طائر" 
-                    referrerPolicy="no-referrer"
-                    style={{ 
-                      width: '58px', 
-                      height: '58px', 
-                      objectFit: 'contain', 
-                      filter: 'drop-shadow(0 0 14px rgba(251, 146, 60, 0.95)) drop-shadow(0 2px 8px rgba(0,0,0,0.8))' 
-                    }} 
-                  />
-                  {/* Thruster exhaust flame behind the medium missile */}
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '-12px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: '18px',
-                    height: '28px',
-                    borderRadius: '50% 50% 20% 20%',
-                    background: 'radial-gradient(ellipse at top, #ffffff 10%, #fef08a 30%, #f97316 65%, #dc2626 90%, transparent 100%)',
-                    animation: 'thruster-flame 0.1s infinite alternate',
-                    filter: 'drop-shadow(0 0 10px #f97316)',
-                    zIndex: -1
-                  }} />
-                </div>
-              </div>
+              <FlyingNavalMissile
+                tier="medium"
+                targetX={rocketTargetPos.l}
+                targetY={rocketTargetPos.t}
+              />
             )}
 
-            {/* Large Rocket Flying Animation (Launching from Bottom Right) */}
+            {/* Large Rocket Diving Missile Animation (Diagonal Dive + Blazing Fire + Smoke Plume) */}
             {isLargeRocketActive && (
-              <div 
-                style={{
-                  position: 'absolute',
-                  zIndex: 9999,
-                  pointerEvents: 'none',
-                  animation: 'fly-rocket-targeted 1.25s cubic-bezier(0.18, 0.72, 0.35, 1) forwards',
-                  '--rocket-target-x': rocketTargetPos.l,
-                  '--rocket-target-y': rocketTargetPos.t,
-                  '--rocket-angle': getRocketLaunchAngle(rocketTargetPos.l, rocketTargetPos.t),
-                } as React.CSSProperties}
-              >
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <img 
-                    src={WEAPON_LARGE_MISSILE_ICON} 
-                    alt="صاروخ كبير طائر" 
-                    referrerPolicy="no-referrer"
-                    style={{ 
-                      width: '78px', 
-                      height: '78px', 
-                      objectFit: 'contain', 
-                      filter: 'drop-shadow(0 0 16px rgba(239, 68, 68, 0.95)) drop-shadow(0 4px 10px rgba(0,0,0,0.8))' 
-                    }} 
-                  />
-                  {/* Thruster exhaust flame behind the missile */}
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '-14px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: '22px',
-                    height: '36px',
-                    borderRadius: '50% 50% 20% 20%',
-                    background: 'radial-gradient(ellipse at top, #ffffff 10%, #fef08a 35%, #f97316 70%, transparent 100%)',
-                    animation: 'thruster-flame 0.12s infinite alternate',
-                    filter: 'drop-shadow(0 0 10px #f97316)',
-                    zIndex: -1
-                  }} />
-                </div>
-              </div>
+              <FlyingNavalMissile
+                tier="large"
+                targetX={rocketTargetPos.l}
+                targetY={rocketTargetPos.t}
+              />
             )}
 
             {/* Small Rocket Comic Cloud Explosion Exactly Matching User Reference Video */}

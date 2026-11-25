@@ -7651,11 +7651,19 @@ export default function App() {
         setTribeId('');
         setTribeName('');
       } else {
+        const tribeLevel = Math.max(1, Number(targetTribe.level) || 1);
+        const maxMembers = 6 + (tribeLevel - 1) * 2;
+        const currentMembersCount = Number(targetTribe.membersCount) || (Array.isArray(targetTribe.members) ? targetTribe.members.length : 0);
+        if (currentMembersCount >= maxMembers) {
+          showToast(`⚠️ عذراً، قبيلة [${targetTribe.name}] ممتلئة (${currentMembersCount}/${maxMembers})!`, 'error');
+          return;
+        }
         const updatedMembers = Array.from(new Set([...(targetTribe.members || []), currentUser.uid]));
         const updatedTribe = {
           ...targetTribe,
           members: updatedMembers,
           membersCount: updatedMembers.length,
+          maxMembers,
           lastUpdated: nowIso
         };
         updateDoc(tribeRef, {
@@ -9755,7 +9763,7 @@ export default function App() {
                                   : 'bg-amber-950/95 text-amber-200 border-amber-400/90 shadow-amber-500/40 animate-pulse'
                               }`}
                               style={{
-                                bottom: getShipFishingTimerState(ship, timerNow).isFishing ? 'calc(100% + 31px)' : 'calc(100% - 7px)',
+                                bottom: getShipFishingTimerState(ship, timerNow).isFishing ? 'calc(100% - 35px)' : 'calc(100% - 73px)',
                                 transform: `translateX(-50%) scaleX(${ship.scaleX < 0 ? -1 : 1})`,
                               }}
                             >
@@ -9781,9 +9789,9 @@ export default function App() {
                                   const hasGH = ship.assignedCrew.includes('golden_hunter') || ship.assignedCrew.includes('gold_fisher');
                                   const fishingActive = getShipFishingTimerState(ship, timerNow).isFishing;
                                   if (hasGH) {
-                                    return fishingActive ? 'calc(100% + 65px)' : 'calc(100% + 27px)';
+                                    return fishingActive ? 'calc(100% - 1px)' : 'calc(100% - 39px)';
                                   }
-                                  return fishingActive ? 'calc(100% + 31px)' : 'calc(100% - 7px)';
+                                  return fishingActive ? 'calc(100% - 35px)' : 'calc(100% - 73px)';
                                 })(),
                                 transform: `translateX(-50%) scaleX(${ship.scaleX < 0 ? -1 : 1})`,
                               }}
@@ -9926,7 +9934,7 @@ export default function App() {
                             ? 0
                             : (curH >= maxH ? 100 : Math.max(1, Math.min(99, Math.round((curH / maxH) * 100))));
 
-                          const bottomOffset = 'calc(100% - 46px)';
+                          const bottomOffset = 'calc(100% - 112px)';
 
                           let fishingPct = 0;
                           if (!isShipDestroyed && ship.status === 'fishing') {
@@ -13234,7 +13242,7 @@ export default function App() {
                             maxHeart={maxHeart}
                             isDestroyed={isShipDestroyed}
                             scaleX={shipScaleX}
-                            bottomOffset="calc(100% - 14px)"
+                            bottomOffset="calc(100% - 112px)"
                           />
                         );
                       })()}
@@ -13270,7 +13278,7 @@ export default function App() {
                       {/* Floating Name Overlay */}
                       <span style={{
                         position: 'absolute',
-                        top: '20px',
+                        bottom: 'calc(100% - 73px)',
                         left: '50%',
                         transform: `translateX(-50%) scaleX(${shipScaleX < 0 ? -1 : 1})`, // Keep text readable even when ship is flipped left
                         background: 'rgba(15, 10, 5, 0.95)',

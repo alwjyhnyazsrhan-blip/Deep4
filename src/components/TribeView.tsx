@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { db, auth } from '../firebase';
+import { db } from '../firebase';
 import { collection, addDoc, doc, updateDoc, increment, getDocs, query, where } from 'firebase/firestore';
 
 export interface TribeLevelSpec {
@@ -35,7 +35,7 @@ export const TRIBE_DEPTHS: TribeLevelSpec[] = [
     tag: 'سهل',
     points: 20,
     dailyPoints: 20,
-    icon: '≋',
+    icon: '🌊',
     accentColor: '#38bdf8',
     bonusDesc: 'استقرار التيارات الساحلية وتخفيض زمن عودة السفن بنسبة 10%.',
     costToUnlock: 120000,
@@ -59,7 +59,7 @@ export const TRIBE_DEPTHS: TribeLevelSpec[] = [
     tag: 'متوسط',
     points: 40,
     dailyPoints: 40,
-    icon: '🌀',
+    icon: '🛡️',
     accentColor: '#6366f1',
     bonusDesc: 'درع جماعي يحمي موانئ أعضاء التحالف من الغارات بنسبة 15%.',
     costToUnlock: 450000,
@@ -83,7 +83,7 @@ export const TRIBE_DEPTHS: TribeLevelSpec[] = [
     tag: 'صعب',
     points: 60,
     dailyPoints: 60,
-    icon: '✦',
+    icon: '🧭',
     accentColor: '#8b5cf6',
     bonusDesc: 'كشف خنادق المحيط السحيق وزيادة رصيد خبرة التحالف اليومي.',
     costToUnlock: 1200000,
@@ -95,7 +95,7 @@ export const TRIBE_DEPTHS: TribeLevelSpec[] = [
     tag: 'صعب جداً',
     points: 70,
     dailyPoints: 70,
-    icon: '⚓',
+    icon: '⚔️',
     accentColor: '#4f46e5',
     bonusDesc: 'زيادة قوة هجوم المدافع والطوربيدات بنسبة +20% في المعارك البحرية.',
     costToUnlock: 1800000,
@@ -143,6 +143,292 @@ export const toArabicDigits = (val: number | string): string => {
   return String(val).replace(/[0-9]/g, (w) => digits[+w]);
 };
 
+// Crisp ornate metallic game icons matching the user's reference screenshot
+const GoldenFlagIcon: React.FC = () => (
+  <svg width="54" height="54" viewBox="0 0 64 64" fill="none" aria-hidden="true" style={{ filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.7))', flexShrink: 0 }}>
+    <path d="M18 10V54" stroke="#e9cb88" strokeWidth="5.5" strokeLinecap="round" />
+    <circle cx="18" cy="10" r="4.5" fill="#f7dfa3" stroke="#7c5617" strokeWidth="2" />
+    <path
+      d="M21 13C30 9 39 19 49 14V35C39 40 30 30 21 34V13Z"
+      fill="url(#goldFlagGrad)"
+      stroke="#6d480e"
+      strokeWidth="2.4"
+      strokeLinejoin="round"
+    />
+    <defs>
+      <linearGradient id="goldFlagGrad" x1="21" y1="12" x2="49" y2="36" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#fde9b4" />
+        <stop offset="55%" stopColor="#d7ac5d" />
+        <stop offset="100%" stopColor="#9c7026" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
+const GoldenGavelIcon: React.FC = () => (
+  <svg width="54" height="54" viewBox="0 0 64 64" fill="none" aria-hidden="true" style={{ filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.7))', flexShrink: 0 }}>
+    <g transform="rotate(-42 32 32)">
+      <rect x="28" y="24" width="8" height="32" rx="4" fill="url(#gavelHandle)" stroke="#62400c" strokeWidth="2" />
+      <rect x="14" y="10" width="36" height="17" rx="4.5" fill="url(#gavelHead)" stroke="#62400c" strokeWidth="2.4" />
+      <line x1="21" y1="10" x2="21" y2="27" stroke="#62400c" strokeWidth="2" />
+      <line x1="43" y1="10" x2="43" y2="27" stroke="#62400c" strokeWidth="2" />
+    </g>
+    <defs>
+      <linearGradient id="gavelHead" x1="14" y1="10" x2="50" y2="27" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#fce8b2" />
+        <stop offset="55%" stopColor="#d2a556" />
+        <stop offset="100%" stopColor="#8d621c" />
+      </linearGradient>
+      <linearGradient id="gavelHandle" x1="28" y1="24" x2="36" y2="56" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#ecc883" />
+        <stop offset="100%" stopColor="#8e6320" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
+const GoldenHandshakeIcon: React.FC = () => (
+  <svg width="56" height="56" viewBox="0 0 64 64" fill="none" aria-hidden="true" style={{ filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.7))', flexShrink: 0 }}>
+    <path
+      d="M8 28L18 18L29 24L37 18L55 29L46 41L36 47L21 44L8 28Z"
+      fill="url(#handshakeGrad)"
+      stroke="#5e3a0a"
+      strokeWidth="2.4"
+      strokeLinejoin="round"
+    />
+    <path d="M24 27L31 22C34 20 38 21 40 24L29 33" stroke="#5e3a0a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M22 39L27 34M28 42L33 37M34 44L39 39" stroke="#5e3a0a" strokeWidth="2.2" strokeLinecap="round" />
+    <defs>
+      <linearGradient id="handshakeGrad" x1="8" y1="18" x2="55" y2="47" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#fde9b4" />
+        <stop offset="55%" stopColor="#d8ab5b" />
+        <stop offset="100%" stopColor="#94651c" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
+const GoldenShieldIcon: React.FC = () => (
+  <svg width="52" height="52" viewBox="0 0 64 64" fill="none" aria-hidden="true" style={{ filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.7))', flexShrink: 0 }}>
+    <path
+      d="M32 8L52 15V31C52 44 43 52.5 32 57C21 52.5 12 44 12 31V15L32 8Z"
+      fill="url(#shieldOuterGrad)"
+      stroke="#5c3909"
+      strokeWidth="2.6"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M32 14L46 19V31C46 40.5 39.5 47 32 50.8C24.5 47 18 40.5 18 31V19L32 14Z"
+      fill="url(#shieldInnerGrad)"
+      stroke="#7a4e13"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    />
+    <path d="M32 14V50.8" stroke="#805315" strokeWidth="1.6" strokeOpacity="0.45" />
+    <defs>
+      <linearGradient id="shieldOuterGrad" x1="12" y1="8" x2="52" y2="57" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#fce8b2" />
+        <stop offset="50%" stopColor="#cfa04d" />
+        <stop offset="100%" stopColor="#855814" />
+      </linearGradient>
+      <linearGradient id="shieldInnerGrad" x1="18" y1="14" x2="46" y2="50" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#e7bf73" />
+        <stop offset="100%" stopColor="#9d6d22" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
+const EnvelopeInviteIcon: React.FC = () => (
+  <svg width="44" height="38" viewBox="0 0 48 42" fill="none" aria-hidden="true" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.65))', flexShrink: 0 }}>
+    {/* Green letter sticking out */}
+    <rect x="9" y="5" width="30" height="20" rx="2" fill="#8ad468" stroke="#366b22" strokeWidth="2" />
+    <line x1="15" y1="11" x2="33" y2="11" stroke="#366b22" strokeWidth="2" strokeLinecap="round" />
+    <line x1="15" y1="16" x2="29" y2="16" stroke="#366b22" strokeWidth="2" strokeLinecap="round" />
+    {/* Parchment envelope body */}
+    <path d="M4 15H44V37C44 38.6 42.6 40 41 40H7C5.4 40 4 38.6 4 37V15Z" fill="#d9be92" stroke="#5e4324" strokeWidth="2.2" />
+    <path d="M4 16L24 30L44 16" stroke="#5e4324" strokeWidth="2.2" strokeLinejoin="round" fill="#cbb082" />
+  </svg>
+);
+const CREATE_TRIBE_COST = 10_000_000;
+
+export const getTribeMaxMembers = (level: number = 1): number => {
+  const safeLvl = Math.max(1, Number(level) || 1);
+  return 6 + (safeLvl - 1) * 2;
+};
+
+export const getTribeLevelTarget = (level: number = 1): number => {
+  const safeLvl = Math.max(1, Number(level) || 1);
+  return 10000 * Math.pow(2, safeLvl - 1);
+};
+
+const TRIBE_EMBLEM_OPTIONS: Array<{ id: string; label: string }> = [
+  { id: '⚔️', label: 'السيوف المتقاطعة' },
+  { id: '👑', label: 'التاج الملكي' },
+  { id: '⚓', label: 'المرساة الذهبية' },
+  { id: '🛡️', label: 'درع الحرس' },
+  { id: '🐉', label: 'التنين البحري' },
+  { id: '🦈', label: 'القرش الأبيض' },
+  { id: '💎', label: 'جوهرة الأعماق' },
+  { id: '🧭', label: 'بوصلة القبطان' },
+];
+
+const TribeEmblemCrest: React.FC<{ emblem?: string; size?: number; fieryGlow?: boolean }> = ({
+  emblem = '⚔️',
+  size = 152,
+  fieryGlow = false,
+}) => {
+  const safeEmblem = emblem || '⚔️';
+  const uid = React.useId().replace(/:/g, '');
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 160 160"
+      fill="none"
+      aria-hidden="true"
+      style={{
+        filter: fieryGlow
+          ? 'drop-shadow(0 0 14px rgba(249, 115, 22, 0.85)) drop-shadow(0 0 26px rgba(234, 88, 12, 0.5)) drop-shadow(0 8px 16px rgba(0, 0, 0, 0.9))'
+          : 'drop-shadow(0 10px 20px rgba(0, 0, 0, 0.85))',
+        flexShrink: 0,
+        display: 'block',
+      }}
+    >
+      <defs>
+        <linearGradient id={`starGold-${uid}`} x1="18" y1="18" x2="142" y2="142" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#f8e0a4" />
+          <stop offset="45%" stopColor="#c79b52" />
+          <stop offset="100%" stopColor="#724e1e" />
+        </linearGradient>
+        <linearGradient id={`starInner-${uid}`} x1="30" y1="30" x2="130" y2="130" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#4c3823" />
+          <stop offset="100%" stopColor="#1e150c" />
+        </linearGradient>
+        <linearGradient id={`steelBlade-${uid}`} x1="40" y1="26" x2="120" y2="126" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#f8fafc" />
+          <stop offset="48%" stopColor="#cbd5e1" />
+          <stop offset="100%" stopColor="#64748b" />
+        </linearGradient>
+        <linearGradient id={`shieldFace-${uid}`} x1="48" y1="36" x2="112" y2="122" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#52463a" />
+          <stop offset="50%" stopColor="#2e2720" />
+          <stop offset="100%" stopColor="#191511" />
+        </linearGradient>
+      </defs>
+
+      {/* 8-Point Ornate Star Crest Backing */}
+      <rect
+        x="26"
+        y="26"
+        width="108"
+        height="108"
+        rx="10"
+        fill={`url(#starGold-${uid})`}
+        stroke="#4f3513"
+        strokeWidth="3"
+      />
+      <rect
+        x="26"
+        y="26"
+        width="108"
+        height="108"
+        rx="10"
+        transform="rotate(45 80 80)"
+        fill={`url(#starGold-${uid})`}
+        stroke="#4f3513"
+        strokeWidth="3"
+      />
+      <rect
+        x="35"
+        y="35"
+        width="90"
+        height="90"
+        rx="8"
+        fill={`url(#starInner-${uid})`}
+        stroke="#e6c478"
+        strokeWidth="2"
+      />
+      <rect
+        x="35"
+        y="35"
+        width="90"
+        height="90"
+        rx="8"
+        transform="rotate(45 80 80)"
+        fill={`url(#starInner-${uid})`}
+        stroke="#c5994d"
+        strokeWidth="1.6"
+      />
+      <circle cx="80" cy="80" r="46" fill="#231910" stroke="#b98f49" strokeWidth="2.5" />
+
+      {/* Center Heater Shield */}
+      <path
+        d="M80 39L111 48V78C111 99 98 113 80 122C62 113 49 99 49 78V48L80 39Z"
+        fill={`url(#shieldFace-${uid})`}
+        stroke={`url(#starGold-${uid})`}
+        strokeWidth="4.5"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M80 46L104 53V77C104 94 94 106 80 113C66 106 56 94 56 77V53L80 46Z"
+        fill="none"
+        stroke="#c59c56"
+        strokeWidth="1.6"
+        strokeOpacity="0.65"
+      />
+      <path d="M80 46V113" stroke="#d8b56c" strokeWidth="1.4" strokeOpacity="0.35" />
+
+      {/* Emblem Iconography */}
+      {safeEmblem === '⚔️' ? (
+        <g>
+          {/* Left-to-Right Crossed Sword */}
+          <path d="M40 38L52 42L108 104L101 111L44 49L40 38Z" fill={`url(#steelBlade-${uid})`} stroke="#1e293b" strokeWidth="2" strokeLinejoin="round" />
+          <path d="M42 40L104 107" stroke="#ffffff" strokeWidth="1.3" strokeOpacity="0.7" />
+          <path d="M96 114L116 94" stroke={`url(#starGold-${uid})`} strokeWidth="5.5" strokeLinecap="round" />
+          <path d="M105 106L119 121" stroke="#855814" strokeWidth="6" strokeLinecap="round" />
+          <circle cx="121" cy="123" r="4.5" fill={`url(#starGold-${uid})`} stroke="#4b320d" strokeWidth="1.5" />
+
+          {/* Right-to-Left Crossed Sword */}
+          <path d="M120 38L108 42L52 104L59 111L116 49L120 38Z" fill={`url(#steelBlade-${uid})`} stroke="#1e293b" strokeWidth="2" strokeLinejoin="round" />
+          <path d="M118 40L56 107" stroke="#ffffff" strokeWidth="1.3" strokeOpacity="0.7" />
+          <path d="M64 114L44 94" stroke={`url(#starGold-${uid})`} strokeWidth="5.5" strokeLinecap="round" />
+          <path d="M55 106L41 121" stroke="#855814" strokeWidth="6" strokeLinecap="round" />
+          <circle cx="39" cy="123" r="4.5" fill={`url(#starGold-${uid})`} stroke="#4b320d" strokeWidth="1.5" />
+        </g>
+      ) : (
+        <text
+          x="80"
+          y="91"
+          textAnchor="middle"
+          fontSize="44"
+          style={{ filter: 'drop-shadow(0 3px 4px rgba(0,0,0,0.85))' }}
+        >
+          {safeEmblem}
+        </text>
+      )}
+    </svg>
+  );
+};
+
+const GoldCoinBadgeIcon: React.FC = () => (
+  <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true" style={{ flexShrink: 0, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.75))' }}>
+    <circle cx="16" cy="16" r="13.5" fill="url(#coinOuter)" stroke="#78350f" strokeWidth="2" />
+    <circle cx="16" cy="16" r="9.5" fill="url(#coinInner)" stroke="#fef08a" strokeWidth="1.4" />
+    <path d="M16 10V22M12.5 13.5C12.5 11.8 14 11 16 11C18 11 19.5 11.8 19.5 13.2C19.5 15 16 15.5 16 17.5C16 19.5 19.5 19.5 19.5 21" stroke="#78350f" strokeWidth="2.1" strokeLinecap="round" />
+    <defs>
+      <linearGradient id="coinOuter" x1="4" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#fef08a" />
+        <stop offset="55%" stopColor="#eab308" />
+        <stop offset="100%" stopColor="#a16207" />
+      </linearGradient>
+      <linearGradient id="coinInner" x1="8" y1="8" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#fde047" />
+        <stop offset="100%" stopColor="#ca8a04" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
 interface TribeViewProps {
   onClose: () => void;
   tribeId: string;
@@ -164,6 +450,9 @@ interface TribeViewProps {
   donateToTribe?: (targetTribe: any) => Promise<void>;
 }
 
+type TribeScreenMode = 'menu' | 'create' | 'join' | 'invitations' | 'manage' | 'donations' | 'levels';
+type TribeManageTab = 'info' | 'members' | 'enemies' | 'message' | 'private';
+
 export default function TribeView({
   onClose,
   tribeId,
@@ -174,31 +463,65 @@ export default function TribeView({
   setTribes,
   gold,
   setGold,
-  gems,
-  setGems,
   currentUser,
   username,
   showToast,
   sendChatMessage,
   realPlayers = [],
   joinTribe,
-  donateToTribe,
 }: TribeViewProps) {
-  const [activeSubTab, setActiveSubTab] = useState<'board' | 'levels' | 'donations' | 'allTribes'>('board');
+  const hasJoinedTribe = Boolean(tribeId && tribeId.trim().length > 0);
+  const [screenMode, setScreenMode] = useState<TribeScreenMode>(() => (hasJoinedTribe ? 'manage' : 'menu'));
+  const [manageTab, setManageTab] = useState<TribeManageTab>('info');
   const [searchQuery, setSearchQuery] = useState('');
+  const [tribeSearchQuery, setTribeSearchQuery] = useState('');
   const [expandedLevels, setExpandedLevels] = useState<Record<number, boolean>>({ 1: true });
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [newTribeNameInput, setNewTribeNameInput] = useState('');
   const [newTribeDescInput, setNewTribeDescInput] = useState('');
-  const [newTribeEmblemInput, setNewTribeEmblemInput] = useState('👑');
+  const [newTribeEmblemInput, setNewTribeEmblemInput] = useState('⚔️');
+  const [showEmblemPicker, setShowEmblemPicker] = useState(false);
   const [customDonationAmount, setCustomDonationAmount] = useState<number>(500);
+  const [isEditingTribeName, setIsEditingTribeName] = useState(false);
+  const [editTribeNameInput, setEditTribeNameInput] = useState('');
+  const [showManageEmblemPicker, setShowManageEmblemPicker] = useState(false);
+  const [showJoinInvitesPanel, setShowJoinInvitesPanel] = useState(false);
+  const [statementDraft, setStatementDraft] = useState('');
+  const [myTribeDonations, setMyTribeDonations] = useState<number>(() => {
+    try {
+      return Number(localStorage.getItem('pirate_my_tribe_donations') || '0') || 0;
+    } catch {
+      return 0;
+    }
+  });
+  const [invitedPlayerIds, setInvitedPlayerIds] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('pirate_tribe_invites') || '[]');
+    } catch {
+      return [];
+    }
+  });
+  const [enemyTribeIds, setEnemyTribeIds] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('pirate_tribe_enemies') || '[]');
+    } catch {
+      return [];
+    }
+  });
+  const [tribeMessageInput, setTribeMessageInput] = useState('');
+  const [tribeAnnouncements, setTribeAnnouncements] = useState<Array<{ id: string; sender: string; text: string; time: string }>>([]);
 
-  // 1. Ensure the official "ملوك الأعماق" tribe exists in state & persistent storage
+  // Sync initial screen if membership state changes externally
+  useEffect(() => {
+    if (!hasJoinedTribe && (screenMode === 'manage' || screenMode === 'donations' || screenMode === 'levels')) {
+      setScreenMode('menu');
+    }
+  }, [hasJoinedTribe, screenMode]);
+
+  // Seed default official tribe into directory list if empty (does NOT auto-enroll the player)
   useEffect(() => {
     const officialExists = tribes.some((t) => t.name === 'ملوك الأعماق' || t.id === 'official_depth_kings');
     if (officialExists) return;
 
-    // Check local storage
     try {
       const stored = localStorage.getItem('pirate_local_tribes');
       if (stored) {
@@ -214,7 +537,7 @@ export default function TribeView({
           return;
         }
       }
-    } catch (e) {}
+    } catch {}
 
     const realCreatedAt = new Date().toISOString();
     const officialTribe = {
@@ -222,13 +545,13 @@ export default function TribeView({
       name: 'ملوك الأعماق',
       description: 'سجل قبيلة واحدة • عشرة أعماق — من بوابة الأعماق إلى العرش',
       emblem: '👑',
-      leaderId: currentUser?.uid || 'official',
-      leaderName: username || 'القبطان',
+      leaderId: 'official',
+      leaderName: 'قبطان الأعماق',
       level: 10,
       power: 550,
       donations: 550,
       membersCount: 1,
-      members: currentUser?.uid ? [currentUser.uid] : [],
+      members: [],
       lastUpdated: realCreatedAt,
       createdAt: realCreatedAt,
     };
@@ -245,9 +568,8 @@ export default function TribeView({
       if (!curList.some((t: any) => t.name === 'ملوك الأعماق')) {
         localStorage.setItem('pirate_local_tribes', JSON.stringify([officialTribe, ...curList]));
       }
-    } catch (e) {}
+    } catch {}
 
-    // Graceful silent Firestore sync attempt
     if (currentUser?.uid) {
       try {
         const q = query(collection(db, 'tribes'), where('name', '==', 'ملوك الأعماق'));
@@ -258,67 +580,71 @@ export default function TribeView({
             }
           })
           .catch(() => {});
-      } catch (e) {}
+      } catch {}
     }
-  }, [tribes, currentUser?.uid, username, setTribes]);
+  }, [tribes, currentUser?.uid, setTribes]);
 
-  // 2. Identify the active real tribe
   const currentTribe = useMemo(() => {
-    if (tribeId) {
-      const found = tribes.find((t) => t.id === tribeId);
-      if (found) return found;
-    }
-    const official = tribes.find((t) => t.name === 'ملوك الأعماق');
-    if (official) return official;
-
-    if (tribes.length > 0) return tribes[0];
-
+    if (!hasJoinedTribe) return null;
+    const found = tribes.find((t) => t.id === tribeId);
+    if (found) return found;
     return {
-      id: 'official_depth_kings',
-      name: tribeName || 'ملوك الأعماق',
-      description: 'سجل قبيلة واحدة • عشرة أعماق — من بوابة الأعماق إلى العرش',
-      emblem: '👑',
-      leaderId: currentUser?.uid || 'official',
+      id: tribeId,
+      name: tribeName || 'قبيلتي',
+      description: 'كن قائداً، اجمع أصدقاءك، لتغزو العالم',
+      statement: '',
+      emblem: '⚔️',
+      leaderId: currentUser?.uid || 'captain',
       leaderName: username || 'القبطان',
-      level: 10,
-      power: 550,
-      donations: 550,
+      level: 1,
+      power: 10,
+      donations: 0,
       membersCount: 1,
+      maxMembers: 6,
       members: currentUser?.uid ? [currentUser.uid] : [],
       lastUpdated: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
     };
-  }, [tribeId, tribes, tribeName, currentUser?.uid, username]);
+  }, [hasJoinedTribe, tribeId, tribes, tribeName, currentUser?.uid, username]);
 
-  // 3. Real Points & Daily Calculations from Actual Tribe Data
+  useEffect(() => {
+    if (currentTribe) {
+      setStatementDraft(currentTribe.statement || '');
+      setEditTribeNameInput(currentTribe.name || '');
+    }
+  }, [currentTribe?.id, currentTribe?.statement, currentTribe?.name]);
+
+  const currentTribeLevel = Math.max(1, Number(currentTribe?.level) || 1);
+  const currentTribeMaxMembers = getTribeMaxMembers(currentTribeLevel);
+  const currentTribeMembersCount = Math.max(
+    1,
+    Number(currentTribe?.membersCount) || (Array.isArray(currentTribe?.members) ? currentTribe.members.length : 1)
+  );
+  const currentTribeTarget = getTribeLevelTarget(currentTribeLevel);
+  const currentTribeDonations = Math.max(0, Number(currentTribe?.donations) || 0);
+  const currentTribeRank = useMemo(() => {
+    if (!currentTribe || tribes.length === 0) return 50;
+    const sorted = [...tribes].sort((a, b) => (b.power || 0) - (a.power || 0));
+    const idx = sorted.findIndex((t) => t.id === currentTribe.id);
+    return idx >= 0 ? idx + 1 : 50;
+  }, [tribes, currentTribe]);
+
+  const invitationsCount = 0;
+
   const totalBalancePoints = useMemo(() => {
-    if (!currentTribe) return 550;
+    if (!currentTribe) return 0;
     if (typeof currentTribe.power === 'number' && currentTribe.power > 0) {
       return currentTribe.power;
     }
-    const lvl = currentTribe.level || 10;
+    const lvl = currentTribe.level || 1;
     return TRIBE_DEPTHS.filter((d) => d.level <= lvl).reduce((sum, d) => sum + d.points, 0);
   }, [currentTribe]);
 
   const totalDailyAddition = useMemo(() => {
-    if (!currentTribe) return 550;
-    const lvl = currentTribe.level || 10;
+    if (!currentTribe) return 10;
+    const lvl = currentTribe.level || 1;
     return TRIBE_DEPTHS.filter((d) => d.level <= lvl).reduce((sum, d) => sum + d.dailyPoints, 0);
   }, [currentTribe]);
 
-  // 4. Real Last Record Date: Live formatted date
-  const realLastLogDate = useMemo(() => {
-    if (currentTribe?.lastUpdated) {
-      try {
-        return new Date(currentTribe.lastUpdated).toISOString().slice(0, 10);
-      } catch {
-        return new Date().toISOString().slice(0, 10);
-      }
-    }
-    return new Date().toISOString().slice(0, 10);
-  }, [currentTribe]);
-
-  // 5. Real Donors from realPlayers in Firestore
   const realTribeDonors = useMemo(() => {
     if (!currentTribe) return [];
     const membersIds = Array.isArray(currentTribe.members) ? currentTribe.members : [];
@@ -346,7 +672,17 @@ export default function TribeView({
     }));
   }, [currentTribe, realPlayers, currentUser, username]);
 
-  // Filter levels based on search query
+  const filteredTribes = useMemo(() => {
+    if (!tribeSearchQuery.trim()) return tribes;
+    const q = tribeSearchQuery.trim().toLowerCase();
+    return tribes.filter(
+      (t) =>
+        (t.name || '').toLowerCase().includes(q) ||
+        (t.leaderName || '').toLowerCase().includes(q) ||
+        (t.description || '').toLowerCase().includes(q)
+    );
+  }, [tribes, tribeSearchQuery]);
+
   const filteredLevels = useMemo(() => {
     if (!searchQuery.trim()) return TRIBE_DEPTHS;
     const q = searchQuery.trim().toLowerCase();
@@ -355,8 +691,7 @@ export default function TribeView({
         lvl.name.toLowerCase().includes(q) ||
         lvl.tag.toLowerCase().includes(q) ||
         String(lvl.level).includes(q) ||
-        lvl.numberAr.includes(q) ||
-        String(lvl.points).includes(q)
+        lvl.numberAr.includes(q)
     );
   }, [searchQuery]);
 
@@ -367,149 +702,250 @@ export default function TribeView({
     }));
   };
 
-  const scrollToLevels = () => {
-    setActiveSubTab('board');
-    setTimeout(() => {
-      const el = document.getElementById('clan-levels-section');
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 100);
+  const updateActiveTribeFields = async (patch: Record<string, any>) => {
+    if (!currentTribe?.id) return;
+    const nowIso = new Date().toISOString();
+    const fullPatch = { ...patch, lastUpdated: nowIso };
+    if (setTribes) {
+      setTribes((prev) =>
+        prev.map((t) => (t.id === currentTribe.id ? { ...t, ...fullPatch } : t))
+      );
+    }
+    try {
+      const stored = JSON.parse(localStorage.getItem('pirate_local_tribes') || '[]');
+      const exists = stored.some((t: any) => t.id === currentTribe.id);
+      const updated = exists
+        ? stored.map((t: any) => (t.id === currentTribe.id ? { ...t, ...fullPatch } : t))
+        : [{ ...currentTribe, ...fullPatch }, ...stored];
+      localStorage.setItem('pirate_local_tribes', JSON.stringify(updated));
+    } catch {}
+    try {
+      await updateDoc(doc(db, 'tribes', currentTribe.id), fullPatch);
+    } catch {}
   };
 
-  // Robust, Safe Donation Handler
+  const handleSaveTribeName = async () => {
+    const trimmed = editTribeNameInput.trim().slice(0, 50);
+    if (!trimmed) {
+      if (showToast) showToast('⚠️ يرجى كتابة اسم القبيلة أولاً!', 'error');
+      return;
+    }
+    setTribeName(trimmed);
+    try {
+      localStorage.setItem('pirate_tribe_name', trimmed);
+    } catch {}
+    if (currentUser?.uid) {
+      updateDoc(doc(db, 'users', currentUser.uid), { tribeName: trimmed }).catch(() => {});
+    }
+    await updateActiveTribeFields({ name: trimmed });
+    setIsEditingTribeName(false);
+    if (showToast) showToast(`✅ تم تغيير اسم القبيلة إلى [${trimmed}].`, 'success');
+  };
+
+  const handleChangeManageEmblem = async (emblemId: string) => {
+    await updateActiveTribeFields({ emblem: emblemId });
+    setShowManageEmblemPicker(false);
+    if (showToast) showToast('✅ تم تحديث شعار القبيلة بنجاح.', 'success');
+  };
+
+  const handleSaveStatement = async () => {
+    const trimmed = statementDraft.trim().slice(0, 500);
+    await updateActiveTribeFields({ statement: trimmed });
+    if (showToast) showToast('✅ تم حفظ تصريح القبيلة.', 'success');
+  };
+
+  const handleInvitePlayer = (player: any) => {
+    const pId = player.userId || player.id;
+    if (!pId) return;
+    if (currentTribeMembersCount >= currentTribeMaxMembers) {
+      if (showToast) {
+        showToast(`⚠️ اكتمل عدد أعضاء القبيلة في المستوى ${currentTribeLevel} (${currentTribeMaxMembers} أعضاء)!`, 'error');
+      }
+      return;
+    }
+    if (!invitedPlayerIds.includes(pId)) {
+      const next = [...invitedPlayerIds, pId];
+      setInvitedPlayerIds(next);
+      try {
+        localStorage.setItem('pirate_tribe_invites', JSON.stringify(next));
+      } catch {}
+    }
+    if (showToast) showToast(`📩 تم إرسال دعوة انضمام إلى القبطان @${player.username || 'اللاعب'}!`, 'success');
+  };
+
   const handleRealDonate = async (amount: number) => {
     if (gold < amount) {
       if (showToast) showToast('⚠️ الذهب غير كافٍ لإتمام التبرع!', 'error');
-      else alert('⚠️ الذهب غير كافٍ لإتمام التبرع!');
       return;
     }
 
     if (!currentTribe?.id) {
       if (showToast) showToast('⚠️ يرجى الانضمام إلى قبيلة أولاً!', 'error');
-      else alert('⚠️ يرجى الانضمام إلى قبيلة أولاً!');
       return;
     }
 
-    // Deduct gold locally
     setGold((prev) => Math.max(0, prev - amount));
+    setMyTribeDonations((prev) => {
+      const next = prev + amount;
+      try {
+        localStorage.setItem('pirate_my_tribe_donations', String(next));
+      } catch {}
+      return next;
+    });
 
     const nextDonations = (currentTribe.donations || 0) + amount;
     const nextPower = (currentTribe.power || 0) + amount;
+    const curLvl = Math.max(1, Number(currentTribe.level) || 1);
+    let nextLevel = curLvl;
+    while (nextLevel < 10 && nextDonations >= getTribeLevelTarget(nextLevel)) {
+      nextLevel += 1;
+    }
+    const nextMaxMembers = getTribeMaxMembers(nextLevel);
     const nowIso = new Date().toISOString();
 
-    // 1. Update local state and persistence
     if (setTribes) {
       setTribes((prev) =>
-        prev.map((t) => {
-          if (t.id === currentTribe.id) {
-            return { ...t, donations: nextDonations, power: nextPower, lastUpdated: nowIso };
-          }
-          return t;
-        })
+        prev.map((t) =>
+          t.id === currentTribe.id
+            ? {
+                ...t,
+                donations: nextDonations,
+                power: nextPower,
+                level: nextLevel,
+                maxMembers: nextMaxMembers,
+                lastUpdated: nowIso,
+              }
+            : t
+        )
       );
     }
     try {
       const stored = JSON.parse(localStorage.getItem('pirate_local_tribes') || '[]');
       const updated = stored.map((t: any) =>
-        t.id === currentTribe.id ? { ...t, donations: nextDonations, power: nextPower, lastUpdated: nowIso } : t
+        t.id === currentTribe.id
+          ? {
+              ...t,
+              donations: nextDonations,
+              power: nextPower,
+              level: nextLevel,
+              maxMembers: nextMaxMembers,
+              lastUpdated: nowIso,
+            }
+          : t
       );
       localStorage.setItem('pirate_local_tribes', JSON.stringify(updated));
-    } catch (e) {}
+    } catch {}
 
-    // 2. Update real user document in Firestore (user always owns their own document)
     if (currentUser?.uid) {
       try {
-        const userRef = doc(db, 'users', currentUser.uid);
-        await updateDoc(userRef, {
+        await updateDoc(doc(db, 'users', currentUser.uid), {
           gold: increment(-amount),
           tribeDonations: increment(amount),
         });
-      } catch (err) {}
+      } catch {}
     }
 
-    // 3. Graceful Firestore update for tribe document
     try {
-      const tribeRef = doc(db, 'tribes', currentTribe.id);
-      await updateDoc(tribeRef, {
+      await updateDoc(doc(db, 'tribes', currentTribe.id), {
         donations: increment(amount),
         power: increment(amount),
+        level: nextLevel,
+        maxMembers: nextMaxMembers,
         lastUpdated: nowIso,
       });
-    } catch (firestoreErr) {
-      console.warn('Firestore tribe update synced in user document & local cache');
-    }
+    } catch {}
 
     if (showToast) {
-      showToast(`🎉 تم التبرع بمبلغ ${amount.toLocaleString('ar-EG')} 🪙 لخزينة القبيلة بنجاح!`, 'success');
-    } else {
-      alert(`🎉 تم التبرع بمبلغ ${amount.toLocaleString('ar-EG')} 🪙 لخزينة القبيلة بنجاح!`);
+      if (nextLevel > curLvl) {
+        showToast(
+          `🎉 تم التبرع بـ ${amount.toLocaleString('en-US')} 🪙 وارتقت القبيلة إلى المستوى ${nextLevel} (السعة: ${nextMaxMembers} أعضاء)!`,
+          'success'
+        );
+      } else {
+        showToast(`🎉 تم التبرع بمبلغ ${amount.toLocaleString('en-US')} 🪙 لخزينة القبيلة بنجاح!`, 'success');
+      }
     }
 
     if (sendChatMessage) {
       sendChatMessage(
         'نظام القبيلة 🛡️',
         '🪙',
-        `تبرع القبطان @${username} بمبلغ ${amount.toLocaleString('ar-EG')} 🪙 لصالح قبيلة [${currentTribe.name}]!`
+        `تبرع القبطان @${username} بمبلغ ${amount.toLocaleString('en-US')} 🪙 لصالح قبيلة [${currentTribe.name}]!`
       );
     }
   };
 
-  // Robust, Safe Tribe Creation Handler: Never fails or displays permission errors
   const handleCreateNewTribe = async () => {
-    if (!newTribeNameInput.trim()) {
-      alert('يرجى كتابة اسم القبيلة!');
+    const trimmedName = newTribeNameInput.trim();
+    if (!trimmedName) {
+      if (showToast) showToast('⚠️ يرجى كتابة اسم القبيلة أولاً!', 'error');
       return;
     }
+
+    if (gold < CREATE_TRIBE_COST) {
+      if (showToast) {
+        showToast(
+          `⚠️ تحتاج إلى ${CREATE_TRIBE_COST.toLocaleString('en-US')} ذهب (10 مليون ذهب) لإنشاء قبيلة!`,
+          'error'
+        );
+      }
+      return;
+    }
+
+    setGold((prev) => Math.max(0, prev - CREATE_TRIBE_COST));
 
     const realCreatedAt = new Date().toISOString();
     const tribeUniqueId = 'tribe_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
     const newTribe = {
       id: tribeUniqueId,
-      name: newTribeNameInput.trim(),
-      description: newTribeDescInput.trim() || 'سجل قبيلة واحدة • عشرة أعماق',
-      emblem: newTribeEmblemInput,
+      name: trimmedName.slice(0, 50),
+      description: newTribeDescInput.trim() || 'كن قائداً، اجمع أصدقاءك، لتغزو العالم',
+      statement: '',
+      emblem: newTribeEmblemInput || '⚔️',
       leaderId: currentUser?.uid || 'captain_' + Date.now(),
       leaderName: username || 'القبطان',
       level: 1,
       power: 10,
       donations: 0,
       membersCount: 1,
+      maxMembers: 6,
       members: [currentUser?.uid || 'captain_' + Date.now()],
       lastUpdated: realCreatedAt,
       createdAt: realCreatedAt,
     };
 
-    // 1. Immediately apply to local state & persistent storage
     if (setTribes) {
       setTribes((prev) => [newTribe, ...prev.filter((t) => t.id !== tribeUniqueId)]);
     }
     setTribeId(tribeUniqueId);
-    setTribeName(newTribeNameInput.trim());
+    setTribeName(newTribe.name);
 
     try {
       const stored = JSON.parse(localStorage.getItem('pirate_local_tribes') || '[]');
       localStorage.setItem('pirate_local_tribes', JSON.stringify([newTribe, ...stored]));
       localStorage.setItem('pirate_tribe_id', tribeUniqueId);
-      localStorage.setItem('pirate_tribe_name', newTribeNameInput.trim());
-    } catch (e) {}
+      localStorage.setItem('pirate_tribe_name', newTribe.name);
+      localStorage.setItem('pirate_my_tribe_donations', '0');
+    } catch {}
 
-    setShowCreateModal(false);
+    setMyTribeDonations(0);
+    setNewTribeNameInput('');
+    setNewTribeDescInput('');
+    setShowEmblemPicker(false);
+    setManageTab('info');
+    setScreenMode('manage');
 
-    // 2. Update user profile document in Firestore (always permitted)
     if (currentUser?.uid) {
       try {
-        const userRef = doc(db, 'users', currentUser.uid);
-        await updateDoc(userRef, {
+        await updateDoc(doc(db, 'users', currentUser.uid), {
+          gold: increment(-CREATE_TRIBE_COST),
           tribeId: tribeUniqueId,
-          tribeName: newTribeNameInput.trim(),
+          tribeName: newTribe.name,
+          tribeSnapshot: newTribe,
         });
-      } catch (userErr) {
-        console.warn('User document update:', userErr);
-      }
+      } catch {}
     }
 
-    // 3. Graceful cloud write attempt without throwing unhandled exceptions
     try {
       const docRef = await addDoc(collection(db, 'tribes'), newTribe);
       if (docRef?.id) {
@@ -519,30 +955,35 @@ export default function TribeView({
         }
         setTribeId(docRef.id);
         if (currentUser?.uid) {
-          updateDoc(doc(db, 'users', currentUser.uid), {
-            tribeId: docRef.id,
-          }).catch(() => {});
+          updateDoc(doc(db, 'users', currentUser.uid), { tribeId: docRef.id }).catch(() => {});
         }
       }
-    } catch (firestoreErr: any) {
-      console.warn('Firestore cloud tribes collection notice (saved in local store & user profile):', firestoreErr?.message);
+    } catch {}
+
+    if (showToast) {
+      showToast(`🎉 تم تأسيس قبيلة [${newTribe.name}] بنجاح مقابل 10,000,000 🪙!`, 'success');
     }
 
-    if (showToast) showToast(`🎉 تم تأسيس قبيلة [${newTribeNameInput.trim()}] بنجاح!`, 'success');
-    else alert(`🎉 تم تأسيس قبيلة [${newTribeNameInput.trim()}] بنجاح!`);
+    if (sendChatMessage) {
+      sendChatMessage(
+        'نظام القبيلة 🛡️',
+        newTribe.emblem,
+        `أسس القبطان @${username} قبيلة جديدة [${newTribe.name}]!`
+      );
+    }
   };
 
-  // Robust Tribe Join/Leave Handler
   const handleToggleJoin = async (targetTribe: any) => {
     if (!targetTribe) return;
     const isMember = (currentUser?.uid && targetTribe.members?.includes(currentUser.uid)) || targetTribe.id === tribeId;
 
     if (isMember) {
-      // Leave tribe
       setTribeId('');
       setTribeName('');
-      localStorage.removeItem('pirate_tribe_id');
-      localStorage.removeItem('pirate_tribe_name');
+      try {
+        localStorage.removeItem('pirate_tribe_id');
+        localStorage.removeItem('pirate_tribe_name');
+      } catch {}
 
       if (currentUser?.uid) {
         updateDoc(doc(db, 'users', currentUser.uid), {
@@ -563,14 +1004,25 @@ export default function TribeView({
           )
         );
       }
+      setScreenMode('menu');
       if (showToast) showToast(`تمت مغادرة قبيلة [${targetTribe.name}].`, 'info');
-      else alert(`تمت مغادرة قبيلة [${targetTribe.name}].`);
     } else {
-      // Join tribe
+      const targetMaxMembers = getTribeMaxMembers(targetTribe.level || 1);
+      const targetMembersCount =
+        Number(targetTribe.membersCount) || (Array.isArray(targetTribe.members) ? targetTribe.members.length : 0);
+      if (targetMembersCount >= targetMaxMembers) {
+        if (showToast) {
+          showToast(`⚠️ عذراً، قبيلة [${targetTribe.name}] مكتملة العدد (${targetMembersCount}/${targetMaxMembers})!`, 'error');
+        }
+        return;
+      }
+
       setTribeId(targetTribe.id);
       setTribeName(targetTribe.name);
-      localStorage.setItem('pirate_tribe_id', targetTribe.id);
-      localStorage.setItem('pirate_tribe_name', targetTribe.name);
+      try {
+        localStorage.setItem('pirate_tribe_id', targetTribe.id);
+        localStorage.setItem('pirate_tribe_name', targetTribe.name);
+      } catch {}
 
       if (currentUser?.uid) {
         updateDoc(doc(db, 'users', currentUser.uid), {
@@ -591,8 +1043,9 @@ export default function TribeView({
           )
         );
       }
+      setManageTab('info');
+      setScreenMode('manage');
       if (showToast) showToast(`🎉 تهانينا! انضممت بنجاح إلى قبيلة [${targetTribe.name}].`, 'success');
-      else alert(`🎉 تهانينا! انضممت بنجاح إلى قبيلة [${targetTribe.name}].`);
     }
 
     if (joinTribe) {
@@ -600,899 +1053,2285 @@ export default function TribeView({
     }
   };
 
+  // Back button handler depending on current sub-screen
+  const handleBackAction = () => {
+    if (screenMode === 'menu' || (screenMode === 'manage' && hasJoinedTribe)) {
+      onClose();
+      return;
+    }
+    if (hasJoinedTribe) {
+      setScreenMode('manage');
+    } else {
+      setScreenMode('menu');
+    }
+  };
+
   return (
+    <div
+      dir="rtl"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        background:
+          'radial-gradient(circle at 50% 0%, #1d2633 0%, #121721 48%, #0a0d13 100%)',
+        color: '#f8fafc',
+        fontFamily: "'Cairo', 'Tajawal', system-ui, -apple-system, sans-serif",
+        WebkitFontSmoothing: 'antialiased',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        boxSizing: 'border-box',
+      }}
+    >
+      {/* Subtle stone-crack & warm fire-ember background atmosphere */}
       <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 9999,
-          background: 'linear-gradient(180deg, #071728 0%, #06121e 40%, #030a12 100%)',
-          color: '#f8fafc',
-          fontFamily: "'Cairo', 'Tajawal', system-ui, -apple-system, sans-serif",
-          WebkitFontSmoothing: 'antialiased',
-          direction: 'rtl',
-          overflowY: 'auto',
-          WebkitOverflowScrolling: 'touch',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-      {/* Background stars / particle grid styling */}
-      <div
+        aria-hidden="true"
         style={{
           position: 'fixed',
           inset: 0,
           pointerEvents: 'none',
-          backgroundImage:
-            'radial-gradient(circle at 50% 10%, rgba(56, 189, 248, 0.08) 0%, transparent 60%), radial-gradient(#38bdf8 0.6px, transparent 0.6px)',
-          backgroundSize: '100% 100%, 36px 36px',
-          opacity: 0.45,
           zIndex: 0,
+          backgroundImage: `
+            radial-gradient(circle at 14% 92%, rgba(251, 146, 60, 0.28) 0%, transparent 18%),
+            radial-gradient(circle at 86% 88%, rgba(249, 115, 22, 0.24) 0%, transparent 22%),
+            radial-gradient(circle at 50% 100%, rgba(234, 88, 12, 0.16) 0%, transparent 45%),
+            radial-gradient(2px 2px at 18% 78%, rgba(253, 186, 116, 0.85), transparent),
+            radial-gradient(2.5px 2.5px at 82% 72%, rgba(251, 146, 60, 0.8), transparent),
+            radial-gradient(2px 2px at 26% 88%, rgba(253, 224, 71, 0.75), transparent),
+            radial-gradient(3px 3px at 74% 85%, rgba(249, 115, 22, 0.8), transparent),
+            radial-gradient(2px 2px at 42% 94%, rgba(253, 186, 116, 0.7), transparent),
+            radial-gradient(2px 2px at 65% 91%, rgba(251, 146, 60, 0.7), transparent),
+            radial-gradient(2px 2px at 90% 18%, rgba(253, 186, 116, 0.5), transparent),
+            radial-gradient(2px 2px at 8% 36%, rgba(251, 146, 60, 0.45), transparent)
+          `,
         }}
       />
 
-      {/* Main Inner Wrapper - Full Screen Width */}
-      <div
-        style={{
-          position: 'relative',
-          zIndex: 1,
-          width: '100%',
-          maxWidth: '100%',
-          boxSizing: 'border-box',
-          margin: 0,
-          padding: '18px 18px 54px 18px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '18px',
-        }}
-      >
-        {/* ===================== TOP NAVIGATION BAR ===================== */}
+      {/* Warm Stone Archway & Antique Map Atmosphere when in Create Tribe View */}
+      {screenMode === 'create' && (
         <div
+          aria-hidden="true"
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-            padding: '6px 0 12px 0',
+            position: 'fixed',
+            inset: 0,
+            pointerEvents: 'none',
+            zIndex: 1,
+            backgroundImage: `
+              radial-gradient(ellipse 46% 52% at 24% 38%, rgba(188, 152, 108, 0.34) 0%, rgba(114, 86, 54, 0.22) 45%, rgba(22, 18, 14, 0.88) 82%),
+              radial-gradient(ellipse 48% 54% at 76% 64%, rgba(164, 128, 78, 0.28) 0%, rgba(92, 69, 42, 0.14) 48%, transparent 80%),
+              linear-gradient(180deg, rgba(16, 13, 10, 0.82) 0%, rgba(28, 22, 16, 0.35) 38%, rgba(15, 12, 10, 0.88) 100%)
+            `,
           }}
         >
-          {/* Left Pill: لوحة القبيلة */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => setActiveSubTab('board')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                background:
-                  activeSubTab === 'board'
-                    ? 'rgba(13, 148, 136, 0.34)'
-                    : 'rgba(15, 23, 42, 0.78)',
-                border:
-                  activeSubTab === 'board'
-                    ? '2px solid rgba(45, 212, 191, 0.65)'
-                    : '1.5px solid rgba(71, 85, 105, 0.8)',
-                borderRadius: '9999px',
-                padding: '12px 22px',
-                color: activeSubTab === 'board' ? '#5eead4' : '#f1f5f9',
-                fontFamily: 'inherit',
-                fontSize: '25px',
-                fontWeight: '900',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <span
-                style={{
-                  width: '13px',
-                  height: '13px',
-                  borderRadius: '50%',
-                  background: '#10b981',
-                  boxShadow: '0 0 8px #10b981',
-                }}
-              />
-              <span>لوحة القبيلة</span>
-            </button>
+          {/* Subtle antique nautical map & stone arch lines */}
+          <svg width="100%" height="100%" viewBox="0 0 1000 1200" preserveAspectRatio="xMidYMid slice" style={{ opacity: 0.18 }}>
+            <path d="M120 760V360C120 220 340 220 340 360V760" stroke="#d4b37f" strokeWidth="4" fill="none" />
+            <path d="M100 460H360M100 560H360M100 660H360M230 250V760" stroke="#b9935a" strokeWidth="1.5" strokeDasharray="8 6" fill="none" />
+            <circle cx="760" cy="680" r="145" stroke="#cfa96b" strokeWidth="2" strokeDasharray="6 6" fill="none" />
+            <circle cx="760" cy="680" r="110" stroke="#cfa96b" strokeWidth="1.2" fill="none" />
+            <path d="M760 515V845M595 680H925" stroke="#cfa96b" strokeWidth="1.4" fill="none" />
+            <path d="M560 440C620 490 690 460 740 520C800 590 880 550 930 620" stroke="#c89f61" strokeWidth="2" strokeDasharray="10 8" fill="none" />
+          </svg>
+        </div>
+      )}
 
-            {/* Middle Nav Links: التبرعات & المستويات */}
-            <button
-              onClick={() => setActiveSubTab('donations')}
-              style={{
-                background: activeSubTab === 'donations' ? 'rgba(56, 189, 248, 0.24)' : 'rgba(15, 23, 42, 0.55)',
-                border: activeSubTab === 'donations' ? '2px solid rgba(56, 189, 248, 0.6)' : '1.5px solid rgba(51, 65, 85, 0.45)',
-                color: activeSubTab === 'donations' ? '#7dd3fc' : '#f1f5f9',
-                fontFamily: 'inherit',
-                fontSize: '25px',
-                fontWeight: '800',
-                cursor: 'pointer',
-                padding: '12px 20px',
-                borderRadius: '12px',
-              }}
-            >
-              التبرعات
-            </button>
+      {/* Left & Right Ornate Carved Stone/Bronze Frame Pillars */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'fixed',
+          top: 0,
+          bottom: 0,
+          left: 0,
+          width: screenMode === 'create' ? '14px' : '28px',
+          background: 'linear-gradient(90deg, #2d2016 0%, #4b3826 55%, #1c140d 100%)',
+          borderRight: '3px solid #7f613b',
+          boxShadow: 'inset 0 0 12px rgba(0,0,0,0.85), 4px 0 18px rgba(0,0,0,0.75)',
+          zIndex: 2,
+          pointerEvents: 'none',
+        }}
+      />
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'fixed',
+          top: 0,
+          bottom: 0,
+          right: 0,
+          width: screenMode === 'create' ? '14px' : '28px',
+          background: 'linear-gradient(270deg, #2d2016 0%, #4b3826 55%, #1c140d 100%)',
+          borderLeft: '3px solid #7f613b',
+          boxShadow: 'inset 0 0 12px rgba(0,0,0,0.85), -4px 0 18px rgba(0,0,0,0.75)',
+          zIndex: 2,
+          pointerEvents: 'none',
+        }}
+      />
 
-            <button
-              onClick={() => setActiveSubTab('levels')}
-              style={{
-                background: activeSubTab === 'levels' ? 'rgba(56, 189, 248, 0.24)' : 'rgba(15, 23, 42, 0.55)',
-                border: activeSubTab === 'levels' ? '2px solid rgba(56, 189, 248, 0.6)' : '1.5px solid rgba(51, 65, 85, 0.45)',
-                color: activeSubTab === 'levels' ? '#7dd3fc' : '#f1f5f9',
-                fontFamily: 'inherit',
-                fontSize: '25px',
-                fontWeight: '800',
-                cursor: 'pointer',
-                padding: '12px 20px',
-                borderRadius: '12px',
-              }}
-            >
-              المستويات
-            </button>
-
-            <button
-              onClick={() => setActiveSubTab('allTribes')}
-              style={{
-                background: activeSubTab === 'allTribes' ? 'rgba(56, 189, 248, 0.24)' : 'rgba(15, 23, 42, 0.55)',
-                border: activeSubTab === 'allTribes' ? '2px solid rgba(56, 189, 248, 0.6)' : '1.5px solid rgba(51, 65, 85, 0.45)',
-                color: activeSubTab === 'allTribes' ? '#7dd3fc' : '#f1f5f9',
-                fontFamily: 'inherit',
-                fontSize: '25px',
-                fontWeight: '800',
-                cursor: 'pointer',
-                padding: '12px 20px',
-                borderRadius: '12px',
-              }}
-            >
-              القبائل ({toArabicDigits(tribes.length)})
-            </button>
-          </div>
-
-          {/* Right: Golden Crown Badge & Close button */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexShrink: 0 }}>
+      {/* Top Ornate Frame Border + Header */}
+      {screenMode === 'create' ? (
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 4,
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            paddingTop: '24px',
+            flexShrink: 0,
+          }}
+        >
+          {/* Thin top bronze border line */}
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '6px',
+              background: 'linear-gradient(90deg, #7c5c34 0%, #d4af68 50%, #7c5c34 100%)',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.8)',
+            }}
+          />
+          <h1
+            style={{
+              margin: '6px 0 10px 0',
+              fontSize: '48px',
+              fontWeight: '900',
+              lineHeight: 1.15,
+              color: '#efd08a',
+              textShadow: '0 4px 8px rgba(0,0,0,0.95), 0 0 18px rgba(234, 179, 8, 0.25)',
+            }}
+          >
+            إنشاء قبيلة
+          </h1>
+          {/* Ornate Gold Scroll Divider matching reference */}
+          <svg width="360" height="22" viewBox="0 0 360 22" fill="none" aria-hidden="true">
+            <path d="M12 10H152" stroke="#c89e55" strokeWidth="2.2" strokeLinecap="round" />
+            <path d="M208 10H348" stroke="#c89e55" strokeWidth="2.2" strokeLinecap="round" />
+            <path d="M156 10L180 3L204 10L180 18L156 10Z" fill="#e6c375" stroke="#5b3e14" strokeWidth="1.5" />
+            <path d="M148 10C156 16 165 19 171 13" stroke="#c89e55" strokeWidth="2" strokeLinecap="round" />
+            <path d="M212 10C204 16 195 19 189 13" stroke="#c89e55" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </div>
+      ) : screenMode === 'manage' && currentTribe ? (
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 4,
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            flexShrink: 0,
+          }}
+        >
+          {/* Ornate Runic Bronze Top Header Bar */}
+          <div
+            style={{
+              width: '100%',
+              padding: '12px 24px 10px 24px',
+              background: 'linear-gradient(180deg, #2b2219 0%, #17130f 100%)',
+              borderBottom: '3px solid #8a6c43',
+              boxShadow: '0 8px 20px rgba(0,0,0,0.8)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '20px',
+              boxSizing: 'border-box',
+            }}
+          >
+            {/* Right Runic Carved Panel (in RTL) */}
             <div
+              aria-hidden="true"
               style={{
-                position: 'relative',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
+                flex: 1,
+                maxWidth: '210px',
+                textAlign: 'center',
+                color: '#d4ab62',
+                fontSize: '18px',
+                fontWeight: '900',
+                letterSpacing: '4px',
+                opacity: 0.72,
+                textShadow: '0 1px 4px rgba(0,0,0,0.9)',
+                userSelect: 'none',
               }}
             >
-              <div
-                style={{
-                  width: '66px',
-                  height: '66px',
-                  borderRadius: '16px',
-                  border: '2px solid #d4af37',
-                  background: 'linear-gradient(135deg, rgba(30, 24, 12, 0.9) 0%, rgba(12, 31, 51, 0.95) 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 4px 12px rgba(212, 175, 55, 0.25)',
-                }}
-              >
-                <svg
-                  width="38"
-                  height="38"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#facc15"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14v2H5z" />
-                </svg>
-              </div>
-              <span
-                style={{
-                  position: 'absolute',
-                  bottom: '-9px',
-                  background: 'linear-gradient(to right, #d4af37, #ca8a04)',
-                  color: '#1a1303',
-                  fontSize: '15px',
-                  fontWeight: '900',
-                  padding: '2px 9px',
-                  borderRadius: '9999px',
-                  border: '1px solid #fef08a',
-                  letterSpacing: '0.5px',
-                }}
-              >
-                ع.م
-              </span>
+              ᛟ ᚦ ᚱ ᚨ ᛏ ᛒ
             </div>
 
-            {/* Close Button */}
-            <button
-              onClick={onClose}
-              title="إغلاق والعودة للميناء"
+            {/* Centered Hexagonal Plaque */}
+            <div
               style={{
-                background: 'rgba(15, 23, 42, 0.85)',
-                border: '2px solid rgba(148, 163, 184, 0.85)',
-                color: '#ffffff',
-                width: '60px',
-                height: '60px',
-                borderRadius: '14px',
-                fontFamily: 'inherit',
-                fontSize: '28px',
-                fontWeight: '900',
+                minWidth: '330px',
+                padding: '10px 44px',
+                background: 'linear-gradient(180deg, #35302a 0%, #1c1a18 65%, #121110 100%)',
+                border: '3px solid #9d7b47',
+                borderRadius: '8px',
+                clipPath: 'polygon(6% 0%, 94% 0%, 100% 50%, 94% 100%, 6% 100%, 0% 50%)',
+                boxShadow: '0 6px 18px rgba(0,0,0,0.85), inset 0 2px 0 rgba(247, 223, 163, 0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
               }}
             >
-              ✕
-            </button>
+              <h1
+                style={{
+                  margin: 0,
+                  fontSize: '40px',
+                  fontWeight: '900',
+                  color: '#f2d382',
+                  textShadow: '0 3px 6px rgba(0,0,0,0.95)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {manageTab === 'members'
+                  ? 'أعضاء القبيلة'
+                  : manageTab === 'enemies'
+                  ? 'الأعداء'
+                  : manageTab === 'message'
+                  ? 'رسالة القبيلة'
+                  : manageTab === 'private'
+                  ? 'ملكية خاصة'
+                  : 'بيانات القبيلة'}
+              </h1>
+            </div>
+
+            {/* Left Runic Carved Panel (in RTL) */}
+            <div
+              aria-hidden="true"
+              style={{
+                flex: 1,
+                maxWidth: '210px',
+                textAlign: 'center',
+                color: '#d4ab62',
+                fontSize: '18px',
+                fontWeight: '900',
+                letterSpacing: '4px',
+                opacity: 0.72,
+                textShadow: '0 1px 4px rgba(0,0,0,0.9)',
+                userSelect: 'none',
+              }}
+            >
+              ᛊ ᚹ ᛗ ᛉ ᛞ ᚺ
+            </div>
+          </div>
+
+          {/* 5-Tab Metallic Stone Navigation Row */}
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '900px',
+              padding: '12px 24px 0 24px',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+              gap: '8px',
+              boxSizing: 'border-box',
+            }}
+          >
+            {(
+              [
+                { id: 'info', label: 'بيانات القبيلة' },
+                { id: 'members', label: 'أعضاء' },
+                { id: 'enemies', label: 'الأعداء' },
+                { id: 'message', label: 'رسالة' },
+                { id: 'private', label: 'ملكية خاصة' },
+              ] as Array<{ id: TribeManageTab; label: string }>
+            ).map((tab) => {
+              const isActive = manageTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setManageTab(tab.id)}
+                  style={{
+                    height: '62px',
+                    padding: '0 8px',
+                    borderRadius: '8px',
+                    border: isActive ? '2.5px solid #e0a743' : '2px solid #6e675d',
+                    background: isActive
+                      ? 'linear-gradient(180deg, #4b3922 0%, #2b2114 60%, #1d160d 100%)'
+                      : 'linear-gradient(180deg, #3c3a37 0%, #252422 60%, #191817 100%)',
+                    boxShadow: isActive
+                      ? '0 0 16px rgba(245, 158, 11, 0.35), inset 0 2px 0 rgba(253, 230, 138, 0.35)'
+                      : '0 4px 10px rgba(0,0,0,0.65), inset 0 1.5px 0 rgba(255,255,255,0.16)',
+                    color: isActive ? '#f8d274' : '#ded6c7',
+                    fontFamily: 'inherit',
+                    fontSize: '21px',
+                    fontWeight: '900',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
         </div>
+      ) : (
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 4,
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            flexShrink: 0,
+          }}
+        >
+          {/* Dark bronze top beam */}
+          <div
+            style={{
+              width: '100%',
+              height: '32px',
+              background: 'linear-gradient(180deg, #4f3a27 0%, #2a1e14 70%, #19110b 100%)',
+              borderBottom: '3px solid #9b7847',
+              boxShadow: '0 6px 16px rgba(0,0,0,0.7)',
+            }}
+          />
 
-        {/* ===================== VIEW 1: DASHBOARD / OVERVIEW (لوحة القبيلة) ===================== */}
-        {activeSubTab === 'board' && (
-          <>
-            {/* HERO BANNER CARD */}
+          {/* Centered Ornate Title Plaque: القبيلة */}
+          <div
+            style={{
+              marginTop: '-28px',
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {/* Left diamond ornament */}
+            <div
+              aria-hidden="true"
+              style={{
+                width: '26px',
+                height: '26px',
+                background: 'linear-gradient(135deg, #3c2c1c 0%, #1d140c 100%)',
+                border: '3px solid #a8834b',
+                transform: 'rotate(45deg)',
+                marginLeft: '-14px',
+                zIndex: 2,
+                boxShadow: '0 3px 10px rgba(0,0,0,0.75)',
+              }}
+            />
+
             <div
               style={{
-                position: 'relative',
-                borderRadius: '20px',
-                border: '1.2px solid rgba(56, 189, 248, 0.22)',
-                background: 'linear-gradient(135deg, #0b2238 0%, #071728 50%, #04101e 100%)',
-                padding: '24px 20px',
-                overflow: 'hidden',
-                boxShadow: '0 12px 30px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+                minWidth: '390px',
+                padding: '14px 56px 18px 56px',
+                background: 'linear-gradient(180deg, #35302a 0%, #1d1c1b 65%, #141312 100%)',
+                border: '3.5px solid #9d7b47',
+                borderRadius: '8px',
+                clipPath: 'polygon(5% 0%, 95% 0%, 100% 38%, 94% 88%, 50% 100%, 6% 88%, 0% 38%)',
+                boxShadow: '0 10px 26px rgba(0,0,0,0.85), inset 0 2px 0 rgba(247, 223, 163, 0.35)',
                 display: 'flex',
-                flexDirection: 'column',
-                gap: '16px',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 3,
               }}
             >
-              {/* Subtle background curved wave decoration */}
+              <h1
+                style={{
+                  margin: 0,
+                  fontSize: '46px',
+                  fontWeight: '900',
+                  lineHeight: 1.15,
+                  color: '#f2d382',
+                  textShadow: '0 3px 6px rgba(0,0,0,0.95), 0 0 18px rgba(234, 179, 8, 0.25)',
+                  letterSpacing: '0.5px',
+                }}
+              >
+                {screenMode === 'join'
+                  ? 'القبائل المتاحة'
+                  : screenMode === 'invitations'
+                  ? 'رسائل الدعوة'
+                  : screenMode === 'donations'
+                  ? 'تبرعات القبيلة'
+                  : screenMode === 'levels'
+                  ? 'مستويات القبيلة'
+                  : 'القبيلة'}
+              </h1>
+            </div>
+
+            {/* Right diamond ornament */}
+            <div
+              aria-hidden="true"
+              style={{
+                width: '26px',
+                height: '26px',
+                background: 'linear-gradient(135deg, #3c2c1c 0%, #1d140c 100%)',
+                border: '3px solid #a8834b',
+                transform: 'rotate(45deg)',
+                marginRight: '-14px',
+                zIndex: 2,
+                boxShadow: '0 3px 10px rgba(0,0,0,0.75)',
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Main Content Container */}
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 3,
+          width: '100%',
+          maxWidth: '880px',
+          padding: '32px 44px 48px 44px',
+          boxSizing: 'border-box',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '30px',
+          flex: 1,
+        }}
+      >
+        {/* ===================== VIEW 1: MAIN NO-TRIBE SCREEN (EXACTLY MATCHING SCREENSHOT) ===================== */}
+        {screenMode === 'menu' && (
+          <>
+            {/* Parchment Scroll Banner */}
+            <div
+              style={{
+                width: '100%',
+                position: 'relative',
+                padding: '32px 28px',
+                background: 'linear-gradient(180deg, #ecd8b4 0%, #e1c696 52%, #cfa971 100%)',
+                borderRadius: '4px',
+                border: '2.5px solid #967245',
+                boxShadow:
+                  '0 12px 28px rgba(0,0,0,0.65), inset 0 0 26px rgba(120, 75, 25, 0.35), inset 0 2px 0 rgba(255,255,255,0.55)',
+                textAlign: 'center',
+                boxSizing: 'border-box',
+              }}
+            >
+              {/* Inner parchment hairline frame */}
               <div
+                aria-hidden="true"
                 style={{
                   position: 'absolute',
-                  top: '-30px',
-                  right: '-40px',
-                  width: '260px',
-                  height: '260px',
-                  borderRadius: '50%',
-                  background: 'radial-gradient(circle, rgba(56, 189, 248, 0.1) 0%, transparent 70%)',
+                  inset: '8px',
+                  border: '1.5px solid rgba(112, 72, 28, 0.3)',
                   pointerEvents: 'none',
                 }}
               />
-
-              {/* Top Card Label: سجل قبيلة واحدة • عشرة أعماق */}
-              <div
+              <p
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  color: '#e2e8f0',
-                  fontSize: '23px',
+                  margin: '0 0 10px 0',
+                  fontSize: '33px',
                   fontWeight: '800',
+                  color: '#2b1c0c',
+                  lineHeight: 1.45,
                 }}
               >
-                <span style={{ color: '#38bdf8', fontSize: '28px' }}>≋</span>
-                <span>سجل قبيلة واحدة • عشرة أعماق</span>
-              </div>
-
-              {/* Middle Row: Content on Right + Circular Emblem on Left */}
-              <div
+                لم تنضم إلى أي قبيلة بعد
+              </p>
+              <p
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '20px',
+                  margin: 0,
+                  fontSize: '33px',
+                  fontWeight: '800',
+                  color: '#2b1c0c',
+                  lineHeight: 1.45,
                 }}
               >
-                {/* Circular Emblem (Left side) */}
-                <div
-                  style={{
-                    position: 'relative',
-                    width: '142px',
-                    height: '142px',
-                    flexShrink: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <div
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      borderRadius: '50%',
-                      border: '2.5px solid rgba(56, 189, 248, 0.45)',
-                      boxShadow: '0 0 24px rgba(14, 165, 233, 0.25)',
-                    }}
-                  />
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: '6px',
-                      right: '12px',
-                      color: '#facc15',
-                      fontSize: '19px',
-                    }}
-                  >
-                    ✦
-                  </span>
-                  <span
-                    style={{
-                      position: 'absolute',
-                      bottom: '10px',
-                      left: '10px',
-                      color: '#38bdf8',
-                      fontSize: '18px',
-                    }}
-                  >
-                    ✦
-                  </span>
-
-                  <div
-                    style={{
-                      width: '108px',
-                      height: '108px',
-                      borderRadius: '50%',
-                      border: '2.5px solid rgba(212, 175, 55, 0.8)',
-                      background: 'linear-gradient(145deg, #0e2740 0%, #051424 100%)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '5px',
-                      boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.65)',
-                    }}
-                  >
-                    <svg
-                      width="42"
-                      height="42"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#facc15"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14v2H5z" />
-                    </svg>
-                    <span
-                      style={{
-                        color: '#38bdf8',
-                        fontSize: '21px',
-                        letterSpacing: '1px',
-                        lineHeight: 1,
-                      }}
-                    >
-                      ≋
-                    </span>
-                  </div>
-                </div>
-
-                {/* Right Side: Real Title & Description */}
-                <div style={{ flex: 1, textAlign: 'right' }}>
-                  <h2
-                    style={{
-                      margin: '0 0 10px 0',
-                      fontSize: '46px',
-                      fontWeight: '900',
-                      background: 'linear-gradient(to bottom, #ffffff 0%, #fef08a 40%, #eab308 100%)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      letterSpacing: '-0.5px',
-                    }}
-                  >
-                    {currentTribe?.name || 'ملوك الأعماق'}
-                  </h2>
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: '24px',
-                      fontWeight: '700',
-                      color: '#f1f5f9',
-                      lineHeight: '1.6',
-                    }}
-                  >
-                    {currentTribe?.description || 'من بوابة الأعماق إلى العرش — اختر مستواك واكتشف ترتيبه وتبرعه اليومي.'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Bottom Action: Golden Button "استكشف المستويات ←" */}
-              <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '6px' }}>
-                <button
-                  onClick={scrollToLevels}
-                  style={{
-                    background: 'linear-gradient(135deg, #facc15 0%, #eab308 50%, #ca8a04 100%)',
-                    color: '#0f172a',
-                    border: '2px solid #fef08a',
-                    borderRadius: '14px',
-                    padding: '14px 30px',
-                    fontFamily: 'inherit',
-                    fontSize: '25px',
-                    fontWeight: '900',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 16px rgba(234, 179, 8, 0.45)',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <span>استكشف المستويات</span>
-                  <span style={{ fontSize: '27px' }}>←</span>
-                </button>
-              </div>
+                كن قائداً، اجمع أصدقاءك، لتغزو العالم
+              </p>
             </div>
 
-            {/* TWO STATS CARDS */}
-            <div
+            {/* Primary Green Button: إنشاء قبيلة */}
+            <button
+              type="button"
+              onClick={() => setScreenMode('create')}
               style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '16px',
-              }}
-            >
-              {/* Card 1: إجمالي رصيد القبيلة */}
-              <div
-                style={{
-                  position: 'relative',
-                  borderRadius: '18px',
-                  border: '1.5px solid rgba(56, 189, 248, 0.3)',
-                  background: 'linear-gradient(145deg, #0b1f33 0%, #061322 100%)',
-                  padding: '20px 22px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  boxShadow: '0 6px 16px rgba(0, 0, 0, 0.4)',
-                }}
-              >
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '10px',
-                    left: '12px',
-                    color: '#facc15',
-                    fontSize: '18px',
-                    opacity: 0.9,
-                  }}
-                >
-                  ✦
-                </span>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <span style={{ fontSize: '23px', color: '#e2e8f0', fontWeight: '800' }}>
-                    إجمالي رصيد القبيلة
-                  </span>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                    <span style={{ fontSize: '38px', fontWeight: '900', color: '#ffffff' }}>
-                      {toArabicDigits(totalBalancePoints)}
-                    </span>
-                    <span style={{ fontSize: '22px', color: '#e2e8f0', fontWeight: '800' }}>نقطة</span>
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    width: '72px',
-                    height: '72px',
-                    borderRadius: '16px',
-                    border: '2px solid rgba(212, 175, 55, 0.55)',
-                    background: 'rgba(212, 175, 55, 0.14)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '36px',
-                    flexShrink: 0,
-                  }}
-                >
-                  🏆
-                </div>
-              </div>
-
-              {/* Card 2: الإضافة اليومية */}
-              <div
-                style={{
-                  borderRadius: '18px',
-                  border: '1.5px solid rgba(56, 189, 248, 0.3)',
-                  background: 'linear-gradient(145deg, #0b1f33 0%, #061322 100%)',
-                  padding: '20px 22px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  boxShadow: '0 6px 16px rgba(0, 0, 0, 0.4)',
-                }}
-              >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <span style={{ fontSize: '23px', color: '#e2e8f0', fontWeight: '800' }}>
-                    الإضافة اليومية
-                  </span>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                    <span style={{ fontSize: '38px', fontWeight: '900', color: '#ffffff' }}>
-                      {toArabicDigits(totalDailyAddition)}
-                    </span>
-                    <span style={{ fontSize: '22px', color: '#e2e8f0', fontWeight: '800' }}>نقطة / يوم</span>
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    width: '72px',
-                    height: '72px',
-                    borderRadius: '16px',
-                    border: '2px solid rgba(56, 189, 248, 0.55)',
-                    background: 'rgba(14, 165, 233, 0.14)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '36px',
-                    flexShrink: 0,
-                  }}
-                >
-                  🪙
-                </div>
-              </div>
-            </div>
-
-            {/* FULL WIDTH SCHEDULE CARD */}
-            <div
-              style={{
-                borderRadius: '18px',
-                border: '1.5px solid rgba(56, 189, 248, 0.3)',
-                background: 'linear-gradient(145deg, #0b1f33 0%, #061322 100%)',
-                padding: '20px 22px',
+                position: 'relative',
+                width: '100%',
+                height: '116px',
+                padding: '0 34px',
+                borderRadius: '14px',
+                border: '3.5px solid #8a7352',
+                background:
+                  'radial-gradient(ellipse at 50% 25%, rgba(163, 255, 110, 0.32) 0%, transparent 65%), linear-gradient(180deg, #54bf36 0%, #2d911f 52%, #195f0f 100%)',
+                boxShadow:
+                  '0 10px 24px rgba(0, 0, 0, 0.72), 0 0 26px rgba(74, 222, 128, 0.28), inset 0 2px 0 rgba(220, 255, 195, 0.65), inset 0 -4px 10px rgba(0, 40, 0, 0.6)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                boxShadow: '0 6px 16px rgba(0, 0, 0, 0.4)',
+                cursor: 'pointer',
+                boxSizing: 'border-box',
+                transition: 'transform 0.14s ease, filter 0.14s ease',
               }}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ fontSize: '23px', color: '#e2e8f0', fontWeight: '800' }}>
-                  موعد الإضافة
-                </span>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
-                  <span style={{ fontSize: '34px', fontWeight: '900', color: '#ffffff' }}>
-                    بعد ١٢ ليلاً
-                  </span>
-                  <span style={{ fontSize: '22px', color: '#e2e8f0', fontWeight: '700' }}>توقيت السعودية</span>
-                </div>
-                <span style={{ fontSize: '20px', color: '#cbd5e1', marginTop: '2px', fontWeight: '700' }}>
-                  آخر سجل: {realLastLogDate}
-                </span>
-              </div>
-
-              <div
+              {/* Left & Right Ornamental Silver-Bronze Rivet Brackets */}
+              <span
+                aria-hidden="true"
                 style={{
-                  width: '74px',
-                  height: '74px',
-                  borderRadius: '16px',
-                  border: '2px solid rgba(212, 175, 55, 0.55)',
-                  background: 'rgba(212, 175, 55, 0.14)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '38px',
-                  flexShrink: 0,
+                  position: 'absolute',
+                  right: '-11px',
+                  top: '50%',
+                  transform: 'translateY(-50%) rotate(45deg)',
+                  width: '20px',
+                  height: '20px',
+                  background: 'linear-gradient(135deg, #4ade80 0%, #15803d 100%)',
+                  border: '3px solid #b59a73',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.8)',
+                }}
+              />
+              <span
+                aria-hidden="true"
+                style={{
+                  position: 'absolute',
+                  left: '-11px',
+                  top: '50%',
+                  transform: 'translateY(-50%) rotate(45deg)',
+                  width: '20px',
+                  height: '20px',
+                  background: 'linear-gradient(135deg, #4ade80 0%, #15803d 100%)',
+                  border: '3px solid #b59a73',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.8)',
+                }}
+              />
+
+              {/* Right side icon in RTL: Flag */}
+              <GoldenFlagIcon />
+
+              {/* Center label */}
+              <span
+                style={{
+                  fontFamily: 'inherit',
+                  fontSize: '40px',
+                  fontWeight: '900',
+                  color: '#ffffff',
+                  textShadow: '0 3px 6px rgba(0, 0, 0, 0.85)',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                🕒
+                إنشاء قبيلة
+              </span>
+
+              {/* Left side icon in RTL: Gavel */}
+              <GoldenGavelIcon />
+            </button>
+
+            {/* Secondary Amber/Orange Button: الانضمام إلى قبيلة */}
+            <button
+              type="button"
+              onClick={() => setScreenMode('join')}
+              style={{
+                position: 'relative',
+                width: '100%',
+                height: '116px',
+                padding: '0 34px',
+                borderRadius: '14px',
+                border: '3.5px solid #967c5c',
+                background:
+                  'radial-gradient(ellipse at 50% 25%, rgba(255, 195, 110, 0.28) 0%, transparent 65%), linear-gradient(180deg, #f37f1c 0%, #c84c06 52%, #8e2d02 100%)',
+                boxShadow:
+                  '0 10px 24px rgba(0, 0, 0, 0.72), 0 0 24px rgba(249, 115, 22, 0.25), inset 0 2px 0 rgba(255, 225, 175, 0.6), inset 0 -4px 10px rgba(65, 15, 0, 0.65)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                boxSizing: 'border-box',
+                transition: 'transform 0.14s ease, filter 0.14s ease',
+              }}
+            >
+              {/* Left & Right Ornamental Silver-Bronze Rivet Brackets */}
+              <span
+                aria-hidden="true"
+                style={{
+                  position: 'absolute',
+                  right: '-11px',
+                  top: '50%',
+                  transform: 'translateY(-50%) rotate(45deg)',
+                  width: '20px',
+                  height: '20px',
+                  background: 'linear-gradient(135deg, #fb923c 0%, #c2410c 100%)',
+                  border: '3px solid #b59a73',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.8)',
+                }}
+              />
+              <span
+                aria-hidden="true"
+                style={{
+                  position: 'absolute',
+                  left: '-11px',
+                  top: '50%',
+                  transform: 'translateY(-50%) rotate(45deg)',
+                  width: '20px',
+                  height: '20px',
+                  background: 'linear-gradient(135deg, #fb923c 0%, #c2410c 100%)',
+                  border: '3px solid #b59a73',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.8)',
+                }}
+              />
+
+              {/* Right side icon in RTL: Handshake */}
+              <GoldenHandshakeIcon />
+
+              {/* Center label */}
+              <span
+                style={{
+                  fontFamily: 'inherit',
+                  fontSize: '40px',
+                  fontWeight: '900',
+                  color: '#ffffff',
+                  textShadow: '0 3px 6px rgba(0, 0, 0, 0.85)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                الانضمام إلى قبيلة
+              </span>
+
+              {/* Left side icon in RTL: Shield */}
+              <GoldenShieldIcon />
+            </button>
+
+            {/* Invitations Row: لديك 0 رسائل دعوة */}
+            <button
+              type="button"
+              onClick={() => setScreenMode('invitations')}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                padding: '10px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '14px',
+                cursor: 'pointer',
+                color: '#d9c8aa',
+                fontFamily: 'inherit',
+                fontSize: '29px',
+                fontWeight: '800',
+                textShadow: '0 2px 4px rgba(0,0,0,0.85)',
+              }}
+            >
+              <EnvelopeInviteIcon />
+              <span>لديك {invitationsCount} رسائل دعوة</span>
+            </button>
+
+            {/* Bottom Dark-Wood Carved Back Button: عودة ← */}
+            <button
+              type="button"
+              onClick={handleBackAction}
+              style={{
+                width: '100%',
+                height: '102px',
+                marginTop: '4px',
+                padding: '0 28px',
+                borderRadius: '10px',
+                border: '3px solid #8c6d45',
+                background: 'linear-gradient(180deg, #432e20 0%, #2b1d14 55%, #1d120b 100%)',
+                boxShadow:
+                  '0 10px 24px rgba(0, 0, 0, 0.78), inset 0 2px 0 rgba(212, 175, 112, 0.28), inset 0 -3px 8px rgba(0,0,0,0.7)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '14px',
+                cursor: 'pointer',
+                color: '#f2e0be',
+                fontFamily: 'inherit',
+                fontSize: '36px',
+                fontWeight: '900',
+                textShadow: '0 2px 5px rgba(0,0,0,0.9)',
+                boxSizing: 'border-box',
+              }}
+            >
+              <span>عودة</span>
+              <span style={{ fontSize: '36px', lineHeight: 1 }}>←</span>
+            </button>
+          </>
+        )}
+
+        {/* ===================== VIEW 2: ACTIVE TRIBE DASHBOARD (MATCHING REFERENCE SCREENSHOT) ===================== */}
+        {screenMode === 'manage' && currentTribe && (
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {manageTab === 'info' && (
+              <>
+                {/* Row 1: الإسم + تغيير */}
+                <div
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '16px',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  {isEditingTribeName ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                      <input
+                        type="text"
+                        maxLength={50}
+                        value={editTribeNameInput}
+                        onChange={(e) => setEditTribeNameInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveTribeName();
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '12px 16px',
+                          borderRadius: '8px',
+                          border: '2px solid #c59b52',
+                          background: '#171411',
+                          color: '#f5e8ce',
+                          fontFamily: 'inherit',
+                          fontSize: '26px',
+                          fontWeight: '800',
+                          outline: 'none',
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSaveTribeName}
+                        style={{
+                          padding: '12px 22px',
+                          borderRadius: '8px',
+                          border: '2px solid #86efac',
+                          background: 'linear-gradient(180deg, #439b31 0%, #195f0f 100%)',
+                          color: '#ffffff',
+                          fontFamily: 'inherit',
+                          fontSize: '22px',
+                          fontWeight: '900',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        حفظ
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditTribeNameInput(currentTribe.name || '');
+                          setIsEditingTribeName(false);
+                        }}
+                        style={{
+                          padding: '12px 18px',
+                          borderRadius: '8px',
+                          border: '2px solid #7f7467',
+                          background: '#2a2420',
+                          color: '#f2e6cf',
+                          fontFamily: 'inherit',
+                          fontSize: '22px',
+                          fontWeight: '900',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        إلغاء
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div
+                        style={{
+                          fontSize: '32px',
+                          fontWeight: '900',
+                          color: '#f3ebd8',
+                          textShadow: '0 2px 6px rgba(0,0,0,0.9)',
+                        }}
+                      >
+                        الإسم: {currentTribe.name}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditTribeNameInput(currentTribe.name || '');
+                          setIsEditingTribeName(true);
+                        }}
+                        style={{
+                          position: 'relative',
+                          minWidth: '176px',
+                          height: '58px',
+                          padding: '0 28px',
+                          borderRadius: '8px',
+                          border: '2.5px solid #9d7b47',
+                          background: 'linear-gradient(180deg, #624a2b 0%, #3d2c18 55%, #261b0e 100%)',
+                          boxShadow: '0 6px 14px rgba(0,0,0,0.75), inset 0 1.5px 0 rgba(246, 224, 170, 0.35)',
+                          color: '#f3ebd8',
+                          fontFamily: 'inherit',
+                          fontSize: '24px',
+                          fontWeight: '900',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        تغيير
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* Row 2: الرمز + Emblem Crest + تغيير + دعوات الانضمام */}
+                <div
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '14px',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <span
+                      style={{
+                        fontSize: '32px',
+                        fontWeight: '900',
+                        color: '#f3ebd8',
+                        textShadow: '0 2px 6px rgba(0,0,0,0.9)',
+                      }}
+                    >
+                      الرمز:
+                    </span>
+                    <TribeEmblemCrest emblem={currentTribe.emblem || '⚔️'} size={136} fieryGlow />
+                    <button
+                      type="button"
+                      onClick={() => setShowManageEmblemPicker((prev) => !prev)}
+                      style={{
+                        minWidth: '124px',
+                        height: '54px',
+                        padding: '0 22px',
+                        borderRadius: '8px',
+                        border: '2.5px solid #757068',
+                        background: 'linear-gradient(180deg, #43403c 0%, #2a2825 55%, #1a1917 100%)',
+                        boxShadow: '0 6px 14px rgba(0,0,0,0.75), inset 0 1.5px 0 rgba(255,255,255,0.22)',
+                        color: '#f3ebd8',
+                        fontFamily: 'inherit',
+                        fontSize: '22px',
+                        fontWeight: '900',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      تغيير
+                    </button>
+                  </div>
+
+                  {/* Blue Beveled "دعوات الانضمام" Button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowJoinInvitesPanel((prev) => !prev)}
+                    style={{
+                      position: 'relative',
+                      minWidth: '250px',
+                      height: '64px',
+                      padding: '0 28px',
+                      borderRadius: '10px',
+                      border: '2.5px solid #7fb7e6',
+                      background: 'linear-gradient(180deg, #2b6ea3 0%, #184973 55%, #0f2f4d 100%)',
+                      boxShadow:
+                        '0 8px 18px rgba(0,0,0,0.75), 0 0 14px rgba(56, 189, 248, 0.35), inset 0 2px 0 rgba(186, 230, 253, 0.5)',
+                      color: '#ffffff',
+                      fontFamily: 'inherit',
+                      fontSize: '24px',
+                      fontWeight: '900',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        position: 'absolute',
+                        right: '-8px',
+                        top: '50%',
+                        transform: 'translateY(-50%) rotate(45deg)',
+                        width: '14px',
+                        height: '14px',
+                        background: '#38bdf8',
+                        border: '2px solid #9bd0f8',
+                      }}
+                    />
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        position: 'absolute',
+                        left: '-8px',
+                        top: '50%',
+                        transform: 'translateY(-50%) rotate(45deg)',
+                        width: '14px',
+                        height: '14px',
+                        background: '#38bdf8',
+                        border: '2px solid #9bd0f8',
+                      }}
+                    />
+                    دعوات الانضمام
+                  </button>
+                </div>
+
+                {/* Inline Emblem Picker when changing emblem */}
+                {showManageEmblemPicker && (
+                  <div
+                    style={{
+                      width: '100%',
+                      padding: '16px',
+                      borderRadius: '12px',
+                      background: 'rgba(18, 16, 14, 0.95)',
+                      border: '2.5px solid #9b7a4b',
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                      gap: '10px',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    {TRIBE_EMBLEM_OPTIONS.map((opt) => {
+                      const isSelected = (currentTribe.emblem || '⚔️') === opt.id;
+                      return (
+                        <button
+                          type="button"
+                          key={opt.id}
+                          onClick={() => handleChangeManageEmblem(opt.id)}
+                          style={{
+                            padding: '10px 6px',
+                            borderRadius: '10px',
+                            border: isSelected ? '2.5px solid #facc15' : '2px solid #57452e',
+                            background: isSelected ? 'rgba(161, 98, 7, 0.45)' : 'rgba(32, 27, 22, 0.9)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '4px',
+                            cursor: 'pointer',
+                            color: '#f5e4bd',
+                            fontFamily: 'inherit',
+                          }}
+                        >
+                          <TribeEmblemCrest emblem={opt.id} size={64} />
+                          <span style={{ fontSize: '16px', fontWeight: '800' }}>{opt.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Inline Recruitment / Join Invitations Drawer */}
+                {showJoinInvitesPanel && (
+                  <div
+                    style={{
+                      width: '100%',
+                      padding: '18px 20px',
+                      borderRadius: '12px',
+                      background: 'rgba(17, 22, 31, 0.95)',
+                      border: '2.5px solid #38bdf8',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '24px', fontWeight: '900', color: '#7dd3fc' }}>
+                        دعوة قباطنة للانضمام (الحد الأقصى: {currentTribeMembersCount}/{currentTribeMaxMembers})
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowJoinInvitesPanel(false)}
+                        style={{
+                          padding: '6px 14px',
+                          borderRadius: '8px',
+                          border: '1.5px solid #64748b',
+                          background: '#1e293b',
+                          color: '#e2e8f0',
+                          fontFamily: 'inherit',
+                          fontSize: '18px',
+                          fontWeight: '800',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        إغلاق
+                      </button>
+                    </div>
+                    {realPlayers.filter((p) => (p.userId || p.id) !== currentUser?.uid && p.tribeId !== currentTribe.id).length === 0 ? (
+                      <div style={{ fontSize: '21px', color: '#cbd5e1', fontWeight: '700' }}>
+                        لا يوجد قباطنة متاحون للدعوة حالياً.
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '240px', overflowY: 'auto' }}>
+                        {realPlayers
+                          .filter((p) => (p.userId || p.id) !== currentUser?.uid && p.tribeId !== currentTribe.id)
+                          .slice(0, 12)
+                          .map((p) => {
+                            const pId = p.userId || p.id;
+                            const isInvited = invitedPlayerIds.includes(pId);
+                            return (
+                              <div
+                                key={pId}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  padding: '10px 14px',
+                                  borderRadius: '10px',
+                                  background: 'rgba(30, 41, 59, 0.75)',
+                                  border: '1px solid #475569',
+                                }}
+                              >
+                                <span style={{ fontSize: '21px', fontWeight: '800', color: '#f8fafc' }}>
+                                  {p.avatar || '⚓'} @{p.username || 'قبطان'}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleInvitePlayer(p)}
+                                  style={{
+                                    padding: '8px 18px',
+                                    borderRadius: '8px',
+                                    border: '1.5px solid #7dd3fc',
+                                    background: isInvited ? '#1e293b' : 'linear-gradient(180deg, #2b6ea3 0%, #143c5e 100%)',
+                                    color: '#ffffff',
+                                    fontFamily: 'inherit',
+                                    fontSize: '19px',
+                                    fontWeight: '800',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  {isInvited ? 'تمت الدعوة ✓' : 'إرسال دعوة'}
+                                </button>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Row 3: المستوى: 1 🏆 الترتيب: 50 ⭐ الأعضاء: 1/6 */}
+                <div
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'flex-start',
+                    gap: '22px',
+                    flexWrap: 'wrap',
+                    fontSize: '27px',
+                    fontWeight: '900',
+                    color: '#f3ebd8',
+                    fontVariantNumeric: 'tabular-nums',
+                    textShadow: '0 2px 5px rgba(0,0,0,0.9)',
+                  }}
+                >
+                  <span>المستوى: {currentTribeLevel}</span>
+                  <span>🏆 الترتيب: {currentTribeRank}</span>
+                  <span>
+                    ⭐ الأعضاء: {currentTribeMembersCount}/{currentTribeMaxMembers}
+                  </span>
+                </div>
+
+                {/* Row 4: التبرع: 0/10000 + Ornate Progress Bar + Blue تبرع Button */}
+                <div
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '14px',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '14px',
+                      flex: 1,
+                      minWidth: '280px',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: '28px',
+                        fontWeight: '900',
+                        color: '#f3ebd8',
+                        whiteSpace: 'nowrap',
+                        fontVariantNumeric: 'tabular-nums',
+                      }}
+                    >
+                      التبرع: {currentTribeDonations}/{currentTribeTarget}
+                    </span>
+
+                    {/* Ornate Bronze Progress Track */}
+                    <div
+                      style={{
+                        position: 'relative',
+                        flex: 1,
+                        height: '38px',
+                        borderRadius: '9999px',
+                        border: '2.5px solid #967245',
+                        background: 'linear-gradient(180deg, #2a2015 0%, #3d2f20 100%)',
+                        boxShadow: 'inset 0 3px 8px rgba(0,0,0,0.85), 0 4px 10px rgba(0,0,0,0.6)',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          bottom: 0,
+                          right: 0,
+                          width: `${Math.min(100, Math.round((currentTribeDonations / Math.max(1, currentTribeTarget)) * 100))}%`,
+                          background: 'linear-gradient(90deg, #f59e0b 0%, #eab308 55%, #b45309 100%)',
+                          transition: 'width 0.35s ease',
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Blue Beveled "تبرع" Button */}
+                  <button
+                    type="button"
+                    onClick={() => setScreenMode('donations')}
+                    style={{
+                      position: 'relative',
+                      minWidth: '170px',
+                      height: '62px',
+                      padding: '0 30px',
+                      borderRadius: '10px',
+                      border: '2.5px solid #7fb7e6',
+                      background: 'linear-gradient(180deg, #2b6ea3 0%, #184973 55%, #0f2f4d 100%)',
+                      boxShadow:
+                        '0 8px 18px rgba(0,0,0,0.75), 0 0 14px rgba(56, 189, 248, 0.35), inset 0 2px 0 rgba(186, 230, 253, 0.5)',
+                      color: '#ffffff',
+                      fontFamily: 'inherit',
+                      fontSize: '26px',
+                      fontWeight: '900',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        position: 'absolute',
+                        right: '-8px',
+                        top: '50%',
+                        transform: 'translateY(-50%) rotate(45deg)',
+                        width: '14px',
+                        height: '14px',
+                        background: '#38bdf8',
+                        border: '2px solid #9bd0f8',
+                      }}
+                    />
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        position: 'absolute',
+                        left: '-8px',
+                        top: '50%',
+                        transform: 'translateY(-50%) rotate(45deg)',
+                        width: '14px',
+                        height: '14px',
+                        background: '#38bdf8',
+                        border: '2px solid #9bd0f8',
+                      }}
+                    />
+                    تبرع
+                  </button>
+                </div>
+
+                {/* Row 5: شيخ القبيلة */}
+                <div
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    fontSize: '29px',
+                    fontWeight: '900',
+                    textShadow: '0 2px 5px rgba(0,0,0,0.9)',
+                  }}
+                >
+                  <span style={{ color: '#f3ebd8' }}>شيخ القبيلة:</span>
+                  <TribeEmblemCrest emblem={currentTribe.emblem || '⚔️'} size={36} />
+                  <span style={{ color: '#7dd3fc' }}>{currentTribe.leaderName || username}</span>
+                </div>
+
+                {/* Row 6: تصريح القبيلة + Aged Parchment Textarea */}
+                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                    <label
+                      htmlFor="tribe-statement-textarea"
+                      style={{
+                        fontSize: '29px',
+                        fontWeight: '900',
+                        color: '#f3ebd8',
+                        textShadow: '0 2px 5px rgba(0,0,0,0.9)',
+                      }}
+                    >
+                      تصريح القبيلة:
+                    </label>
+                    {statementDraft.trim() !== (currentTribe.statement || '').trim() && (
+                      <button
+                        type="button"
+                        onClick={handleSaveStatement}
+                        style={{
+                          padding: '8px 20px',
+                          borderRadius: '8px',
+                          border: '2px solid #86efac',
+                          background: 'linear-gradient(180deg, #439b31 0%, #195f0f 100%)',
+                          color: '#ffffff',
+                          fontFamily: 'inherit',
+                          fontSize: '20px',
+                          fontWeight: '900',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        حفظ التصريح
+                      </button>
+                    )}
+                  </div>
+
+                  <div
+                    style={{
+                      width: '100%',
+                      borderRadius: '6px',
+                      border: '3px solid #75654c',
+                      background: 'linear-gradient(180deg, #ccc0a6 0%, #b8aa8f 55%, #a19277 100%)',
+                      boxShadow:
+                        '0 12px 26px rgba(0,0,0,0.75), inset 0 0 28px rgba(72, 52, 26, 0.42), inset 0 2px 0 rgba(255,255,255,0.45)',
+                      padding: '18px 20px',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <textarea
+                      id="tribe-statement-textarea"
+                      rows={5}
+                      maxLength={500}
+                      placeholder="اضغط هنا لكتابة تصريح القبيلة"
+                      value={statementDraft}
+                      onChange={(e) => setStatementDraft(e.target.value)}
+                      onBlur={() => {
+                        if (statementDraft.trim() !== (currentTribe.statement || '').trim()) {
+                          handleSaveStatement();
+                        }
+                      }}
+                      className="placeholder:text-[#5c5140] placeholder:opacity-100"
+                      style={{
+                        width: '100%',
+                        border: 'none',
+                        background: 'transparent',
+                        color: '#23180c',
+                        fontFamily: 'inherit',
+                        fontSize: '26px',
+                        fontWeight: '800',
+                        lineHeight: 1.55,
+                        resize: 'none',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Sub-Tab 2: أعضاء */}
+            {manageTab === 'members' && (
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div
+                  style={{
+                    padding: '18px 22px',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(180deg, #27221d 0%, #171411 100%)',
+                    border: '2.5px solid #967245',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                  }}
+                >
+                  <span style={{ fontSize: '26px', fontWeight: '900', color: '#f2d382' }}>
+                    أعضاء القبيلة ({currentTribeMembersCount}/{currentTribeMaxMembers})
+                  </span>
+                  <span style={{ fontSize: '22px', fontWeight: '800', color: '#cbd5e1' }}>
+                    المستوى {currentTribeLevel} • يتسع حتى {currentTribeMaxMembers} قباطنة
+                  </span>
+                </div>
+
+                {realTribeDonors.map((member, idx) => (
+                  <div
+                    key={member.id || idx}
+                    style={{
+                      padding: '18px 22px',
+                      borderRadius: '12px',
+                      background: 'linear-gradient(180deg, #1d2430 0%, #11161f 100%)',
+                      border: idx === 0 ? '2.5px solid #e0a743' : '2px solid #574a3a',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ fontSize: '32px' }}>{member.avatar || '⚓'}</span>
+                      <div>
+                        <div style={{ fontSize: '25px', fontWeight: '900', color: idx === 0 ? '#7dd3fc' : '#f8fafc' }}>
+                          @{member.name}
+                        </div>
+                        <div style={{ fontSize: '19px', fontWeight: '800', color: idx === 0 ? '#fbbf24' : '#94a3b8' }}>
+                          {idx === 0 ? 'شيخ القبيلة 👑' : 'عضو القبيلة'}
+                        </div>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '23px', fontWeight: '900', color: '#fef08a' }}>
+                      {member.points.toLocaleString('en-US')} نقطة
+                    </span>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setManageTab('info');
+                    setShowJoinInvitesPanel(true);
+                  }}
+                  style={{
+                    width: '100%',
+                    height: '72px',
+                    borderRadius: '10px',
+                    border: '2.5px solid #7fb7e6',
+                    background: 'linear-gradient(180deg, #2b6ea3 0%, #103252 100%)',
+                    color: '#ffffff',
+                    fontFamily: 'inherit',
+                    fontSize: '26px',
+                    fontWeight: '900',
+                    cursor: 'pointer',
+                  }}
+                >
+                  + دعوة أعضاء جدد ({currentTribeMaxMembers - currentTribeMembersCount} أماكن متاحة)
+                </button>
               </div>
+            )}
+
+            {/* Sub-Tab 3: الأعداء */}
+            {manageTab === 'enemies' && (
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div
+                  style={{
+                    padding: '18px 22px',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(180deg, #2b1a1a 0%, #180e0e 100%)',
+                    border: '2.5px solid #991b1b',
+                    fontSize: '24px',
+                    fontWeight: '900',
+                    color: '#fecaca',
+                  }}
+                >
+                  القبائل المنافسة والأعداء ({enemyTribeIds.length})
+                </div>
+
+                {tribes.filter((t) => t.id !== currentTribe.id).length === 0 ? (
+                  <div
+                    style={{
+                      padding: '28px',
+                      borderRadius: '12px',
+                      background: 'rgba(20, 22, 28, 0.9)',
+                      border: '2px solid #574a3a',
+                      textAlign: 'center',
+                      fontSize: '24px',
+                      fontWeight: '800',
+                      color: '#cbd5e1',
+                    }}
+                  >
+                    لا توجد قبائل أخرى مسجلة حالياً.
+                  </div>
+                ) : (
+                  tribes
+                    .filter((t) => t.id !== currentTribe.id)
+                    .map((other) => {
+                      const isEnemy = enemyTribeIds.includes(other.id);
+                      return (
+                        <div
+                          key={other.id}
+                          style={{
+                            padding: '18px 22px',
+                            borderRadius: '12px',
+                            background: 'linear-gradient(180deg, #1d2430 0%, #11161f 100%)',
+                            border: isEnemy ? '2.5px solid #ef4444' : '2px solid #574a3a',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '12px',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <TribeEmblemCrest emblem={other.emblem || '⚔️'} size={52} />
+                            <div>
+                              <div style={{ fontSize: '26px', fontWeight: '900', color: '#f2d382' }}>{other.name}</div>
+                              <div style={{ fontSize: '19px', fontWeight: '700', color: '#cbd5e1' }}>
+                                شيخ القبيلة: {other.leaderName || 'القبطان'} • القوة: {other.power || 0}
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = isEnemy
+                                ? enemyTribeIds.filter((id) => id !== other.id)
+                                : [...enemyTribeIds, other.id];
+                              setEnemyTribeIds(next);
+                              try {
+                                localStorage.setItem('pirate_tribe_enemies', JSON.stringify(next));
+                              } catch {}
+                              if (showToast) {
+                                showToast(
+                                  isEnemy
+                                    ? `تمت إزالة [${other.name}] من قائمة الأعداء.`
+                                    : `⚔️ تم إعلان العداء ضد قبيلة [${other.name}]!`,
+                                  isEnemy ? 'info' : 'error'
+                                );
+                              }
+                            }}
+                            style={{
+                              padding: '10px 22px',
+                              borderRadius: '8px',
+                              border: isEnemy ? '2px solid #94a3b8' : '2px solid #f87171',
+                              background: isEnemy ? '#334155' : 'linear-gradient(180deg, #b91c1c 0%, #7f1d1d 100%)',
+                              color: '#ffffff',
+                              fontFamily: 'inherit',
+                              fontSize: '20px',
+                              fontWeight: '900',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {isEnemy ? 'إلغاء العداء' : 'إعلان العداء'}
+                          </button>
+                        </div>
+                      );
+                    })
+                )}
+              </div>
+            )}
+
+            {/* Sub-Tab 4: رسالة */}
+            {manageTab === 'message' && (
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div
+                  style={{
+                    padding: '20px',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(180deg, #1d2430 0%, #11161f 100%)',
+                    border: '2.5px solid #967245',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '14px',
+                  }}
+                >
+                  <label style={{ fontSize: '25px', fontWeight: '900', color: '#f2d382' }}>
+                    إرسال رسالة لأعضاء القبيلة:
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="اكتب رسالتك هنا..."
+                    value={tribeMessageInput}
+                    onChange={(e) => setTribeMessageInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '14px 16px',
+                      borderRadius: '10px',
+                      border: '2px solid #8a6b41',
+                      background: '#0b0e14',
+                      color: '#ffffff',
+                      fontFamily: 'inherit',
+                      fontSize: '23px',
+                      fontWeight: '700',
+                      boxSizing: 'border-box',
+                      resize: 'none',
+                      outline: 'none',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const msg = tribeMessageInput.trim();
+                      if (!msg) return;
+                      const entry = {
+                        id: String(Date.now()),
+                        sender: username || 'القبطان',
+                        text: msg,
+                        time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+                      };
+                      setTribeAnnouncements((prev) => [entry, ...prev]);
+                      setTribeMessageInput('');
+                      if (sendChatMessage) {
+                        sendChatMessage(`قبيلة [${currentTribe.name}]`, currentTribe.emblem || '⚔️', `@${username}: ${msg}`);
+                      }
+                      if (showToast) showToast('📣 تم إرسال رسالة القبيلة بنجاح!', 'success');
+                    }}
+                    style={{
+                      height: '68px',
+                      borderRadius: '10px',
+                      border: '2.5px solid #86efac',
+                      background: 'linear-gradient(180deg, #439b31 0%, #195f0f 100%)',
+                      color: '#ffffff',
+                      fontFamily: 'inherit',
+                      fontSize: '25px',
+                      fontWeight: '900',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    إرسال الرسالة
+                  </button>
+                </div>
+
+                {tribeAnnouncements.map((item) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      padding: '16px 20px',
+                      borderRadius: '10px',
+                      background: 'rgba(20, 24, 33, 0.92)',
+                      border: '2px solid #7f613b',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '19px', color: '#f2d382', fontWeight: '800' }}>
+                      <span>@{item.sender}</span>
+                      <span>{item.time}</span>
+                    </div>
+                    <div style={{ fontSize: '23px', color: '#f8fafc', fontWeight: '700' }}>{item.text}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Sub-Tab 5: ملكية خاصة */}
+            {manageTab === 'private' && (
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div
+                  style={{
+                    padding: '18px 22px',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(180deg, #ecd8b4 0%, #cfa971 100%)',
+                    border: '2.5px solid #967245',
+                    color: '#2b1c0c',
+                    fontSize: '24px',
+                    fontWeight: '900',
+                    textAlign: 'center',
+                  }}
+                >
+                  المستوى الحالي: {currentTribeLevel} • الحد الأقصى للأعضاء: {currentTribeMaxMembers} • الإضافة اليومية: {totalDailyAddition} نقطة
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setScreenMode('levels')}
+                  style={{
+                    width: '100%',
+                    height: '78px',
+                    borderRadius: '10px',
+                    border: '2.5px solid #f59e0b',
+                    background: 'linear-gradient(180deg, #b45309 0%, #78350f 100%)',
+                    color: '#fef08a',
+                    fontFamily: 'inherit',
+                    fontSize: '26px',
+                    fontWeight: '900',
+                    cursor: 'pointer',
+                  }}
+                >
+                  استعراض جميع مستويات القبيلة ({TRIBE_DEPTHS.length})
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setScreenMode('join')}
+                  style={{
+                    width: '100%',
+                    height: '74px',
+                    borderRadius: '10px',
+                    border: '2.5px solid #7fb7e6',
+                    background: 'linear-gradient(180deg, #2b6ea3 0%, #103252 100%)',
+                    color: '#ffffff',
+                    fontFamily: 'inherit',
+                    fontSize: '25px',
+                    fontWeight: '900',
+                    cursor: 'pointer',
+                  }}
+                >
+                  استعراض قائمة القبائل
+                </button>
+              </div>
+            )}
+
+            {/* Horizontal Ornate Divider Line */}
+            <div
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginTop: '4px',
+              }}
+            >
+              <div style={{ flex: 1, height: '2px', background: 'linear-gradient(90deg, transparent, #8c6d45)' }} />
+              <div
+                style={{
+                  width: '12px',
+                  height: '12px',
+                  background: '#c89e55',
+                  transform: 'rotate(45deg)',
+                }}
+              />
+              <div style={{ flex: 1, height: '2px', background: 'linear-gradient(270deg, transparent, #8c6d45)' }} />
             </div>
 
-            {/* SECTION HEADER: التدرّج إلى القمة + مستويات القبيلة */}
-            <div id="clan-levels-section" style={{ marginTop: '12px' }}>
+            {/* Footer Info Row: تبرعاتي + مغادرة من القبيلة */}
+            <div
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '16px',
+                flexWrap: 'wrap',
+              }}
+            >
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '10px',
-                  color: '#e2e8f0',
-                  fontSize: '23px',
-                  fontWeight: '800',
-                  marginBottom: '6px',
-                }}
-              >
-                <span>التدرّج إلى القمة</span>
-                <span style={{ color: '#facc15', fontSize: '24px' }}>✦</span>
-              </div>
-              <h3
-                style={{
-                  margin: '0 0 8px 0',
-                  fontSize: '36px',
+                  fontSize: '29px',
                   fontWeight: '900',
-                  color: '#ffffff',
+                  color: '#f3ebd8',
+                  fontVariantNumeric: 'tabular-nums',
                 }}
               >
-                مستويات القبيلة
-              </h3>
-              <p
+                <span>تبرعاتي:</span>
+                <GoldCoinBadgeIcon />
+                <span>{myTribeDonations.toLocaleString('en-US')}</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleToggleJoin(currentTribe)}
                 style={{
-                  margin: 0,
-                  fontSize: '23px',
-                  color: '#e2e8f0',
-                  fontWeight: '700',
+                  minWidth: '250px',
+                  height: '62px',
+                  padding: '0 26px',
+                  borderRadius: '8px',
+                  border: '2.5px solid #7f1d1d',
+                  background: 'linear-gradient(180deg, #4b1d1d 0%, #2b1010 60%, #1b0909 100%)',
+                  boxShadow: '0 6px 16px rgba(0,0,0,0.8), inset 0 1.5px 0 rgba(248, 113, 113, 0.25)',
+                  color: '#f3ebd8',
+                  fontFamily: 'inherit',
+                  fontSize: '24px',
+                  fontWeight: '900',
+                  cursor: 'pointer',
                 }}
               >
-                كلما ارتفع المستوى، اشتدّ التحدي وزادت نقاطه اليومية.
-              </p>
+                مغادرة من القبيلة
+              </button>
             </div>
 
-            {/* SEARCH INPUT */}
-            <div
+            {/* Bottom Beveled Bronze Back Button: عودة ← */}
+            <button
+              type="button"
+              onClick={handleBackAction}
               style={{
-                position: 'relative',
+                width: '100%',
+                height: '88px',
+                padding: '0 28px',
+                borderRadius: '10px',
+                border: '3px solid #a88652',
+                background: 'linear-gradient(180deg, #624e35 0%, #3d3020 55%, #231b12 100%)',
+                boxShadow: '0 10px 24px rgba(0,0,0,0.8), inset 0 2px 0 rgba(245, 224, 168, 0.35)',
                 display: 'flex',
                 alignItems: 'center',
-                borderRadius: '14px',
-                border: '2px solid rgba(56, 189, 248, 0.4)',
-                background: 'rgba(11, 31, 51, 0.85)',
-                padding: '15px 20px',
-                gap: '14px',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                color: '#f5ebd6',
+                fontFamily: 'inherit',
+                fontSize: '34px',
+                fontWeight: '900',
+                textShadow: '0 2px 5px rgba(0,0,0,0.9)',
+                boxSizing: 'border-box',
               }}
             >
-              <input
-                type="text"
-                placeholder="ابحث عن مستوى..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+              <span style={{ fontSize: '28px', opacity: 0.78 }}>»</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span>عودة</span>
+                <span>←</span>
+              </span>
+              <span style={{ fontSize: '28px', opacity: 0.78 }}>«</span>
+            </button>
+          </div>
+        )}
+
+        {/* ===================== VIEW 3: CREATE TRIBE (MATCHING REFERENCE SCREENSHOT) ===================== */}
+        {screenMode === 'create' && (
+          <div
+            style={{
+              width: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '24px',
+              marginTop: '6px',
+            }}
+          >
+            {/* Tribe Name Label (Right aligned in RTL) */}
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <label
+                htmlFor="create-tribe-name-input"
                 style={{
-                  flex: 1,
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  color: '#ffffff',
-                  fontSize: '25px',
-                  fontWeight: '700',
-                  fontFamily: 'inherit',
-                  direction: 'rtl',
+                  display: 'block',
+                  textAlign: 'right',
+                  fontSize: '30px',
+                  fontWeight: '900',
+                  color: '#e6cb93',
+                  textShadow: '0 2px 6px rgba(0,0,0,0.9)',
                 }}
-              />
-              <span style={{ color: '#e2e8f0', fontSize: '27px' }}>🔍</span>
+              >
+                اسم القبيلة
+              </label>
+
+              {/* Ornate Dark-Stone Input Bar */}
+              <div
+                style={{
+                  position: 'relative',
+                  width: '100%',
+                  height: '96px',
+                  background: 'linear-gradient(180deg, #322f2a 0%, #24211d 55%, #191613 100%)',
+                  border: '3px solid #8a6c44',
+                  borderRadius: '6px',
+                  boxShadow:
+                    '0 10px 24px rgba(0,0,0,0.78), inset 0 2px 0 rgba(235, 204, 145, 0.25), inset 0 -4px 12px rgba(0,0,0,0.65)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxSizing: 'border-box',
+                }}
+              >
+                {/* Left & Right Ornate Diamond Cap Ornaments */}
+                <span
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    right: '-10px',
+                    top: '50%',
+                    transform: 'translateY(-50%) rotate(45deg)',
+                    width: '18px',
+                    height: '18px',
+                    background: '#3d2f1e',
+                    border: '2.5px solid #9e7c4d',
+                  }}
+                />
+                <span
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    left: '-10px',
+                    top: '50%',
+                    transform: 'translateY(-50%) rotate(45deg)',
+                    width: '18px',
+                    height: '18px',
+                    background: '#3d2f1e',
+                    border: '2.5px solid #9e7c4d',
+                  }}
+                />
+                <input
+                  id="create-tribe-name-input"
+                  type="text"
+                  maxLength={50}
+                  placeholder="اكتب اسم القبيلة"
+                  value={newTribeNameInput}
+                  onChange={(e) => setNewTribeNameInput(e.target.value)}
+                  className="placeholder:text-[#a89d8a] placeholder:opacity-100"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCreateNewTribe();
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    padding: '0 36px',
+                    border: 'none',
+                    background: 'transparent',
+                    color: '#f8ecd2',
+                    fontFamily: 'inherit',
+                    fontSize: '30px',
+                    fontWeight: '800',
+                    textAlign: 'center',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
             </div>
 
-            {/* LIST OF 10 LEVELS */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {filteredLevels.map((lvl) => {
-                const isExpanded = !!expandedLevels[lvl.level];
-                const isActiveOrFirst = lvl.level === 1;
+            {/* Tribe Emblem Section */}
+            <div
+              style={{
+                width: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '14px',
+                marginTop: '4px',
+              }}
+            >
+              <div
+                style={{
+                  width: '100%',
+                  textAlign: 'right',
+                  fontSize: '30px',
+                  fontWeight: '900',
+                  color: '#e6cb93',
+                  textShadow: '0 2px 6px rgba(0,0,0,0.9)',
+                }}
+              >
+                شعار القبيلة
+              </div>
 
-                return (
-                  <div
-                    key={lvl.level}
-                    style={{
-                      borderRadius: '16px',
-                      border: isActiveOrFirst
-                        ? '1.8px solid #eab308'
-                        : '1.5px solid rgba(56, 189, 248, 0.25)',
-                      background: isActiveOrFirst
-                        ? 'linear-gradient(145deg, #16202c 0%, #0c1c2e 100%)'
-                        : 'linear-gradient(145deg, #0b1f33 0%, #061424 100%)',
-                      boxShadow: isActiveOrFirst
-                        ? '0 6px 20px rgba(202, 138, 4, 0.25)'
-                        : '0 4px 12px rgba(0, 0, 0, 0.35)',
-                      padding: '16px 18px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '10px',
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    {/* Level Card Main Row */}
+              <TribeEmblemCrest emblem={newTribeEmblemInput} size={156} />
+
+              {/* Blue Metallic Beveled "تغيير" Button */}
+              <button
+                type="button"
+                onClick={() => setShowEmblemPicker((prev) => !prev)}
+                style={{
+                  position: 'relative',
+                  minWidth: '240px',
+                  height: '64px',
+                  padding: '0 38px',
+                  borderRadius: '10px',
+                  border: '3px solid #9b7a4b',
+                  background:
+                    'linear-gradient(180deg, #3c6d94 0%, #1e4464 52%, #11293f 100%)',
+                  boxShadow:
+                    '0 8px 18px rgba(0,0,0,0.75), inset 0 2px 0 rgba(165, 224, 255, 0.45), inset 0 -3px 8px rgba(0,0,0,0.6)',
+                  color: '#f3efe4',
+                  fontFamily: 'inherit',
+                  fontSize: '28px',
+                  fontWeight: '900',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {/* Left & Right Glowing Cyan Diamond Rivets */}
+                <span
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    right: '-9px',
+                    top: '50%',
+                    transform: 'translateY(-50%) rotate(45deg)',
+                    width: '16px',
+                    height: '16px',
+                    background: '#38bdf8',
+                    border: '2.5px solid #9b7a4b',
+                    boxShadow: '0 0 8px rgba(56, 189, 248, 0.85)',
+                  }}
+                />
+                <span
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    left: '-9px',
+                    top: '50%',
+                    transform: 'translateY(-50%) rotate(45deg)',
+                    width: '16px',
+                    height: '16px',
+                    background: '#38bdf8',
+                    border: '2.5px solid #9b7a4b',
+                    boxShadow: '0 0 8px rgba(56, 189, 248, 0.85)',
+                  }}
+                />
+                <span>تغيير</span>
+              </button>
+
+              {/* Selectable Crest Picker Drawer */}
+              {showEmblemPicker && (
+                <div
+                  style={{
+                    width: '100%',
+                    padding: '18px',
+                    borderRadius: '14px',
+                    background: 'rgba(18, 16, 14, 0.94)',
+                    border: '2.5px solid #9b7a4b',
+                    boxShadow: '0 14px 32px rgba(0,0,0,0.85)',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                    gap: '12px',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  {TRIBE_EMBLEM_OPTIONS.map((opt) => {
+                    const isSelected = newTribeEmblemInput === opt.id;
+                    return (
+                      <button
+                        type="button"
+                        key={opt.id}
+                        onClick={() => {
+                          setNewTribeEmblemInput(opt.id);
+                          setShowEmblemPicker(false);
+                        }}
+                        style={{
+                          padding: '10px 6px',
+                          borderRadius: '10px',
+                          border: isSelected ? '2.5px solid #facc15' : '2px solid #57452e',
+                          background: isSelected
+                            ? 'linear-gradient(180deg, rgba(161, 98, 7, 0.45) 0%, rgba(69, 39, 8, 0.7) 100%)'
+                            : 'rgba(32, 27, 22, 0.9)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '6px',
+                          cursor: 'pointer',
+                          color: '#f5e4bd',
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        <TribeEmblemCrest emblem={opt.id} size={74} />
+                        <span style={{ fontSize: '18px', fontWeight: '800', whiteSpace: 'nowrap' }}>
+                          {opt.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Primary Green Button: إنشاء + 10M Gold Cost */}
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', marginTop: '6px' }}>
+              <button
+                type="button"
+                onClick={handleCreateNewTribe}
+                style={{
+                  position: 'relative',
+                  width: '100%',
+                  height: '112px',
+                  padding: '0 34px',
+                  borderRadius: '12px',
+                  border: '3.5px solid #d0a85b',
+                  background:
+                    'radial-gradient(ellipse at 50% 25%, rgba(145, 245, 95, 0.28) 0%, transparent 68%), linear-gradient(180deg, #439b31 0%, #246c19 52%, #13440b 100%)',
+                  boxShadow:
+                    '0 12px 26px rgba(0, 0, 0, 0.78), 0 0 22px rgba(234, 179, 8, 0.25), inset 0 2px 0 rgba(246, 232, 180, 0.75), inset 0 -4px 10px rgba(0, 35, 0, 0.65)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  boxSizing: 'border-box',
+                }}
+              >
+                {/* Left & Right Ornamental Gold Corner Chevrons */}
+                <span
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    right: '-11px',
+                    top: '50%',
+                    transform: 'translateY(-50%) rotate(45deg)',
+                    width: '20px',
+                    height: '20px',
+                    background: 'linear-gradient(135deg, #fde68a 0%, #926623 100%)',
+                    border: '3px solid #6b4914',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.8)',
+                  }}
+                />
+                <span
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    left: '-11px',
+                    top: '50%',
+                    transform: 'translateY(-50%) rotate(45deg)',
+                    width: '20px',
+                    height: '20px',
+                    background: 'linear-gradient(135deg, #fde68a 0%, #926623 100%)',
+                    border: '3px solid #6b4914',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.8)',
+                  }}
+                />
+                <span
+                  style={{
+                    fontFamily: 'inherit',
+                    fontSize: '42px',
+                    fontWeight: '900',
+                    color: '#f8efd4',
+                    textShadow: '0 3px 6px rgba(0, 0, 0, 0.9)',
+                  }}
+                >
+                  إنشاء
+                </span>
+              </button>
+
+              {/* Clean Gold Cost Info Line */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px',
+                  flexWrap: 'wrap',
+                  fontSize: '24px',
+                  fontWeight: '800',
+                  color: gold >= CREATE_TRIBE_COST ? '#f2d382' : '#fca5a5',
+                  textShadow: '0 2px 5px rgba(0,0,0,0.9)',
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                <GoldCoinBadgeIcon />
+                <span>تكلفة الإنشاء: 10,000,000 ذهب</span>
+                <span style={{ opacity: 0.7 }}>•</span>
+                <span style={{ color: gold >= CREATE_TRIBE_COST ? '#86efac' : '#f87171' }}>
+                  رصيدك: {gold.toLocaleString('en-US')}
+                </span>
+              </div>
+            </div>
+
+            {/* Bottom Dark-Wood/Stone Back Button: عودة ← */}
+            <button
+              type="button"
+              onClick={() => {
+                setShowEmblemPicker(false);
+                handleBackAction();
+              }}
+              style={{
+                position: 'relative',
+                width: '100%',
+                height: '92px',
+                marginTop: '6px',
+                borderRadius: '10px',
+                border: '3px solid #7f7467',
+                background: 'linear-gradient(180deg, #433b35 0%, #2a2420 55%, #1b1714 100%)',
+                boxShadow:
+                  '0 10px 24px rgba(0, 0, 0, 0.8), inset 0 2px 0 rgba(235, 224, 205, 0.25), inset 0 -3px 8px rgba(0,0,0,0.7)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '14px',
+                cursor: 'pointer',
+                color: '#f2e6cf',
+                fontFamily: 'inherit',
+                fontSize: '34px',
+                fontWeight: '900',
+                textShadow: '0 2px 5px rgba(0,0,0,0.9)',
+              }}
+            >
+              <span>عودة</span>
+              <span>←</span>
+            </button>
+          </div>
+        )}
+
+        {/* ===================== VIEW 4: JOIN TRIBE DIRECTORY ===================== */}
+        {screenMode === 'join' && (
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <input
+              type="text"
+              placeholder="ابحث عن اسم قبيلة أو قائد..."
+              value={tribeSearchQuery}
+              onChange={(e) => setTribeSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '18px 22px',
+                borderRadius: '12px',
+                border: '2.5px solid #8a6b41',
+                background: '#0f141e',
+                color: '#ffffff',
+                fontFamily: 'inherit',
+                fontSize: '26px',
+                fontWeight: '700',
+                boxSizing: 'border-box',
+                outline: 'none',
+              }}
+            />
+
+            {filteredTribes.length === 0 ? (
+              <div
+                style={{
+                  padding: '36px 24px',
+                  borderRadius: '14px',
+                  background: 'linear-gradient(180deg, #ecd8b4 0%, #d4b27d 100%)',
+                  border: '2.5px solid #967245',
+                  textAlign: 'center',
+                  color: '#2b1c0c',
+                  fontSize: '28px',
+                  fontWeight: '800',
+                }}
+              >
+                لا توجد قبائل مطابقة للبحث حالياً.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {filteredTribes.map((t) => {
+                  const isMember = (currentUser?.uid && t.members?.includes(currentUser.uid)) || t.id === tribeId;
+                  return (
                     <div
-                      onClick={() => toggleLevelExpand(lvl.level)}
+                      key={t.id}
                       style={{
+                        background: 'linear-gradient(180deg, #1d2430 0%, #11161f 100%)',
+                        border: isMember ? '3px solid #facc15' : '2.5px solid #7f613b',
+                        borderRadius: '14px',
+                        padding: '20px 24px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        cursor: 'pointer',
-                        userSelect: 'none',
+                        gap: '16px',
                       }}
                     >
-                      {/* Left Side: Points */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <span
-                          style={{
-                            background: 'rgba(15, 23, 42, 0.9)',
-                            border: '1.5px solid rgba(56, 189, 248, 0.45)',
-                            color: '#7dd3fc',
-                            fontSize: '21px',
-                            fontWeight: '900',
-                            padding: '7px 15px',
-                            borderRadius: '10px',
-                            letterSpacing: '0.3px',
-                          }}
-                        >
-                          +{toArabicDigits(lvl.dailyPoints)} يوم
-                        </span>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                            <span style={{ fontSize: '31px', fontWeight: '900', color: '#ffffff' }}>
-                              {toArabicDigits(lvl.points)}
-                            </span>
-                            <span style={{ fontSize: '21px', color: '#e2e8f0', fontWeight: '700' }}>نقطة</span>
-                          </div>
-                          <span style={{ fontSize: '19px', color: '#cbd5e1', fontWeight: '700' }}>
-                            رصيد المستوى
-                          </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                          <TribeEmblemCrest emblem={t.emblem || '⚔️'} size={54} />
+                          <span style={{ fontSize: '30px', fontWeight: '900', color: '#f2d382' }}>{t.name}</span>
+                        </div>
+                        <div style={{ fontSize: '22px', color: '#e2e8f0', fontWeight: '700' }}>
+                          القائد: @{t.leaderName || 'القبطان'} • الأعضاء: {(t.membersCount || t.members?.length || 1)}/{getTribeMaxMembers(t.level || 1)} • القوة: {toArabicDigits(t.power || 0)}
                         </div>
                       </div>
 
-                      {/* Right Side: Title, Tag, Icon Circle & Number Box */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                          <span style={{ fontSize: '27px', fontWeight: '900', color: '#ffffff' }}>
-                            {lvl.name}
-                          </span>
-                          <span style={{ fontSize: '21px', color: '#e2e8f0', fontWeight: '700' }}>
-                            {lvl.tag}
-                          </span>
-                        </div>
-
-                        <div
-                          style={{
-                            width: '66px',
-                            height: '66px',
-                            borderRadius: '50%',
-                            border: `2.5px solid ${lvl.accentColor}`,
-                            background: 'rgba(15, 23, 42, 0.9)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '32px',
-                            flexShrink: 0,
-                            boxShadow: `0 0 12px ${lvl.accentColor}44`,
-                          }}
-                        >
-                          {lvl.icon}
-                        </div>
-
-                        <div
-                          style={{
-                            width: '58px',
-                            height: '58px',
-                            borderRadius: '12px',
-                            border: '2px solid rgba(255, 255, 255, 0.35)',
-                            background: 'rgba(255, 255, 255, 0.08)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '26px',
-                            fontWeight: '900',
-                            color: '#ffffff',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {lvl.numberAr}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Chevron down arrow row */}
-                    <div
-                      onClick={() => toggleLevelExpand(lvl.level)}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        cursor: 'pointer',
-                        color: '#e2e8f0',
-                        fontSize: '26px',
-                        paddingTop: '2px',
-                      }}
-                    >
-                      <span
+                      <button
+                        type="button"
+                        onClick={() => handleToggleJoin(t)}
                         style={{
-                          transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                          transition: 'transform 0.2s ease',
+                          padding: '14px 28px',
+                          borderRadius: '12px',
+                          border: '2.5px solid #b59a73',
+                          background: isMember
+                            ? 'linear-gradient(180deg, #b91c1c 0%, #7f1d1d 100%)'
+                            : 'linear-gradient(180deg, #f37f1c 0%, #b44305 100%)',
+                          color: '#ffffff',
+                          fontFamily: 'inherit',
+                          fontSize: '26px',
+                          fontWeight: '900',
+                          cursor: 'pointer',
+                          flexShrink: 0,
                         }}
                       >
-                        ⌵
-                      </span>
+                        {isMember ? 'مغادرة' : 'انضمام'}
+                      </button>
                     </div>
+                  );
+                })}
+              </div>
+            )}
 
-                    {/* Expanded details accordion */}
-                    {isExpanded && (
-                      <div
-                        style={{
-                          borderTop: '1px solid rgba(56, 189, 248, 0.25)',
-                          paddingTop: '14px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '12px',
-                          fontSize: '23px',
-                          color: '#f8fafc',
-                          lineHeight: '1.65',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span style={{ color: '#facc15', fontSize: '26px' }}>✨</span>
-                          <span><strong>ميزة المستوى:</strong> {lvl.bonusDesc}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px', gap: '12px', flexWrap: 'wrap' }}>
-                          <span style={{ color: '#e2e8f0', fontSize: '22px', fontWeight: '700' }}>
-                            تكلفة الترقية والمساهمة: <strong style={{ color: '#fde047' }}>{lvl.costToUnlock.toLocaleString('ar-EG')} 🪙</strong>
-                          </span>
-                          <button
-                            onClick={() => handleRealDonate(Math.min(1000, lvl.costToUnlock / 100))}
-                            style={{
-                              background: 'linear-gradient(to right, #0284c7, #0369a1)',
-                              border: '2px solid #38bdf8',
-                              color: '#fff',
-                              borderRadius: '12px',
-                              padding: '10px 22px',
-                              fontFamily: 'inherit',
-                              fontSize: '22px',
-                              fontWeight: '900',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            مساهمة بالذهب 🪙
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </>
+            <button
+              type="button"
+              onClick={handleBackAction}
+              style={{
+                width: '100%',
+                height: '96px',
+                borderRadius: '10px',
+                border: '3px solid #8c6d45',
+                background: 'linear-gradient(180deg, #432e20 0%, #2b1d14 55%, #1d120b 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '14px',
+                cursor: 'pointer',
+                color: '#f2e0be',
+                fontFamily: 'inherit',
+                fontSize: '34px',
+                fontWeight: '900',
+              }}
+            >
+              <span>عودة</span>
+              <span>←</span>
+            </button>
+          </div>
         )}
 
-        {/* ===================== VIEW 2: DONATIONS TAB (التبرعات) ===================== */}
-        {activeSubTab === 'donations' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        {/* ===================== VIEW 5: INVITATIONS ===================== */}
+        {screenMode === 'invitations' && (
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '24px', alignItems: 'center' }}>
             <div
               style={{
-                borderRadius: '20px',
-                border: '1.5px solid rgba(56, 189, 248, 0.3)',
-                background: 'linear-gradient(145deg, #0b1f33 0%, #061424 100%)',
-                padding: '26px',
+                width: '100%',
+                padding: '38px 28px',
+                background: 'linear-gradient(180deg, #ecd8b4 0%, #cfa971 100%)',
+                borderRadius: '8px',
+                border: '3px solid #967245',
+                textAlign: 'center',
+                color: '#2b1c0c',
+                boxSizing: 'border-box',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+                <EnvelopeInviteIcon />
+              </div>
+              <p style={{ margin: '0 0 8px 0', fontSize: '32px', fontWeight: '900' }}>
+                لديك {invitationsCount} رسائل دعوة
+              </p>
+              <p style={{ margin: 0, fontSize: '24px', fontWeight: '700', color: '#4c3217' }}>
+                عندما يدعوك أحد القادة للانضمام إلى قبيلته ستظهر الرسائل هنا.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleBackAction}
+              style={{
+                width: '100%',
+                height: '96px',
+                borderRadius: '10px',
+                border: '3px solid #8c6d45',
+                background: 'linear-gradient(180deg, #432e20 0%, #2b1d14 55%, #1d120b 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '14px',
+                cursor: 'pointer',
+                color: '#f2e0be',
+                fontFamily: 'inherit',
+                fontSize: '34px',
+                fontWeight: '900',
+              }}
+            >
+              <span>عودة</span>
+              <span>←</span>
+            </button>
+          </div>
+        )}
+
+        {/* ===================== VIEW 6: DONATIONS ===================== */}
+        {screenMode === 'donations' && currentTribe && (
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div
+              style={{
+                background: 'linear-gradient(180deg, #1e2430 0%, #12161f 100%)',
+                border: '3px solid #967245',
+                borderRadius: '16px',
+                padding: '24px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '18px',
               }}
             >
-              <h3 style={{ margin: 0, fontSize: '32px', fontWeight: '900', color: '#facc15' }}>
-                🪙 خزينة تبرعات القبيلة
-              </h3>
-              <p style={{ margin: 0, fontSize: '23px', color: '#f1f5f9', lineHeight: 1.65, fontWeight: '600' }}>
-                تبرع بالذهب لرفع رصيد القبيلة وفتح مستويات الأعماق العشرة! يتم حفظ التبرعات فورياً في قاعدة البيانات الحقيقية وتحديث رصيد القبيلة وأعضائها.
-              </p>
-
-              {/* Current Gold in user account */}
-              <div
-                style={{
-                  background: 'rgba(15, 23, 42, 0.78)',
-                  border: '1.5px solid rgba(56, 189, 248, 0.3)',
-                  borderRadius: '14px',
-                  padding: '16px 20px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
-                <span style={{ fontSize: '23px', color: '#f1f5f9', fontWeight: '800' }}>رصيدك الفعلي من الذهب:</span>
-                <span style={{ fontSize: '30px', fontWeight: '900', color: '#fef08a' }}>
-                  {gold.toLocaleString('ar-EG')} 🪙
-                </span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                <span style={{ fontSize: '26px', fontWeight: '800', color: '#f2d382' }}>رصيدك من الذهب:</span>
+                <span style={{ fontSize: '30px', fontWeight: '900', color: '#ffffff' }}>{gold.toLocaleString('ar-EG')} 🪙</span>
               </div>
 
-              {/* Quick Donation buttons */}
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                 {[100, 500, 2000, 10000, 50000].map((amt) => (
                   <button
+                    type="button"
                     key={amt}
                     onClick={() => handleRealDonate(amt)}
                     style={{
                       flex: 1,
-                      minWidth: '135px',
-                      background: 'linear-gradient(135deg, #ca8a04 0%, #854d0e 100%)',
-                      border: '2px solid #facc15',
-                      color: '#fef08a',
+                      minWidth: '140px',
+                      padding: '14px',
                       borderRadius: '12px',
-                      padding: '14px 16px',
+                      border: '2px solid #facc15',
+                      background: 'linear-gradient(180deg, #ca8a04 0%, #854d0e 100%)',
+                      color: '#fef08a',
                       fontFamily: 'inherit',
-                      fontSize: '23px',
+                      fontSize: '24px',
                       fontWeight: '900',
                       cursor: 'pointer',
                     }}
@@ -1502,8 +3341,7 @@ export default function TribeView({
                 ))}
               </div>
 
-              {/* Custom Donation Amount */}
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '12px' }}>
                 <input
                   type="number"
                   min={10}
@@ -1511,26 +3349,27 @@ export default function TribeView({
                   onChange={(e) => setCustomDonationAmount(Math.max(1, Number(e.target.value) || 0))}
                   style={{
                     flex: 1,
-                    background: 'rgba(15, 23, 42, 0.9)',
-                    border: '2px solid rgba(56, 189, 248, 0.4)',
-                    borderRadius: '12px',
                     padding: '14px 18px',
+                    borderRadius: '12px',
+                    border: '2px solid #8a6b41',
+                    background: '#0b0e14',
                     color: '#fff',
-                    fontSize: '24px',
-                    fontWeight: '800',
                     fontFamily: 'inherit',
+                    fontSize: '26px',
+                    fontWeight: '800',
                   }}
                 />
                 <button
+                  type="button"
                   onClick={() => handleRealDonate(customDonationAmount)}
                   style={{
-                    background: 'linear-gradient(to right, #16a34a, #15803d)',
-                    border: '2px solid #86efac',
-                    color: '#fff',
+                    padding: '14px 28px',
                     borderRadius: '12px',
-                    padding: '14px 26px',
+                    border: '2.5px solid #86efac',
+                    background: 'linear-gradient(180deg, #54bf36 0%, #195f0f 100%)',
+                    color: '#fff',
                     fontFamily: 'inherit',
-                    fontSize: '24px',
+                    fontSize: '26px',
                     fontWeight: '900',
                     cursor: 'pointer',
                   }}
@@ -1540,542 +3379,172 @@ export default function TribeView({
               </div>
             </div>
 
-            {/* Real Donation Ranks / Real Users */}
             <div
               style={{
-                borderRadius: '20px',
-                border: '1.5px solid rgba(56, 189, 248, 0.3)',
-                background: 'linear-gradient(145deg, #0b1f33 0%, #061424 100%)',
-                padding: '22px 24px',
+                background: 'linear-gradient(180deg, #1e2430 0%, #12161f 100%)',
+                border: '2.5px solid #7f613b',
+                borderRadius: '16px',
+                padding: '22px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '14px',
+                gap: '12px',
               }}
             >
-              <div style={{ fontWeight: '900', color: '#7dd3fc', fontSize: '25px' }}>
-                🛡️ المتبرعون الحقيقيون في القبيلة ({toArabicDigits(realTribeDonors.length)})
+              <div style={{ fontSize: '26px', fontWeight: '900', color: '#f2d382' }}>
+                المتبرعون في القبيلة ({toArabicDigits(realTribeDonors.length)})
               </div>
-              {realTribeDonors.length === 0 ? (
-                <div style={{ fontSize: '22px', color: '#e2e8f0', textAlign: 'center', padding: '14px' }}>
-                  لم يتم تسجيل أي تبرعات بعد في هذه القبيلة. كن أول المتبرعين!
-                </div>
-              ) : (
-                realTribeDonors.slice(0, 10).map((donor, idx) => (
-                  <div
-                    key={donor.id || idx}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      fontSize: '23px',
-                      fontWeight: '700',
-                      color: '#f8fafc',
-                      borderBottom: '1px solid rgba(255,255,255,0.1)',
-                      paddingBottom: '10px',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ color: '#facc15', fontWeight: '900' }}>#{toArabicDigits(idx + 1)}</span>
-                      <span style={{ fontSize: '28px' }}>{donor.avatar}</span>
-                      <span>@{donor.name}</span>
-                    </div>
-                    <span style={{ color: '#fef08a', fontWeight: '900' }}>
-                      {donor.points.toLocaleString('ar-EG')} نقطة
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ===================== VIEW 3: LEVELS TAB (المستويات) ===================== */}
-        {activeSubTab === 'levels' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div
-              style={{
-                borderRadius: '18px',
-                border: '1.5px solid rgba(56, 189, 248, 0.3)',
-                background: 'linear-gradient(145deg, #0b1f33 0%, #061424 100%)',
-                padding: '22px 24px',
-              }}
-            >
-              <h3 style={{ margin: '0 0 8px 0', fontSize: '30px', fontWeight: '900', color: '#facc15' }}>
-                مستويات الأعماق العشرة (١٠ مستويات)
-              </h3>
-              <p style={{ margin: 0, fontSize: '23px', color: '#f1f5f9', fontWeight: '700', lineHeight: 1.6 }}>
-                إجمالي رصيد المستويات: {toArabicDigits(totalBalancePoints)} نقطة • معدل الإضافة: {toArabicDigits(totalDailyAddition)} نقطة / يوم بعد ١٢ ليلاً.
-              </p>
-            </div>
-
-            {/* Search Input in Levels tab */}
-            <div
-              style={{
-                position: 'relative',
-                display: 'flex',
-                alignItems: 'center',
-                borderRadius: '14px',
-                border: '2px solid rgba(56, 189, 248, 0.4)',
-                background: 'rgba(11, 31, 51, 0.85)',
-                padding: '15px 20px',
-                gap: '14px',
-              }}
-            >
-              <input
-                type="text"
-                placeholder="ابحث عن مستوى..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  flex: 1,
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  color: '#ffffff',
-                  fontSize: '25px',
-                  fontWeight: '700',
-                  fontFamily: 'inherit',
-                  direction: 'rtl',
-                }}
-              />
-              <span style={{ color: '#e2e8f0', fontSize: '27px' }}>🔍</span>
-            </div>
-
-            {/* All Levels */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {filteredLevels.map((lvl) => {
-                const isExpanded = !!expandedLevels[lvl.level];
-                const isActiveOrFirst = lvl.level === 1;
-
-                return (
-                  <div
-                    key={lvl.level}
-                    style={{
-                      borderRadius: '18px',
-                      border: isActiveOrFirst
-                        ? '2px solid #eab308'
-                        : '1.5px solid rgba(56, 189, 248, 0.3)',
-                      background: isActiveOrFirst
-                        ? 'linear-gradient(145deg, #16202c 0%, #0c1c2e 100%)'
-                        : 'linear-gradient(145deg, #0b1f33 0%, #061424 100%)',
-                      padding: '18px 20px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '12px',
-                    }}
-                  >
-                    <div
-                      onClick={() => toggleLevelExpand(lvl.level)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <span
-                          style={{
-                            background: 'rgba(15, 23, 42, 0.9)',
-                            border: '1.5px solid rgba(56, 189, 248, 0.45)',
-                            color: '#7dd3fc',
-                            fontSize: '21px',
-                            fontWeight: '900',
-                            padding: '7px 15px',
-                            borderRadius: '10px',
-                          }}
-                        >
-                          +{toArabicDigits(lvl.dailyPoints)} يوم
-                        </span>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontSize: '29px', fontWeight: '900', color: '#ffffff' }}>{toArabicDigits(lvl.points)} نقطة</span>
-                          <span style={{ fontSize: '19px', color: '#cbd5e1', fontWeight: '700' }}>رصيد المستوى</span>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontWeight: '900', fontSize: '27px', color: '#ffffff' }}>{lvl.name}</div>
-                          <div style={{ fontSize: '21px', color: '#e2e8f0', fontWeight: '700' }}>{lvl.tag}</div>
-                        </div>
-                        <div
-                          style={{
-                            width: '64px',
-                            height: '64px',
-                            borderRadius: '50%',
-                            border: `2.5px solid ${lvl.accentColor}`,
-                            background: 'rgba(15, 23, 42, 0.9)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '31px',
-                          }}
-                        >
-                          {lvl.icon}
-                        </div>
-                        <div
-                          style={{
-                            width: '56px',
-                            height: '56px',
-                            borderRadius: '12px',
-                            border: '2px solid rgba(255, 255, 255, 0.35)',
-                            background: 'rgba(255, 255, 255, 0.08)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '26px',
-                            fontWeight: '900',
-                            color: '#ffffff',
-                          }}
-                        >
-                          {lvl.numberAr}
-                        </div>
-                      </div>
-                    </div>
-
-                    {isExpanded && (
-                      <div
-                        style={{
-                          borderTop: '1px solid rgba(56, 189, 248, 0.25)',
-                          paddingTop: '12px',
-                          fontSize: '23px',
-                          color: '#f8fafc',
-                          lineHeight: 1.65,
-                        }}
-                      >
-                        <span style={{ color: '#facc15', fontSize: '25px' }}>✨ </span>
-                        <strong>ميزة المستوى:</strong> {lvl.bonusDesc}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* ===================== VIEW 4: ALL REAL TRIBES BROWSER (قائمة القبائل) ===================== */}
-        {activeSubTab === 'allTribes' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div
-              style={{
-                borderRadius: '18px',
-                border: '1.5px solid rgba(56, 189, 248, 0.3)',
-                background: 'linear-gradient(145deg, #0b1f33 0%, #061424 100%)',
-                padding: '22px 24px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: '14px',
-                flexWrap: 'wrap',
-              }}
-            >
-              <div>
-                <h3 style={{ margin: 0, fontSize: '30px', fontWeight: '900', color: '#facc15' }}>
-                  القبائل المسجلة ({toArabicDigits(tribes.length)})
-                </h3>
-                <p style={{ margin: '6px 0 0 0', fontSize: '22px', color: '#f1f5f9', fontWeight: '700' }}>
-                  اختر أي قبيلة للانضمام إليها أو التبديل بين القبائل.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                style={{
-                  background: 'linear-gradient(to right, #16a34a, #15803d)',
-                  color: '#fff',
-                  border: '2px solid #86efac',
-                  borderRadius: '12px',
-                  padding: '12px 22px',
-                  fontFamily: 'inherit',
-                  fontSize: '22px',
-                  fontWeight: '900',
-                  cursor: 'pointer',
-                }}
-              >
-                ➕ تأسيس قبيلة
-              </button>
-            </div>
-
-            {tribes.length === 0 ? (
-              <div
-                style={{
-                  textAlign: 'center',
-                  padding: '40px 20px',
-                  background: 'rgba(11, 31, 51, 0.75)',
-                  borderRadius: '18px',
-                  border: '2px dashed rgba(56, 189, 248, 0.4)',
-                  color: '#f1f5f9',
-                }}
-              >
-                <div style={{ fontSize: '52px', marginBottom: '12px' }}>👑</div>
-                <div style={{ fontWeight: '900', fontSize: '28px', color: '#fef08a', marginBottom: '8px' }}>
-                  لا توجد قبائل مسجلة حالياً
-                </div>
-                <button
-                  onClick={() => setShowCreateModal(true)}
+              {realTribeDonors.slice(0, 10).map((donor, idx) => (
+                <div
+                  key={donor.id || idx}
                   style={{
-                    marginTop: '14px',
-                    background: '#ca8a04',
-                    color: '#000',
-                    border: 'none',
-                    borderRadius: '12px',
-                    padding: '12px 26px',
-                    fontFamily: 'inherit',
-                    fontSize: '23px',
-                    fontWeight: '900',
-                    cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: '24px',
+                    fontWeight: '700',
+                    borderBottom: '1px solid rgba(255,255,255,0.1)',
+                    paddingBottom: '10px',
                   }}
                 >
-                  كن أول من يؤسس قبيلة ➕
-                </button>
-              </div>
-            ) : (
-              tribes.map((t) => {
-                const isMember = (currentUser?.uid && t.members?.includes(currentUser.uid)) || t.id === tribeId;
-                return (
-                  <div
-                    key={t.id}
-                    style={{
-                      borderRadius: '18px',
-                      border: isMember ? '2px solid #facc15' : '1.5px solid rgba(56, 189, 248, 0.3)',
-                      background: isMember
-                        ? 'linear-gradient(145deg, rgba(234, 179, 8, 0.16) 0%, rgba(12, 31, 51, 0.96) 100%)'
-                        : 'linear-gradient(145deg, #0b1f33 0%, #061424 100%)',
-                      padding: '18px 22px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: '14px',
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '36px' }}>{t.emblem || '👑'}</span>
-                        <span style={{ fontWeight: '900', fontSize: '27px', color: '#ffffff' }}>{t.name}</span>
-                        {isMember && (
-                          <span
-                            style={{
-                              background: '#facc15',
-                              color: '#0f172a',
-                              fontSize: '19px',
-                              padding: '3px 12px',
-                              borderRadius: '8px',
-                              fontWeight: '900',
-                            }}
-                          >
-                            قبيلتك الحالية
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: '22px', color: '#f1f5f9', marginTop: '8px', fontWeight: '700' }}>
-                        القائد: <span style={{ color: '#7dd3fc', fontWeight: '800' }}>@{t.leaderName}</span> | الأعضاء: <span style={{ color: '#fde047', fontWeight: '800' }}>{t.membersCount || t.members?.length || 1}</span>
-                      </div>
-                      <div style={{ fontSize: '21px', color: '#cbd5e1', marginTop: '5px', fontWeight: '700' }}>
-                        رصيد القوة: 🛡️ {(t.power || 0).toLocaleString()} | التبرعات: 🪙 {(t.donations || 0).toLocaleString()}
-                      </div>
-                    </div>
+                  <span>
+                    #{toArabicDigits(idx + 1)} {donor.avatar} @{donor.name}
+                  </span>
+                  <span style={{ color: '#fef08a', fontWeight: '900' }}>
+                    {donor.points.toLocaleString('ar-EG')} نقطة
+                  </span>
+                </div>
+              ))}
+            </div>
 
-                    <div style={{ display: 'flex', gap: '10px', flexShrink: 0 }}>
-                      <button
-                        onClick={() => handleToggleJoin(t)}
-                        style={{
-                          background: isMember ? '#dc2626' : '#0284c7',
-                          color: '#fff',
-                          border: '1.5px solid rgba(255,255,255,0.25)',
-                          borderRadius: '12px',
-                          padding: '12px 24px',
-                          fontFamily: 'inherit',
-                          fontSize: '22px',
-                          fontWeight: '900',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {isMember ? 'مغادرة' : 'انضمام'}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
+            <button
+              type="button"
+              onClick={handleBackAction}
+              style={{
+                width: '100%',
+                height: '96px',
+                borderRadius: '10px',
+                border: '3px solid #8c6d45',
+                background: 'linear-gradient(180deg, #432e20 0%, #2b1d14 55%, #1d120b 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '14px',
+                cursor: 'pointer',
+                color: '#f2e0be',
+                fontFamily: 'inherit',
+                fontSize: '34px',
+                fontWeight: '900',
+              }}
+            >
+              <span>عودة</span>
+              <span>←</span>
+            </button>
           </div>
         )}
 
-        {/* Footer: current tribe info & تأسيس قبيلة جديدة */}
-        <div
-          style={{
-            marginTop: '20px',
-            paddingTop: '16px',
-            borderTop: '1px solid rgba(56, 189, 248, 0.25)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '14px',
-            flexWrap: 'wrap',
-          }}
-        >
-          <span style={{ fontSize: '22px', color: '#e2e8f0', fontWeight: '700' }}>
-            التحالف: {currentTribe?.name || 'ملوك الأعماق'} | القائد: @{currentTribe?.leaderName || username}
-          </span>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            style={{
-              background: 'rgba(56, 189, 248, 0.2)',
-              border: '2px solid rgba(56, 189, 248, 0.5)',
-              color: '#7dd3fc',
-              borderRadius: '12px',
-              padding: '11px 22px',
-              fontFamily: 'inherit',
-              fontSize: '22px',
-              fontWeight: '900',
-              cursor: 'pointer',
-            }}
-          >
-            تأسيس قبيلة جديدة ➕
-          </button>
-        </div>
-      </div>
-
-      {/* CREATE REAL TRIBE MODAL */}
-      {showCreateModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.85)',
-            zIndex: 10000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px',
-          }}
-        >
-          <div
-            style={{
-              background: '#0c1f33',
-              border: '2px solid #d4af37',
-              borderRadius: '22px',
-              padding: '28px',
-              maxWidth: '620px',
-              width: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '18px',
-              direction: 'rtl',
-            }}
-          >
-            <h3 style={{ margin: 0, fontSize: '30px', fontWeight: '900', color: '#fef08a', textAlign: 'center' }}>
-              👑 تأسيس قبيلة جديدة
-            </h3>
-
-            <div>
-              <label style={{ fontSize: '23px', color: '#f1f5f9', fontWeight: '800', display: 'block', marginBottom: '8px' }}>
-                اسم القبيلة:
-              </label>
-              <input
-                type="text"
-                placeholder="مثال: ملوك الأعماق"
-                value={newTribeNameInput}
-                onChange={(e) => setNewTribeNameInput(e.target.value)}
-                style={{
-                  width: '100%',
-                  background: 'rgba(15, 23, 42, 0.9)',
-                  border: '2px solid rgba(56, 189, 248, 0.45)',
-                  borderRadius: '12px',
-                  padding: '14px 16px',
-                  color: '#fff',
-                  fontFamily: 'inherit',
-                  fontSize: '24px',
-                  fontWeight: '700',
-                  boxSizing: 'border-box',
-                }}
-              />
+        {/* ===================== VIEW 7: LEVELS ===================== */}
+        {screenMode === 'levels' && (
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div
+              style={{
+                background: 'linear-gradient(180deg, #ecd8b4 0%, #cfa971 100%)',
+                border: '2.5px solid #967245',
+                borderRadius: '12px',
+                padding: '18px 24px',
+                color: '#2b1c0c',
+                fontSize: '24px',
+                fontWeight: '800',
+                textAlign: 'center',
+              }}
+            >
+              رصيد المستويات: {toArabicDigits(totalBalancePoints)} نقطة • الإضافة اليومية: {toArabicDigits(totalDailyAddition)} نقطة
             </div>
 
-            <div>
-              <label style={{ fontSize: '23px', color: '#f1f5f9', fontWeight: '800', display: 'block', marginBottom: '8px' }}>
-                شعار القبيلة:
-              </label>
-              <div style={{ display: 'flex', gap: '12px', fontSize: '34px', flexWrap: 'wrap' }}>
-                {['👑', '⚓', '🌊', '🦈', '🐉', '💎', '⚔️'].map((emoji) => (
-                  <div
-                    key={emoji}
-                    onClick={() => setNewTribeEmblemInput(emoji)}
-                    style={{
-                      cursor: 'pointer',
-                      padding: '10px 16px',
-                      background: newTribeEmblemInput === emoji ? '#ca8a04' : 'rgba(15, 23, 42, 0.85)',
-                      borderRadius: '12px',
-                      border: newTribeEmblemInput === emoji ? '2.5px solid #fff' : '1.5px solid #475569',
-                    }}
-                  >
-                    {emoji}
+            <input
+              type="text"
+              placeholder="ابحث عن مستوى..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '16px 20px',
+                borderRadius: '12px',
+                border: '2px solid #8a6b41',
+                background: '#0f141e',
+                color: '#ffffff',
+                fontFamily: 'inherit',
+                fontSize: '25px',
+                fontWeight: '700',
+                boxSizing: 'border-box',
+                outline: 'none',
+              }}
+            />
+
+            {filteredLevels.map((lvl) => {
+              const isExpanded = !!expandedLevels[lvl.level];
+              return (
+                <div
+                  key={lvl.level}
+                  onClick={() => toggleLevelExpand(lvl.level)}
+                  style={{
+                    background: 'linear-gradient(180deg, #1d2430 0%, #11161f 100%)',
+                    border: '2.5px solid #7f613b',
+                    borderRadius: '14px',
+                    padding: '18px 22px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                      <span style={{ fontSize: '34px' }}>{lvl.icon}</span>
+                      <div>
+                        <div style={{ fontSize: '28px', fontWeight: '900', color: '#f2d382' }}>{lvl.name}</div>
+                        <div style={{ fontSize: '21px', color: '#cbd5e1', fontWeight: '700' }}>{lvl.tag}</div>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontSize: '28px', fontWeight: '900', color: '#ffffff' }}>{toArabicDigits(lvl.points)} نقطة</div>
+                      <div style={{ fontSize: '20px', color: '#86efac', fontWeight: '800' }}>+{toArabicDigits(lvl.dailyPoints)} يومياً</div>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
+                  {isExpanded && (
+                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.12)', paddingTop: '10px', fontSize: '23px', color: '#f1f5f9', lineHeight: 1.6 }}>
+                      {lvl.bonusDesc}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
 
-            <div>
-              <label style={{ fontSize: '23px', color: '#f1f5f9', fontWeight: '800', display: 'block', marginBottom: '8px' }}>
-                وصف وشعار القبيلة:
-              </label>
-              <textarea
-                placeholder="من بوابة الأعماق إلى العرش..."
-                value={newTribeDescInput}
-                onChange={(e) => setNewTribeDescInput(e.target.value)}
-                rows={2}
-                style={{
-                  width: '100%',
-                  background: 'rgba(15, 23, 42, 0.9)',
-                  border: '2px solid rgba(56, 189, 248, 0.45)',
-                  borderRadius: '12px',
-                  padding: '14px 16px',
-                  color: '#fff',
-                  fontFamily: 'inherit',
-                  fontSize: '23px',
-                  fontWeight: '700',
-                  resize: 'none',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '6px' }}>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                style={{
-                  background: '#334155',
-                  color: '#fff',
-                  border: 'none',
-                  padding: '12px 24px',
-                  borderRadius: '12px',
-                  fontFamily: 'inherit',
-                  fontSize: '22px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                }}
-              >
-                إلغاء
-              </button>
-              <button
-                onClick={handleCreateNewTribe}
-                style={{
-                  background: 'linear-gradient(to right, #16a34a, #15803d)',
-                  color: '#fff',
-                  border: 'none',
-                  padding: '12px 26px',
-                  borderRadius: '12px',
-                  fontFamily: 'inherit',
-                  fontSize: '22px',
-                  fontWeight: '900',
-                  cursor: 'pointer',
-                }}
-              >
-                تأكيد التأسيس 🎉
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleBackAction}
+              style={{
+                width: '100%',
+                height: '96px',
+                borderRadius: '10px',
+                border: '3px solid #8c6d45',
+                background: 'linear-gradient(180deg, #432e20 0%, #2b1d14 55%, #1d120b 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '14px',
+                cursor: 'pointer',
+                color: '#f2e0be',
+                fontFamily: 'inherit',
+                fontSize: '34px',
+                fontWeight: '900',
+              }}
+            >
+              <span>عودة</span>
+              <span>←</span>
+            </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

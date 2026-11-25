@@ -92,7 +92,7 @@ export const ShipStatusBars: React.FC<ShipStatusBarsProps> = ({
   maxHeart,
   isDestroyed,
   scaleX,
-  bottomOffset = 'calc(100% - 46px)',
+  bottomOffset = 'calc(100% - 112px)',
   onCollect,
   onRepair,
 }) => {

@@ -1,11 +1,12 @@
 // Warning & Detonation Audio Engine (صوت الرجل الحقيقي المصاحب لرسالة التفجير)
 // تشغيل التسجيل الصوتي الحقيقي للرجل فقط ومنع أي صوت اصطناعي أو SpeechSynthesis نهائياً
 
-import { getAudioContext } from './explosionSound';
+import { getAudioContext, isAudioMuted } from './explosionSound';
 
 let activeAudioElement: HTMLAudioElement | null = null;
 
 export function playDetonationWarningVoiceAndSound() {
+  if (isAudioMuted()) return;
   try {
     // 1. إيقاف أي صوت سابق فوراً، وإلغاء أي صوت للذكاء الاصطناعي تماماً
     if (activeAudioElement) {

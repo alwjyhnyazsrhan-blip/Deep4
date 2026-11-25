@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { WEAPON_MEDIA_BOMB_ICON } from '../data';
 
 export type RocketTier = 'small' | 'medium' | 'large';
 
@@ -678,7 +679,7 @@ export const AdBombStrike: React.FC<AdBombStrikeProps> = ({
             height="260"
             style={{
               position: 'absolute',
-              bottom: '84px',
+              bottom: '92px',
               left: '50%',
               transform: 'translateX(-50%)',
               overflow: 'visible',
@@ -703,14 +704,20 @@ export const AdBombStrike: React.FC<AdBombStrikeProps> = ({
             <ellipse cx="60" cy="215" rx="34" ry="44" fill="url(#adTrailPlasma)" />
           </svg>
 
-          {/* Heavy Canister Media Warhead */}
-          <svg viewBox="0 0 90 120" width="84" height="112" style={{ filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.9)) drop-shadow(0 0 14px rgba(34,197,94,0.85))' }}>
-            <polygon points="24,18 45,36 66,18 58,6 32,6" fill="#18181b" stroke="#22c55e" strokeWidth="2" />
-            <rect x="26" y="30" width="38" height="54" rx="8" fill="#09090b" stroke="#4ade80" strokeWidth="2.5" />
-            <path d="M 26,84 Q 45,114 64,84 Z" fill="#dc2626" stroke="#7f1d1d" strokeWidth="2" />
-            <circle cx="45" cy="57" r="12" fill="#14532d" stroke="#4ade80" strokeWidth="2" />
-            <text x="45" y="62" textAnchor="middle" fontSize="14" fill="#fef08a">⚡</text>
-          </svg>
+          {/* Exact Weapon Image from Shop & Inventory (رسالة التفجير) */}
+          <img
+            src={WEAPON_MEDIA_BOMB_ICON}
+            alt="رسالة التفجير"
+            referrerPolicy="no-referrer"
+            style={{
+              width: '96px',
+              height: '96px',
+              objectFit: 'contain',
+              position: 'relative',
+              zIndex: 2,
+              filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.9)) drop-shadow(0 0 18px rgba(34,197,94,0.9))',
+            }}
+          />
         </div>
       )}
 

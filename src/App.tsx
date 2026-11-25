@@ -985,6 +985,13 @@ export default function App() {
 
   // --- Visited Player Profiles & Sea Interactions ---
   const [inspectedPlayer, setInspectedPlayer] = useState<any | null>(null);
+  const recentAttackShipDamageRef = useRef<Record<string, { ships: any[]; portDestroyed: boolean; baselineShipsKey: string; appliedAt: number }>>({});
+  const getShipsSignature = (list: any[] | undefined) =>
+    JSON.stringify((Array.isArray(list) ? list : []).map((s: any) => ({
+      id: s?.id ?? null,
+      h: typeof s?.heart === 'number' ? s.heart : null,
+      ex: s?.exists !== false
+    })));
   const [isProfileLoading, setIsProfileLoading] = useState<boolean>(false);
   const [inspectedPlayerShipVisit, setInspectedPlayerShipVisit] = useState<boolean>(false);
   const [selectedVisitedShip, setSelectedVisitedShip] = useState<any | null>(null);
@@ -1521,6 +1528,54 @@ export default function App() {
     return { allowed: true, message: '' };
   };
 
+  const applyWeaponDamageToPlayerState = (
+    player: any,
+    damage: number,
+    targetShipId?: string,
+    targetShipIndex?: number,
+    allShips: boolean = false
+  ) => {
+    if (!player) return player;
+    const currentShips = (player.ships && Array.isArray(player.ships) && player.ships.length > 0)
+      ? player.ships
+      : getInspectedPlayerShips(player);
+    const updated = currentShips.map((s: any, idx: number) => {
+      const normalized = normalizeShipEnergyToCargo(s, Boolean(player.portDestroyed));
+      const isTarget = allShips
+        ? true
+        : (targetShipId ? s.id === targetShipId : false) || (typeof targetShipIndex === 'number' && idx === targetShipIndex);
+      if (!isTarget) return normalized;
+      const maxH = getShipMaxHeart(normalized);
+      const currentHeart = typeof normalized.heart === 'number' ? Math.min(normalized.heart, maxH) : maxH;
+      const newHeart = Math.max(0, currentHeart - damage);
+      return {
+        ...normalized,
+        maxHeart: maxH,
+        heart: newHeart,
+        energySyncedToCargo: true,
+        ...(newHeart <= 0 ? { moving: false, status: 'docked' } : {})
+      };
+    });
+    const activeUpdated = updated.filter((s: any) => s.exists !== false);
+    const allDestroyed = activeUpdated.length > 0 && activeUpdated.every((s: any) => typeof s.heart === 'number' && s.heart <= 0);
+    const targetKey = getTargetDefenderId(player) || player.id || player.userId;
+    if (targetKey && !(auth.currentUser && targetKey === auth.currentUser.uid)) {
+      const existingOverlay = recentAttackShipDamageRef.current[targetKey];
+      const baselineShipsKey = existingOverlay ? existingOverlay.baselineShipsKey : getShipsSignature(player.ships);
+      recentAttackShipDamageRef.current[targetKey] = {
+        ships: updated,
+        portDestroyed: allDestroyed,
+        baselineShipsKey,
+        appliedAt: Date.now()
+      };
+    }
+    return {
+      ...player,
+      portDestroyed: allDestroyed,
+      ships: updated
+    };
+  };
+
   const handleLaunchSmallRocket = (targetShipOverride?: any) => {
     if (!inspectedPlayer) return;
 
@@ -1548,7 +1603,7 @@ export default function App() {
     const baseShips = (targetSnapshot.ships && Array.isArray(targetSnapshot.ships) && targetSnapshot.ships.length > 0)
       ? targetSnapshot.ships
       : getInspectedPlayerShips(targetSnapshot);
-    const targetShip = targetShipOverride || selectedVisitedShip || baseShips[0];
+    const targetShip = targetShipOverride || selectedVisitedShip || baseShips.find((s: any) => s.exists !== false && (typeof s.heart !== 'number' || s.heart > 0)) || baseShips[0];
 
     let targetLeft = '45%';
     let targetTop = '49%';
@@ -1639,6 +1694,10 @@ export default function App() {
       });
     }
 
+    const targetIdxForState = targetShip?.id ? baseShips.findIndex((s: any) => s.id === targetShip.id) : 0;
+    const resolvedIdxForState = targetIdxForState >= 0 ? targetIdxForState : 0;
+    const resolvedShipIdForState = baseShips[resolvedIdxForState]?.id || targetShip?.id;
+
     setTimeout(() => {
       setIsSmallRocketActive(false);
       setShowSmallRocketExplosion(true);
@@ -1648,20 +1707,17 @@ export default function App() {
 
       playSmallRocketExplosionSound();
 
-      if (smallUpdatedShips && targetDocId) {
+      if (targetDocId) {
         setLastRocketDamage(smallDealtDamage || 1000);
-        const finalShips = smallUpdatedShips;
-        const finalDestroyed = smallAllDestroyed;
 
-        setInspectedPlayer((prev: any) => prev && getTargetDefenderId(prev) === targetDocId ? {
-          ...prev,
-          portDestroyed: finalDestroyed,
-          ships: finalShips
-        } : prev);
+        setInspectedPlayer((prev: any) => prev && getTargetDefenderId(prev) === targetDocId
+          ? applyWeaponDamageToPlayerState(prev, flatDamage, resolvedShipIdForState, resolvedIdxForState, false)
+          : prev
+        );
 
         setRealPlayers(prev => prev.map(p => {
           if (getTargetDefenderId(p) === targetDocId || p.id === targetDocId || p.userId === targetDocId) {
-            return { ...p, portDestroyed: finalDestroyed, ships: finalShips };
+            return applyWeaponDamageToPlayerState(p, flatDamage, resolvedShipIdForState, resolvedIdxForState, false);
           }
           return p;
         }));
@@ -1712,7 +1768,7 @@ export default function App() {
     const baseShips = (targetSnapshot.ships && Array.isArray(targetSnapshot.ships) && targetSnapshot.ships.length > 0)
       ? targetSnapshot.ships
       : getInspectedPlayerShips(targetSnapshot);
-    const targetShip = targetShipOverride || selectedVisitedShip || baseShips[0];
+    const targetShip = targetShipOverride || selectedVisitedShip || baseShips.find((s: any) => s.exists !== false && (typeof s.heart !== 'number' || s.heart > 0)) || baseShips[0];
 
     let targetLeft = '45%';
     let targetTop = '49%';
@@ -1803,6 +1859,10 @@ export default function App() {
       });
     }
 
+    const medTargetIdx = targetShip?.id ? baseShips.findIndex((s: any) => s.id === targetShip.id) : 0;
+    const medResolvedIdx = medTargetIdx >= 0 ? medTargetIdx : 0;
+    const medResolvedShipId = baseShips[medResolvedIdx]?.id || targetShip?.id;
+
     setTimeout(() => {
       setIsMediumRocketActive(false);
       setShowMediumRocketExplosion(true);
@@ -1812,20 +1872,17 @@ export default function App() {
 
       playMediumRocketExplosionSound();
 
-      if (medUpdatedShips && targetDocId) {
+      if (targetDocId) {
         setLastRocketDamage(medDealtDamage || 5000);
-        const finalShips = medUpdatedShips;
-        const finalDestroyed = medAllDestroyed;
 
-        setInspectedPlayer((prev: any) => prev && getTargetDefenderId(prev) === targetDocId ? {
-          ...prev,
-          portDestroyed: finalDestroyed,
-          ships: finalShips
-        } : prev);
+        setInspectedPlayer((prev: any) => prev && getTargetDefenderId(prev) === targetDocId
+          ? applyWeaponDamageToPlayerState(prev, flatDamage, medResolvedShipId, medResolvedIdx, false)
+          : prev
+        );
 
         setRealPlayers(prev => prev.map(p => {
           if (getTargetDefenderId(p) === targetDocId || p.id === targetDocId || p.userId === targetDocId) {
-            return { ...p, portDestroyed: finalDestroyed, ships: finalShips };
+            return applyWeaponDamageToPlayerState(p, flatDamage, medResolvedShipId, medResolvedIdx, false);
           }
           return p;
         }));
@@ -1876,7 +1933,7 @@ export default function App() {
     const baseShips = (targetSnapshot.ships && Array.isArray(targetSnapshot.ships) && targetSnapshot.ships.length > 0)
       ? targetSnapshot.ships
       : getInspectedPlayerShips(targetSnapshot);
-    const targetShip = targetShipOverride || selectedVisitedShip || baseShips[0];
+    const targetShip = targetShipOverride || selectedVisitedShip || baseShips.find((s: any) => s.exists !== false && (typeof s.heart !== 'number' || s.heart > 0)) || baseShips[0];
 
     let targetLeft = '45%';
     let targetTop = '49%';
@@ -1973,6 +2030,10 @@ export default function App() {
       });
     }
 
+    const largeTargetIdx = targetShip?.id ? baseShips.findIndex((s: any) => s.id === targetShip.id) : 0;
+    const largeResolvedIdx = largeTargetIdx >= 0 ? largeTargetIdx : 0;
+    const largeResolvedShipId = baseShips[largeResolvedIdx]?.id || targetShip?.id;
+
     setTimeout(() => {
       setIsLargeRocketActive(false);
       setShowLargeRocketExplosion(true);
@@ -1982,20 +2043,17 @@ export default function App() {
 
       playLargeRocketExplosionSound();
 
-      if (largeUpdatedShips && targetDocId) {
+      if (targetDocId) {
         setLastRocketDamage(primaryDealtDamage || 10000);
-        const finalShips = largeUpdatedShips;
-        const finalDestroyed = largeAllDestroyed;
 
-        setInspectedPlayer((prev: any) => prev && getTargetDefenderId(prev) === targetDocId ? {
-          ...prev,
-          portDestroyed: finalDestroyed,
-          ships: finalShips
-        } : prev);
+        setInspectedPlayer((prev: any) => prev && getTargetDefenderId(prev) === targetDocId
+          ? applyWeaponDamageToPlayerState(prev, flatDamage, largeResolvedShipId, largeResolvedIdx, false)
+          : prev
+        );
 
         setRealPlayers(prev => prev.map(p => {
           if (getTargetDefenderId(p) === targetDocId || p.id === targetDocId || p.userId === targetDocId) {
-            return { ...p, portDestroyed: finalDestroyed, ships: finalShips };
+            return applyWeaponDamageToPlayerState(p, flatDamage, largeResolvedShipId, largeResolvedIdx, false);
           }
           return p;
         }));
@@ -2175,16 +2233,17 @@ export default function App() {
       playMediaBombExplosionSound();
 
       if (targetDocId) {
-        setInspectedPlayer((prev: any) => prev && getTargetDefenderId(prev) === targetDocId ? {
-          ...prev,
-          portDestroyed: allDestroyed,
-          activeAd: selectedAdKey,
-          ships: updatedShips
-        } : prev);
+        setInspectedPlayer((prev: any) => prev && getTargetDefenderId(prev) === targetDocId
+          ? {
+              ...applyWeaponDamageToPlayerState(prev, flatDamage, undefined, undefined, true),
+              activeAd: selectedAdKey
+            }
+          : prev
+        );
 
         setRealPlayers(prev => prev.map(p => {
           if (getTargetDefenderId(p) === targetDocId || p.id === targetDocId || p.userId === targetDocId) {
-            return { ...p, portDestroyed: allDestroyed, ships: updatedShips };
+            return applyWeaponDamageToPlayerState(p, flatDamage, undefined, undefined, true);
           }
           return p;
         }));
@@ -2350,15 +2409,14 @@ export default function App() {
       setExp(prev => prev + 2500);
 
       if (targetDocId) {
-        setInspectedPlayer((prev: any) => prev && getTargetDefenderId(prev) === targetDocId ? {
-          ...prev,
-          portDestroyed: allDestroyed,
-          ships: updatedShips
-        } : prev);
+        setInspectedPlayer((prev: any) => prev && getTargetDefenderId(prev) === targetDocId
+          ? applyWeaponDamageToPlayerState(prev, flatDamage, undefined, undefined, true)
+          : prev
+        );
 
         setRealPlayers(prev => prev.map(p => {
           if (getTargetDefenderId(p) === targetDocId || p.id === targetDocId || p.userId === targetDocId) {
-            return { ...p, portDestroyed: allDestroyed, ships: updatedShips };
+            return applyWeaponDamageToPlayerState(p, flatDamage, undefined, undefined, true);
           }
           return p;
         }));
@@ -2520,7 +2578,6 @@ export default function App() {
       setIsProfileLoading(false);
       setInspectedPlayerShipVisit(true);
       showToast(`⚔️ تم الانتقال فوراً إلى محيط @${target.username || attackerName}! اقصف سفنه بالصواريخ والأسلحة الآن للانتقام لمينائك! 💥`, 'success');
-      playDetonationWarningVoiceAndSound();
     }, 350);
   };
 
@@ -4552,7 +4609,26 @@ export default function App() {
           }
         }
 
-        const deduplicatedList = Array.from(uniquePlayersMap.values());
+        const nowMs = Date.now();
+        const deduplicatedList = Array.from(uniquePlayersMap.values()).map((p: any) => {
+          const targetKey = getTargetDefenderId(p) || p.id || p.userId;
+          const overlay = targetKey ? recentAttackShipDamageRef.current[targetKey] : undefined;
+          if (!overlay) return p;
+          if (nowMs - overlay.appliedAt > 600000) {
+            delete recentAttackShipDamageRef.current[targetKey];
+            return p;
+          }
+          const incomingSig = getShipsSignature(p.ships);
+          if (incomingSig === overlay.baselineShipsKey) {
+            return {
+              ...p,
+              ships: overlay.ships,
+              portDestroyed: overlay.portDestroyed
+            };
+          }
+          delete recentAttackShipDamageRef.current[targetKey];
+          return p;
+        });
         deduplicatedList.sort((a, b) => (b.gold || 0) - (a.gold || 0));
 
         setRealPlayers(deduplicatedList);
@@ -8264,34 +8340,6 @@ export default function App() {
             transition: opacity 0.5s ease-in-out;
         }
 
-        /* High-quality Isolated Sea Overlay with real waving effect */
-        .sea-isolated-overlay {
-            position: absolute;
-            top: -4px;
-            left: -12px;
-            width: calc(100% + 24px);
-            height: calc(100% + 8px);
-            background-image: url('https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/4eee85b9-7879-468c-a3d9-320c60432771.png');
-            background-position: center bottom;
-            background-size: 100% 100%;
-            background-repeat: no-repeat;
-            pointer-events: none;
-            z-index: 1;
-            animation: sea-waves-shake 14s infinite alternate ease-in-out;
-            will-change: transform;
-        }
-
-        @keyframes sea-waves-shake {
-            0% {
-                transform: translate3d(-3px, -1px, 0) scaleX(1.005) scaleY(1.005) rotate(-0.1deg);
-            }
-            50% {
-                transform: translate3d(4px, 1.5px, 0) scaleX(1.015) scaleY(1.01) rotate(0.1deg);
-            }
-            100% {
-                transform: translate3d(-2px, 2px, 0) scaleX(0.995) scaleY(1.005) rotate(-0.05deg);
-            }
-        }
 
         /* Dynamic Weather System Effects */
         .weather-rain-overlay {
@@ -9391,11 +9439,11 @@ export default function App() {
           {!portDestroyed && bgTheme !== 'destroyed' && !disableAnimatedBackground && !powerSaver && (
             <video
               ref={videoRefA}
-              src="/background_video.mp4"
+              src="/background_video.mp4?v=2"
               playsInline
               muted
               loop
-              preload="metadata"
+              preload="auto"
               style={{
                 position: 'absolute',
                 top: 0,
@@ -9405,6 +9453,8 @@ export default function App() {
                 objectFit: 'cover',
                 zIndex: 2,
                 pointerEvents: 'none',
+                transform: 'translateZ(0)',
+                willChange: 'transform',
               }}
             />
           )}
@@ -9458,10 +9508,6 @@ export default function App() {
             </>
           )}
 
-          {/* High-quality Isolated Sea Overlay */}
-          {!portDestroyed && bgTheme !== 'destroyed' && (
-            <div className="sea-isolated-overlay" />
-          )}
 
           {activeTab === 'harbor' && (
             <>
@@ -9922,106 +9968,6 @@ export default function App() {
           )}
         </div>
 
-        {activeTab === 'harbor' && !inspectedPlayerShipVisit && activeAd && (
-          <div style={{
-            position: 'absolute',
-            top: '105px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 990,
-            background: 'rgba(9, 9, 11, 0.95)',
-            border: '3px solid #22c55e',
-            borderRadius: '18px',
-            padding: '14px 20px',
-            width: '92%',
-            maxWidth: '380px',
-            boxShadow: '0 0 28px rgba(34, 197, 94, 0.7)',
-            textAlign: 'center',
-            direction: 'rtl',
-            fontFamily: 'Cairo, sans-serif',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <span style={{ fontSize: '12px', background: '#14532d', color: '#4ade80', padding: '3px 8px', borderRadius: '6px', fontWeight: 'bold' }}>📺 قنبلة إعلانية نشطة</span>
-              <span style={{ fontSize: '12px', color: '#f87171', fontWeight: 'bold' }}>بث مباشر 🔴</span>
-            </div>
-
-            <div style={{ padding: '10px', background: '#18181b', borderRadius: '10px', border: '1px solid #27272a', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-              {activeAd === 'luffy_king' && (
-                <>
-                  <div style={{ fontSize: '42px' }}>☠️</div>
-                  <div style={{ fontSize: '16px', fontWeight: '900', color: '#facc15' }}>لوفي ملك القراصنة 🏴‍☠️</div>
-                  <div style={{ fontSize: '12px', color: '#cbd5e1' }}>"سأصبح ملك القراصنة! ههههههاا!"</div>
-                </>
-              )}
-              {(activeAd === 'jack_sabro' || activeAd === 'deep_dragon') && (
-                <>
-                  <div style={{ fontSize: '42px' }}>🦎</div>
-                  <div style={{ fontSize: '16px', fontWeight: '900', color: '#38bdf8' }}>تنين الأعماق</div>
-                  <div style={{ fontSize: '12px', color: '#cbd5e1' }}>مغامرات الزواحف المائية الكبرى!</div>
-                </>
-              )}
-              {activeAd === 'luffy_grandeur' && (
-                <>
-                  <div style={{ fontSize: '42px' }}>🔥</div>
-                  <div style={{ fontSize: '16px', fontWeight: '900', color: '#f97316' }}>فخامة لوفي</div>
-                  <div style={{ fontSize: '12px', color: '#cbd5e1' }}>قوة الجير الخامس اللانهائية الهزلية!</div>
-                </>
-              )}
-              {activeAd === 'anf' && (
-                <>
-                  <div style={{ fontSize: '42px' }}>👑</div>
-                  <div style={{ fontSize: '16px', fontWeight: '900', color: '#a855f7' }}>وإذا سطا خاف الأنام</div>
-                  <div style={{ fontSize: '12px', color: '#cbd5e1' }}>من هيبته وهاب البواسل مبسمه!</div>
-                </>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-              <button
-                onClick={() => playDetonationWarningVoiceAndSound()}
-                style={{
-                  flex: 1,
-                  background: 'linear-gradient(to bottom, #22c55e, #15803d)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '8px',
-                  fontSize: '13px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer'
-                }}
-              >
-                🔊 تشغيل الصوت
-              </button>
-              <button
-                onClick={async () => {
-                  setActiveAd(null);
-                  try { localStorage.removeItem('pirate_active_ad'); } catch {}
-                  if (lastDbData.current) {
-                    lastDbData.current = { ...lastDbData.current, activeAd: null };
-                  }
-                  if (auth.currentUser && db) {
-                    try {
-                      await updateDoc(doc(db, 'users', auth.currentUser.uid), { activeAd: null });
-                    } catch (e) { console.error(e); }
-                  }
-                }}
-                style={{
-                  background: '#27272a',
-                  color: '#cbd5e1',
-                  border: '1px solid #3f3f46',
-                  borderRadius: '8px',
-                  padding: '8px 12px',
-                  fontSize: '13px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer'
-                }}
-              >
-                إخفاء ❌
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Live Incoming Enemy Combat Visuals Rendered Above Harbor, Top Bar, and Damage Banners */}
@@ -12956,12 +12902,12 @@ export default function App() {
             {/* Real animated water background video - only if port is not destroyed */}
             {!inspectedPlayer.portDestroyed && !disableAnimatedBackground && !powerSaver && (
               <video
-                src="/background_video.mp4"
+                src="/background_video.mp4?v=2"
                 playsInline
                 muted
                 autoPlay
                 loop
-                preload="metadata"
+                preload="auto"
                 style={{
                   position: 'absolute',
                   top: 0,
@@ -12971,6 +12917,8 @@ export default function App() {
                   objectFit: 'cover',
                   zIndex: 1,
                   pointerEvents: 'none',
+                  transform: 'translateZ(0)',
+                  willChange: 'transform',
                 }}
               />
             )}
@@ -13261,57 +13209,33 @@ export default function App() {
                     {/* Floating realistic boat image inside inner wrapper with status overlaid */}
                     <div className="relative ship-inner" style={{ width: 'var(--ship-render-width)', height: 'calc(var(--ship-render-width) * 0.95)', margin: '0 auto' }}>
                       
-                      {/* Floating HP Overlay Bar */}
-                      <div style={{
-                        position: 'absolute',
-                        top: '-46px',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '2px',
-                        zIndex: 7,
-                        pointerEvents: 'none'
-                      }}>
-                        {(() => {
-                          const normalizedVisited = normalizeShipEnergyToCargo({ ...ship, level: shipLevel }, Boolean(inspectedPlayer.portDestroyed));
-                          const maxHeart = getShipMaxHeart(normalizedVisited);
-                          const currentHeart = typeof normalizedVisited.heart === 'number' ? Math.min(Math.max(0, normalizedVisited.heart), maxHeart) : (inspectedPlayer.portDestroyed ? 0 : maxHeart);
-                          const heartPercent = currentHeart <= 0 ? 0 : (currentHeart >= maxHeart ? 100 : Math.max(1, Math.min(99, Math.round((currentHeart / maxHeart) * 100))));
-                          return (
-                            <>
-                              <div style={{
-                                fontSize: '10px',
-                                fontWeight: 'bold',
-                                color: '#fff',
-                                textShadow: '0 1px 2px #000',
-                                background: 'rgba(0,0,0,0.6)',
-                                padding: '1px 5px',
-                                borderRadius: '4px',
-                                whiteSpace: 'nowrap'
-                              }}>
-                                {currentHeart.toLocaleString()} / {maxHeart.toLocaleString()}
-                              </div>
-                              <div style={{
-                                width: '60px',
-                                height: '5px',
-                                background: 'rgba(0,0,0,0.7)',
-                                border: '1px solid #000',
-                                borderRadius: '3px',
-                                overflow: 'hidden'
-                              }}>
-                                <div style={{
-                                  width: `${heartPercent}%`,
-                                  height: '100%',
-                                  background: currentHeart === 0 ? '#ef4444' : (heartPercent < 35 ? '#f59e0b' : '#22c55e'),
-                                  transition: 'width 1.2s ease-in-out'
-                                }} />
-                              </div>
-                            </>
-                          );
-                        })()}
-                      </div>
+                      {/* Unified Ship Energy Bar (identical to own harbor) */}
+                      {(() => {
+                        const normalizedVisited = normalizeShipEnergyToCargo({ ...ship, level: shipLevel }, Boolean(inspectedPlayer.portDestroyed));
+                        const maxHeart = getShipMaxHeart(normalizedVisited);
+                        const currentHeart = typeof normalizedVisited.heart === 'number'
+                          ? Math.min(Math.max(0, normalizedVisited.heart), maxHeart)
+                          : (inspectedPlayer.portDestroyed ? 0 : maxHeart);
+                        const energyPct = isShipDestroyed || currentHeart <= 0
+                          ? 0
+                          : (currentHeart >= maxHeart ? 100 : Math.max(1, Math.min(99, Math.round((currentHeart / maxHeart) * 100))));
+
+                        return (
+                          <ShipStatusBars
+                            fishingPct={0}
+                            energyPct={energyPct}
+                            isFishing={false}
+                            isAutoFishing={false}
+                            isReady={false}
+                            remainingMs={0}
+                            curHeart={currentHeart}
+                            maxHeart={maxHeart}
+                            isDestroyed={isShipDestroyed}
+                            scaleX={shipScaleX}
+                            bottomOffset="calc(100% + 16px)"
+                          />
+                        );
+                      })()}
 
                       <div style={{
                         position: 'relative',
@@ -13344,13 +13268,13 @@ export default function App() {
                       {/* Floating Name Overlay */}
                       <span style={{
                         position: 'absolute',
-                        top: '-24px',
+                        top: '-10px',
                         left: '50%',
-                        transform: 'translateX(-50%) scaleX(1)', // Keep text readable even when ship is flipped left
+                        transform: `translateX(-50%) scaleX(${shipScaleX < 0 ? -1 : 1})`, // Keep text readable even when ship is flipped left
                         background: 'rgba(15, 10, 5, 0.95)',
                         border: '1px solid #ca8a04',
                         borderRadius: '8px',
-                        padding: '4px 12px',
+                        padding: '2px 10px',
                         fontSize: '11px',
                         color: '#fef08a',
                         fontWeight: 'bold',
@@ -13534,107 +13458,6 @@ export default function App() {
               />
             )}
 
-            {/* Active Advertisement Billboard */}
-            {inspectedPlayer?.activeAd && (
-              <div style={{
-                position: 'absolute',
-                top: '12%',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                zIndex: 990,
-                background: 'rgba(9, 9, 11, 0.95)',
-                border: '3px solid #22c55e',
-                borderRadius: '16px',
-                padding: '12px 18px',
-                width: '90%',
-                maxWidth: '340px',
-                boxShadow: '0 0 25px rgba(34, 197, 94, 0.65)',
-                textAlign: 'center',
-                direction: 'rtl',
-                fontFamily: 'Cairo, sans-serif',
-                animation: 'pulse 2s infinite alternate'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '10px', background: '#14532d', color: '#4ade80', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>📺 إعلان نشط</span>
-                  <span style={{ fontSize: '10px', color: '#a1a1aa' }}>بث مباشر 🔴</span>
-                </div>
-                
-                <div style={{ padding: '8px', background: '#18181b', borderRadius: '8px', border: '1px solid #27272a', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                  {inspectedPlayer.activeAd === 'luffy_king' && (
-                    <>
-                      <div style={{ fontSize: '40px', animation: 'bounce 2s infinite' }}>☠️</div>
-                      <div style={{ fontSize: '14px', fontWeight: '900', color: '#facc15' }}>لوفي ملك القراصنة 🏴‍☠️</div>
-                      <div style={{ fontSize: '11px', color: '#cbd5e1' }}>"سأصبح ملك القراصنة! ههههههاا!"</div>
-                    </>
-                  )}
-                  {(inspectedPlayer.activeAd === 'jack_sabro' || inspectedPlayer.activeAd === 'deep_dragon') && (
-                    <>
-                      <div style={{ fontSize: '40px', animation: 'bounce 2s infinite' }}>🦎</div>
-                      <div style={{ fontSize: '14px', fontWeight: '900', color: '#38bdf8' }}>تنين الأعماق</div>
-                      <div style={{ fontSize: '11px', color: '#cbd5e1' }}>مغامرات الزواحف المائية الكبرى!</div>
-                    </>
-                  )}
-                  {inspectedPlayer.activeAd === 'luffy_grandeur' && (
-                    <>
-                      <div style={{ fontSize: '40px', animation: 'pulse 1s infinite' }}>🔥</div>
-                      <div style={{ fontSize: '14px', fontWeight: '900', color: '#f97316' }}>فخامة لوفي</div>
-                      <div style={{ fontSize: '11px', color: '#cbd5e1' }}>قوة الجير الخامس اللانهائية الهزلية!</div>
-                    </>
-                  )}
-                  {inspectedPlayer.activeAd === 'anf' && (
-                    <>
-                      <div style={{ fontSize: '40px', animation: 'pulse 1s infinite' }}>👑</div>
-                      <div style={{ fontSize: '14px', fontWeight: '900', color: '#a855f7' }}>وإذا سطا خاف الأنام</div>
-                      <div style={{ fontSize: '11px', color: '#cbd5e1' }}>من هيبته وهاب البواسل مبسمه!</div>
-                    </>
-                  )}
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                  <button 
-                    onClick={() => {
-                      playDetonationWarningVoiceAndSound();
-                    }}
-                    style={{
-                      flex: 1,
-                      background: 'linear-gradient(to bottom, #22c55e, #15803d)',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '6px',
-                      padding: '4px',
-                      fontSize: '10px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    🔊 تشغيل الصوت
-                  </button>
-                  <button 
-                    onClick={async () => {
-                      setInspectedPlayer((prev: any) => prev ? ({ ...prev, activeAd: null }) : null);
-                      if (inspectedPlayer?.userId && auth.currentUser && inspectedPlayer.userId === auth.currentUser.uid) {
-                        try {
-                          await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-                            activeAd: null
-                          });
-                        } catch(e) { console.error(e); }
-                      }
-                    }}
-                    style={{
-                      background: '#27272a',
-                      color: '#cbd5e1',
-                      border: '1px solid #3f3f46',
-                      borderRadius: '6px',
-                      padding: '4px 8px',
-                      fontSize: '10px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    إخفاء ❌
-                  </button>
-                </div>
-              </div>
-            )}
 
             {/* Legendary Repair Sparkles Overlay */}
             {showLegendaryRepairSparkles && (

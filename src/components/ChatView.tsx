@@ -19,7 +19,8 @@ import {
   Search, 
   Flame,
   Radio,
-  Crown
+  Crown,
+  Gift
 } from 'lucide-react';
 
 export interface ChatMessage {
@@ -152,6 +153,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
   // 4 Top Tabs matching user's screenshot exactly: العام | الخاص | القبيلة | الأصدقاء
   const [activeTab, setActiveTab] = useState<'general' | 'private' | 'tribe' | 'friends'>('general');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showActionMenu, setShowActionMenu] = useState(false);
   const [internalMuted, setInternalMuted] = useState(isMuted);
 
   // Modals for actions
@@ -160,9 +162,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const [megaphoneText, setMegaphoneText] = useState('');
   const [showReportModal, setShowReportModal] = useState(false);
   const [selectedWhisperPlayer, setSelectedWhisperPlayer] = useState<string>('');
-
-  // Floating side panel minimized toggle
-  const [isMinimized, setIsMinimized] = useState(false);
 
   // Blocked users
   const [blockedUsers, setBlockedUsers] = useState<string[]>(() => {
@@ -369,7 +368,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
         height: '100dvh',
         maxHeight: '100%',
         minHeight: 0,
-        background: 'radial-gradient(circle at 50% 15%, #082642 0%, #06182c 45%, #020b14 100%)',
+        background: 'linear-gradient(180deg, #06254d 0%, #03152e 55%, #020e22 100%)',
         color: '#f8fafc',
         fontFamily: "'Cairo', 'Tajawal', system-ui, -apple-system, sans-serif",
         WebkitFontSmoothing: 'antialiased',
@@ -380,21 +379,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
         boxSizing: 'border-box',
       }}
     >
-      {/* Background underwater star/caustics pattern */}
-      <div 
-        style={{
-          position: 'fixed',
-          inset: 0,
-          pointerEvents: 'none',
-          backgroundImage:
-            'radial-gradient(circle at 50% 10%, rgba(56, 189, 248, 0.08) 0%, transparent 60%), radial-gradient(#38bdf8 0.6px, transparent 0.6px)',
-          backgroundSize: '100% 100%, 36px 36px',
-          opacity: 0.35,
-          zIndex: 0,
-        }}
-      />
-
-      {/* Main Ornate Chat Container matching structure of user reference screenshot */}
+      {/* Main Royal Ocean-Blue Ornate Chat Frame */}
       <div
         style={{
           position: 'relative',
@@ -407,61 +392,29 @@ export const ChatView: React.FC<ChatViewProps> = ({
           flexDirection: 'column',
           overflow: 'hidden',
           boxSizing: 'border-box',
-          padding: '14px 16px 18px 16px',
-          background: 'linear-gradient(180deg, rgba(7, 26, 44, 0.96) 0%, rgba(3, 13, 24, 0.98) 100%)',
-          border: '2px solid rgba(212, 175, 55, 0.6)',
-          boxShadow: '0 0 35px rgba(0, 0, 0, 0.8), inset 0 0 40px rgba(6, 25, 45, 0.8)',
+          padding: '10px 10px 12px 10px',
+          background: 'linear-gradient(180deg, #052044 0%, #03142c 100%)',
+          border: '3px solid #2b8be6',
+          boxShadow: 'inset 0 0 26px rgba(56, 189, 248, 0.25), 0 0 30px rgba(0, 0, 0, 0.85)',
         }}
       >
-        {/* ===================== 4 CORNER RIVETS / ORNAMENTS ===================== */}
-        <div style={{ position: 'absolute', top: '4px', right: '4px', width: '12px', height: '12px', borderRadius: '50%', background: 'linear-gradient(135deg, #facc15 0%, #ca8a04 100%)', border: '1px solid #fef08a', boxShadow: '0 0 6px #eab308' }} />
-        <div style={{ position: 'absolute', top: '4px', left: '4px', width: '12px', height: '12px', borderRadius: '50%', background: 'linear-gradient(135deg, #facc15 0%, #ca8a04 100%)', border: '1px solid #fef08a', boxShadow: '0 0 6px #eab308' }} />
-        <div style={{ position: 'absolute', bottom: '4px', right: '4px', width: '12px', height: '12px', borderRadius: '50%', background: 'linear-gradient(135deg, #facc15 0%, #ca8a04 100%)', border: '1px solid #fef08a', boxShadow: '0 0 6px #eab308' }} />
-        <div style={{ position: 'absolute', bottom: '4px', left: '4px', width: '12px', height: '12px', borderRadius: '50%', background: 'linear-gradient(135deg, #facc15 0%, #ca8a04 100%)', border: '1px solid #fef08a', boxShadow: '0 0 6px #eab308' }} />
-
-        {/* ===================== FLOATING SIDE TOGGLE TAB (Left edge from screenshot) ===================== */}
-        <div
-          onClick={() => setIsMinimized(!isMinimized)}
-          title="تصغير / توسيع الشات"
-          style={{
-            position: 'absolute',
-            left: '-2px',
-            top: '46%',
-            transform: 'translateY(-50%)',
-            zIndex: 20,
-            background: 'linear-gradient(180deg, #d4af37 0%, #996515 100%)',
-            border: '1.5px solid #fef08a',
-            borderLeft: 'none',
-            borderRadius: '0 10px 10px 0',
-            padding: '10px 6px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '4px',
-            cursor: 'pointer',
-            boxShadow: '2px 0 10px rgba(0,0,0,0.5)',
-          }}
-        >
-          <MessageCircle style={{ width: '18px', height: '18px', color: '#1a1003' }} />
-          <span style={{ fontSize: '13px', fontWeight: '900', color: '#1a1003', lineHeight: 1 }}>
-            {isMinimized ? '>' : '<'}
-          </span>
-        </div>
-
-        {/* ===================== TOP 4 TABS ROW (العام | الخاص | القبيلة | الأصدقاء) ===================== */}
+        {/* ===================== TOP 4 TABS ROW (العام | الخاص | القبيلة | الأصدقاء | ✕) ===================== */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '10px',
-            paddingBottom: '12px',
-            borderBottom: '1.5px solid rgba(212, 175, 55, 0.45)',
-            marginBottom: '12px',
+            gap: '8px',
+            padding: '6px 8px',
+            background: 'linear-gradient(180deg, #0b3366 0%, #061d3d 100%)',
+            border: '1.5px solid #2574c7',
+            borderRadius: '12px',
+            marginBottom: '10px',
             flexShrink: 0,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.45)',
           }}
         >
-          {/* The 4 Tab Buttons */}
+          {/* The 4 Tab Buttons (Right to Left: العام -> الخاص -> القبيلة -> الأصدقاء) */}
           <div
             style={{
               display: 'flex',
@@ -475,26 +428,28 @@ export const ChatView: React.FC<ChatViewProps> = ({
               onClick={() => setActiveTab('general')}
               style={{
                 flex: 1,
-                padding: '12px 16px',
+                height: '52px',
+                padding: '0 14px',
                 borderRadius: '10px',
                 cursor: 'pointer',
                 fontSize: '21px',
                 fontWeight: '900',
+                whiteSpace: 'nowrap',
                 textAlign: 'center',
                 transition: 'all 0.15s ease',
                 background:
                   activeTab === 'general'
-                    ? 'linear-gradient(180deg, #fef08a 0%, #eab308 50%, #ca8a04 100%)'
-                    : 'linear-gradient(180deg, #0e2a47 0%, #071728 100%)',
-                color: activeTab === 'general' ? '#0a1626' : '#e2e8f0',
+                    ? 'linear-gradient(180deg, #fde047 0%, #f59e0b 55%, #b45309 100%)'
+                    : 'linear-gradient(180deg, #0c3973 0%, #062147 100%)',
+                color: activeTab === 'general' ? '#1e1202' : '#ffffff',
                 border:
                   activeTab === 'general'
-                    ? '1.5px solid #ffffff'
-                    : '1.5px solid rgba(212, 175, 55, 0.45)',
+                    ? '2px solid #fef08a'
+                    : '1.5px solid #2b7de0',
                 boxShadow:
                   activeTab === 'general'
-                    ? '0 0 14px rgba(250, 204, 21, 0.5), inset 0 1px 0 #fff'
-                    : 'inset 0 1px 0 rgba(255,255,255,0.05)',
+                    ? '0 0 16px rgba(250, 204, 21, 0.55), inset 0 1px 0 rgba(255,255,255,0.75)'
+                    : 'inset 0 1px 0 rgba(147, 197, 253, 0.25)',
               }}
             >
               العام
@@ -505,26 +460,28 @@ export const ChatView: React.FC<ChatViewProps> = ({
               onClick={() => setActiveTab('private')}
               style={{
                 flex: 1,
-                padding: '12px 16px',
+                height: '52px',
+                padding: '0 14px',
                 borderRadius: '10px',
                 cursor: 'pointer',
                 fontSize: '21px',
                 fontWeight: '900',
+                whiteSpace: 'nowrap',
                 textAlign: 'center',
                 transition: 'all 0.15s ease',
                 background:
                   activeTab === 'private'
-                    ? 'linear-gradient(180deg, #fef08a 0%, #eab308 50%, #ca8a04 100%)'
-                    : 'linear-gradient(180deg, #0e2a47 0%, #071728 100%)',
-                color: activeTab === 'private' ? '#0a1626' : '#e2e8f0',
+                    ? 'linear-gradient(180deg, #fde047 0%, #f59e0b 55%, #b45309 100%)'
+                    : 'linear-gradient(180deg, #0c3973 0%, #062147 100%)',
+                color: activeTab === 'private' ? '#1e1202' : '#ffffff',
                 border:
                   activeTab === 'private'
-                    ? '1.5px solid #ffffff'
-                    : '1.5px solid rgba(212, 175, 55, 0.45)',
+                    ? '2px solid #fef08a'
+                    : '1.5px solid #2b7de0',
                 boxShadow:
                   activeTab === 'private'
-                    ? '0 0 14px rgba(250, 204, 21, 0.5), inset 0 1px 0 #fff'
-                    : 'inset 0 1px 0 rgba(255,255,255,0.05)',
+                    ? '0 0 16px rgba(250, 204, 21, 0.55), inset 0 1px 0 rgba(255,255,255,0.75)'
+                    : 'inset 0 1px 0 rgba(147, 197, 253, 0.25)',
               }}
             >
               الخاص
@@ -535,26 +492,28 @@ export const ChatView: React.FC<ChatViewProps> = ({
               onClick={() => setActiveTab('tribe')}
               style={{
                 flex: 1,
-                padding: '12px 16px',
+                height: '52px',
+                padding: '0 14px',
                 borderRadius: '10px',
                 cursor: 'pointer',
                 fontSize: '21px',
                 fontWeight: '900',
+                whiteSpace: 'nowrap',
                 textAlign: 'center',
                 transition: 'all 0.15s ease',
                 background:
                   activeTab === 'tribe'
-                    ? 'linear-gradient(180deg, #fef08a 0%, #eab308 50%, #ca8a04 100%)'
-                    : 'linear-gradient(180deg, #0e2a47 0%, #071728 100%)',
-                color: activeTab === 'tribe' ? '#0a1626' : '#e2e8f0',
+                    ? 'linear-gradient(180deg, #fde047 0%, #f59e0b 55%, #b45309 100%)'
+                    : 'linear-gradient(180deg, #0c3973 0%, #062147 100%)',
+                color: activeTab === 'tribe' ? '#1e1202' : '#ffffff',
                 border:
                   activeTab === 'tribe'
-                    ? '1.5px solid #ffffff'
-                    : '1.5px solid rgba(212, 175, 55, 0.45)',
+                    ? '2px solid #fef08a'
+                    : '1.5px solid #2b7de0',
                 boxShadow:
                   activeTab === 'tribe'
-                    ? '0 0 14px rgba(250, 204, 21, 0.5), inset 0 1px 0 #fff'
-                    : 'inset 0 1px 0 rgba(255,255,255,0.05)',
+                    ? '0 0 16px rgba(250, 204, 21, 0.55), inset 0 1px 0 rgba(255,255,255,0.75)'
+                    : 'inset 0 1px 0 rgba(147, 197, 253, 0.25)',
               }}
             >
               القبيلة
@@ -565,51 +524,53 @@ export const ChatView: React.FC<ChatViewProps> = ({
               onClick={() => setActiveTab('friends')}
               style={{
                 flex: 1,
-                padding: '12px 16px',
+                height: '52px',
+                padding: '0 14px',
                 borderRadius: '10px',
                 cursor: 'pointer',
                 fontSize: '21px',
                 fontWeight: '900',
+                whiteSpace: 'nowrap',
                 textAlign: 'center',
                 transition: 'all 0.15s ease',
                 background:
                   activeTab === 'friends'
-                    ? 'linear-gradient(180deg, #fef08a 0%, #eab308 50%, #ca8a04 100%)'
-                    : 'linear-gradient(180deg, #0e2a47 0%, #071728 100%)',
-                color: activeTab === 'friends' ? '#0a1626' : '#e2e8f0',
+                    ? 'linear-gradient(180deg, #fde047 0%, #f59e0b 55%, #b45309 100%)'
+                    : 'linear-gradient(180deg, #0c3973 0%, #062147 100%)',
+                color: activeTab === 'friends' ? '#1e1202' : '#ffffff',
                 border:
                   activeTab === 'friends'
-                    ? '1.5px solid #ffffff'
-                    : '1.5px solid rgba(212, 175, 55, 0.45)',
+                    ? '2px solid #fef08a'
+                    : '1.5px solid #2b7de0',
                 boxShadow:
                   activeTab === 'friends'
-                    ? '0 0 14px rgba(250, 204, 21, 0.5), inset 0 1px 0 #fff'
-                    : 'inset 0 1px 0 rgba(255,255,255,0.05)',
+                    ? '0 0 16px rgba(250, 204, 21, 0.55), inset 0 1px 0 rgba(255,255,255,0.75)'
+                    : 'inset 0 1px 0 rgba(147, 197, 253, 0.25)',
               }}
             >
               الأصدقاء
             </button>
           </div>
 
-          {/* Close / Return to Harbor Button */}
+          {/* Close / Return to Harbor Button (Far Left) */}
           <button
             onClick={onClose}
             title="إغلاق والعودة للميناء"
             style={{
-              width: '48px',
-              height: '48px',
+              width: '54px',
+              height: '52px',
               borderRadius: '10px',
-              background: 'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)',
-              border: '1.5px solid rgba(212, 175, 55, 0.6)',
+              background: 'linear-gradient(180deg, #0a2e5c 0%, #051833 100%)',
+              border: '2px solid #3898ff',
               color: '#ffffff',
-              fontSize: '22px',
+              fontSize: '24px',
               fontWeight: '900',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
               flexShrink: 0,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.45), inset 0 1px 0 rgba(147,197,253,0.3)',
             }}
           >
             ✕
@@ -620,18 +581,18 @@ export const ChatView: React.FC<ChatViewProps> = ({
         {activeTab === 'private' && (
           <div
             style={{
-              padding: '10px 16px',
-              background: 'rgba(56, 189, 248, 0.14)',
+              padding: '8px 14px',
+              background: 'rgba(10, 38, 74, 0.9)',
               borderRadius: '10px',
-              border: '1.5px solid rgba(56, 189, 248, 0.4)',
-              marginBottom: '12px',
+              border: '1.5px solid #2b8be6',
+              marginBottom: '8px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: '12px',
-              fontSize: '18px',
+              fontSize: '17px',
               fontWeight: '700',
-              color: '#7dd3fc',
+              color: '#bae6fd',
               flexShrink: 0,
             }}
           >
@@ -641,12 +602,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 value={selectedWhisperPlayer}
                 onChange={(e) => setSelectedWhisperPlayer(e.target.value)}
                 style={{
-                  background: '#071b2e',
-                  color: '#facc15',
-                  border: '1.5px solid #38bdf8',
+                  background: '#051b36',
+                  color: '#fde047',
+                  border: '1.5px solid #2b8be6',
                   borderRadius: '8px',
-                  padding: '6px 12px',
-                  fontSize: '17px',
+                  padding: '5px 12px',
+                  fontSize: '16px',
                   fontWeight: '700',
                 }}
               >
@@ -664,16 +625,16 @@ export const ChatView: React.FC<ChatViewProps> = ({
         {activeTab === 'tribe' && !tribeId && (
           <div
             style={{
-              padding: '10px 16px',
-              background: 'rgba(234, 179, 8, 0.14)',
+              padding: '8px 14px',
+              background: 'rgba(14, 42, 78, 0.95)',
               borderRadius: '10px',
-              border: '1.5px solid rgba(234, 179, 8, 0.45)',
-              marginBottom: '12px',
+              border: '1.5px solid #eab308',
+              marginBottom: '8px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: '12px',
-              fontSize: '18px',
+              fontSize: '17px',
               fontWeight: '700',
               color: '#fef08a',
               flexShrink: 0,
@@ -684,12 +645,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
               <button
                 onClick={onOpenTribes}
                 style={{
-                  background: 'linear-gradient(135deg, #facc15 0%, #ca8a04 100%)',
-                  color: '#0f172a',
-                  border: 'none',
+                  background: 'linear-gradient(180deg, #fde047 0%, #eab308 100%)',
+                  color: '#1e1202',
+                  border: '1px solid #fef08a',
                   borderRadius: '8px',
-                  padding: '6px 14px',
-                  fontSize: '17px',
+                  padding: '5px 14px',
+                  fontSize: '16px',
                   fontWeight: '900',
                   cursor: 'pointer',
                 }}
@@ -711,12 +672,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
             WebkitOverflowScrolling: 'touch',
             overscrollBehavior: 'contain',
             touchAction: 'pan-y',
-            paddingRight: '8px',
-            paddingLeft: '8px',
-            paddingBottom: '16px',
+            paddingRight: '2px',
+            paddingLeft: '2px',
+            paddingBottom: '10px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '18px',
+            gap: '7px',
           }}
         >
           {filteredMessages.length === 0 ? (
@@ -732,7 +693,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               }}
             >
               <MessageCircle style={{ width: '56px', height: '56px', color: '#38bdf8', opacity: 0.7 }} />
-              <p style={{ margin: 0, fontSize: '24px', fontWeight: '900', color: '#f8fafc' }}>
+              <p style={{ margin: 0, fontSize: '23px', fontWeight: '900', color: '#ffffff' }}>
                 {activeTab === 'friends'
                   ? 'لا توجد رسائل أصدقاء حالياً'
                   : activeTab === 'private'
@@ -741,7 +702,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   ? 'لا توجد رسائل في شات القبيلة'
                   : 'لا توجد رسائل'}
               </p>
-              <p style={{ margin: 0, fontSize: '19px', color: '#94a3b8', fontWeight: '700' }}>
+              <p style={{ margin: 0, fontSize: '18px', color: '#94a3b8', fontWeight: '700' }}>
                 اكتب رسالتك في الأسفل وكن أول من يبدأ الحديث!
               </p>
             </div>
@@ -750,39 +711,57 @@ export const ChatView: React.FC<ChatViewProps> = ({
               const details = getPlayerDetails(msg.userId, msg.sender, msg.level, msg.vip);
               const isMe = msg.isMe || (currentUser?.displayName && msg.sender.includes(currentUser.displayName));
               const avatarSrc = getAvatarForMessage(msg, idx);
+              const isSpecialAnnouncement =
+                msg.channel === 'broadcast' ||
+                msg.sender.includes('القوات') ||
+                msg.sender.includes('نظام') ||
+                msg.sender.includes('رسالة التحدي') ||
+                msg.sender.includes('التحدي');
+              const isGoldCard = isSpecialAnnouncement || isMe;
 
               return (
                 <div
                   key={msg.id || idx}
                   style={{
                     display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '16px',
+                    alignItems: 'center',
+                    gap: '12px',
                     width: '100%',
-                    direction: 'ltr', // LTR row layout: avatar on left, bubble on right pointing to it
+                    direction: 'ltr', // Avatar on Left, Right-aligned RTL content on Right
+                    background: isGoldCard
+                      ? 'linear-gradient(180deg, rgba(16, 46, 84, 0.96) 0%, rgba(8, 26, 52, 0.98) 100%)'
+                      : 'linear-gradient(180deg, rgba(10, 34, 68, 0.96) 0%, rgba(5, 20, 44, 0.98) 100%)',
+                    border: isGoldCard
+                      ? '1.8px solid #eab308'
+                      : '1.5px solid #2367b5',
+                    borderRadius: '14px',
+                    padding: '8px 16px 8px 10px',
+                    boxShadow: isGoldCard
+                      ? '0 2px 12px rgba(0, 0, 0, 0.45), inset 0 0 12px rgba(234, 179, 8, 0.14)'
+                      : '0 2px 10px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(147, 197, 253, 0.1)',
+                    boxSizing: 'border-box',
                   }}
                 >
-                  {/* Circular Avatar + Diamond Level Badge at bottom */}
+                  {/* Circular Avatar on Left + Bottom Overlapping Level Badge */}
                   <div
                     style={{
                       position: 'relative',
-                      width: '72px',
-                      height: '72px',
+                      width: '64px',
+                      height: '64px',
                       flexShrink: 0,
                     }}
                   >
-                    {/* Circular Avatar Ring */}
                     <div
                       style={{
-                        width: '72px',
-                        height: '72px',
+                        width: '64px',
+                        height: '64px',
                         borderRadius: '50%',
-                        border: isMe ? '2.5px solid #facc15' : '2.5px solid #38bdf8',
+                        border: isGoldCard ? '2.5px solid #facc15' : '2.5px solid #38bdf8',
                         overflow: 'hidden',
                         background: '#031728',
-                        boxShadow: isMe
-                          ? '0 0 12px rgba(250, 204, 21, 0.45)'
-                          : '0 0 12px rgba(56, 189, 248, 0.4)',
+                        boxShadow: isGoldCard
+                          ? '0 0 10px rgba(250, 204, 21, 0.5)'
+                          : '0 0 10px rgba(56, 189, 248, 0.45)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -791,6 +770,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       <img
                         src={avatarSrc}
                         alt={msg.sender}
+                        referrerPolicy="no-referrer"
                         style={{
                           width: '100%',
                           height: '100%',
@@ -799,19 +779,20 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       />
                     </div>
 
-                    {/* Diamond Level Badge at Bottom Center (Rotated 45deg) */}
+                    {/* Level Badge Pill at Bottom Center */}
                     <div
                       style={{
                         position: 'absolute',
-                        bottom: '-6px',
+                        bottom: '-4px',
                         left: '50%',
-                        transform: 'translateX(-50%) rotate(45deg)',
-                        width: '28px',
-                        height: '28px',
-                        background: 'linear-gradient(135deg, #0284c7 0%, #034f78 100%)',
-                        border: '2px solid #38bdf8',
-                        borderRadius: '4px',
-                        boxShadow: '0 0 10px rgba(56, 189, 248, 0.85)',
+                        transform: 'translateX(-50%)',
+                        minWidth: '28px',
+                        height: '21px',
+                        padding: '0 6px',
+                        background: 'linear-gradient(180deg, #0b3366 0%, #04152e 100%)',
+                        border: isGoldCard ? '1.5px solid #facc15' : '1.5px solid #38bdf8',
+                        borderRadius: '9999px',
+                        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.75)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -821,11 +802,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     >
                       <span
                         style={{
-                          transform: 'rotate(-45deg)',
-                          fontSize: '15px',
+                          fontSize: '13.5px',
                           fontWeight: '900',
                           color: '#ffffff',
                           lineHeight: 1,
+                          fontVariantNumeric: 'tabular-nums',
                         }}
                       >
                         {details.level}
@@ -833,98 +814,55 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Speech Bubble Card with Left Triangular Pointer/Tail */}
+                  {/* Right-Aligned Message Column (Sender Name + VIP, Body, Timestamp) */}
                   <div
                     style={{
-                      position: 'relative',
                       flex: 1,
                       minWidth: 0,
-                      background: isMe
-                        ? 'linear-gradient(135deg, rgba(20, 54, 90, 0.98) 0%, rgba(11, 32, 56, 0.98) 100%)'
-                        : 'linear-gradient(135deg, rgba(16, 44, 74, 0.98) 0%, rgba(8, 25, 45, 0.98) 100%)',
-                      border: isMe
-                        ? '2px solid rgba(250, 204, 21, 0.65)'
-                        : '1.8px solid rgba(56, 189, 248, 0.45)',
-                      borderRadius: '18px',
-                      padding: '14px 20px 14px 20px',
-                      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-                      direction: 'rtl', // Arabic text inside bubble
+                      direction: 'rtl',
+                      textAlign: 'right',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '2px',
                     }}
                   >
-                    {/* Left Pointer Arrow Tail pointing to the Avatar */}
-                    <div
-                      style={{
-                        position: 'absolute',
-                        left: '-10px',
-                        top: '24px',
-                        width: 0,
-                        height: 0,
-                        borderTop: '9px solid transparent',
-                        borderBottom: '9px solid transparent',
-                        borderRight: isMe
-                          ? '11px solid rgba(20, 54, 90, 0.98)'
-                          : '11px solid rgba(16, 44, 74, 0.98)',
-                        filter: isMe
-                          ? 'drop-shadow(-2px 0 0 rgba(250, 204, 21, 0.65))'
-                          : 'drop-shadow(-2px 0 0 rgba(56, 189, 248, 0.45))',
-                      }}
-                    />
-
-                    {/* Sender Name line (if message has a distinct sender name) */}
+                    {/* Sender Name + VIP Badge */}
                     {msg.sender && (
                       <div
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'space-between',
-                          marginBottom: '6px',
+                          justifyContent: 'flex-start',
+                          gap: '8px',
+                          flexWrap: 'wrap',
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span
+                          style={{
+                            fontSize: '19px',
+                            fontWeight: '900',
+                            color: (isGoldCard || details.isVip) ? '#facc15' : '#f8fafc',
+                            textShadow: '0 1px 2px rgba(0, 0, 0, 0.75)',
+                          }}
+                        >
+                          {msg.sender}
+                        </span>
+
+                        {(details.isVip || isSpecialAnnouncement) && (
                           <span
                             style={{
-                              fontSize: '20px',
+                              background: 'linear-gradient(180deg, #fde047 0%, #d97706 100%)',
+                              color: '#1e1002',
+                              fontSize: '13px',
                               fontWeight: '900',
-                              color: isMe ? '#fde047' : (details.isVip ? '#fef08a' : '#7dd3fc'),
-                              textShadow: '0 1px 2px rgba(0, 0, 0, 0.7)',
+                              padding: '1px 7px',
+                              borderRadius: '5px',
+                              lineHeight: 1.2,
+                              border: '1px solid #fef08a',
+                              boxShadow: '0 1px 4px rgba(0,0,0,0.45)',
                             }}
                           >
-                            {msg.sender}
-                          </span>
-
-                          {details.isVip && (
-                            <span
-                              style={{
-                                background: 'linear-gradient(135deg, #facc15 0%, #ca8a04 100%)',
-                                color: '#0f172a',
-                                fontSize: '13px',
-                                fontWeight: '900',
-                                padding: '2px 8px',
-                                borderRadius: '6px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '3px',
-                              }}
-                            >
-                              <span>VIP</span>
-                              <Sparkles style={{ width: '13px', height: '13px' }} />
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Channel Badge if private or broadcast */}
-                        {msg.channel === 'broadcast' && (
-                          <span
-                            style={{
-                              background: '#ef4444',
-                              color: '#fff',
-                              fontSize: '14px',
-                              fontWeight: '900',
-                              padding: '2px 8px',
-                              borderRadius: '6px',
-                            }}
-                          >
-                            📢 إعلان
+                            VIP
                           </span>
                         )}
                       </div>
@@ -933,10 +871,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     {/* Message Body Text */}
                     <div
                       style={{
-                        fontSize: '23px',
+                        fontSize: '20px',
                         fontWeight: '700',
                         color: '#ffffff',
-                        lineHeight: '1.55',
+                        lineHeight: '1.42',
                         wordBreak: 'break-word',
                         textAlign: 'right',
                         whiteSpace: 'pre-line',
@@ -946,23 +884,23 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       {msg.text}
                     </div>
 
-                    {/* Digital Timestamp at bottom corner */}
+                    {/* Right-aligned Timestamp in Arabic-Indic numerals */}
                     <div
                       style={{
                         display: 'flex',
                         justifyContent: 'flex-start',
-                        marginTop: '6px',
+                        marginTop: '1px',
                       }}
                     >
                       <span
                         style={{
-                          fontSize: '15px',
+                          fontSize: '14px',
                           color: '#cbd5e1',
-                          fontWeight: '700',
-                          letterSpacing: '0.4px',
+                          fontWeight: '600',
+                          fontVariantNumeric: 'tabular-nums',
                         }}
                       >
-                        {msg.time || '12:00'}
+                        {toArabicDigits(msg.time || '12:00')}
                       </span>
                     </div>
                   </div>
@@ -977,14 +915,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
           <div
             style={{
               position: 'absolute',
-              bottom: '88px',
-              left: '16px',
-              right: '16px',
+              bottom: '126px',
+              left: '14px',
+              right: '14px',
               zIndex: 30,
-              background: 'rgba(5, 18, 32, 0.98)',
-              border: '2px solid rgba(212, 175, 55, 0.7)',
+              background: 'rgba(5, 22, 46, 0.98)',
+              border: '2px solid #2b8be6',
               borderRadius: '16px',
-              padding: '16px',
+              padding: '14px',
               boxShadow: '0 10px 30px rgba(0,0,0,0.85)',
               backdropFilter: 'blur(10px)',
             }}
@@ -994,9 +932,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                paddingBottom: '10px',
+                paddingBottom: '8px',
                 borderBottom: '1px solid rgba(56, 189, 248, 0.3)',
-                marginBottom: '12px',
+                marginBottom: '10px',
                 fontSize: '18px',
                 fontWeight: '900',
                 color: '#7dd3fc',
@@ -1021,7 +959,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(8, 1fr)',
-                gap: '10px',
+                gap: '8px',
               }}
             >
               {quickEmojis.map((emoji) => (
@@ -1033,16 +971,15 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     setShowEmojiPicker(false);
                   }}
                   style={{
-                    background: 'rgba(14, 38, 64, 0.75)',
-                    border: '1.5px solid rgba(56, 189, 248, 0.3)',
+                    background: 'rgba(14, 42, 78, 0.8)',
+                    border: '1.5px solid rgba(56, 189, 248, 0.35)',
                     borderRadius: '10px',
-                    height: '50px',
-                    fontSize: '26px',
+                    height: '48px',
+                    fontSize: '25px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     cursor: 'pointer',
-                    transition: 'transform 0.1s ease',
                   }}
                 >
                   {emoji}
@@ -1052,69 +989,152 @@ export const ChatView: React.FC<ChatViewProps> = ({
           </div>
         )}
 
-        {/* ===================== BOTTOM ACTION & INPUT BAR (Megaphone + Settings + Input with Emoji + Send) ===================== */}
+        {/* ===================== QUICK ACTIONS POPUP (Megaphone + Settings) ===================== */}
+        {showActionMenu && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '126px',
+              left: '14px',
+              zIndex: 35,
+              background: 'linear-gradient(180deg, #0b2d59 0%, #051733 100%)',
+              border: '2px solid #2b8be6',
+              borderRadius: '14px',
+              padding: '10px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              minWidth: '240px',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.85)',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setShowActionMenu(false);
+                setShowMegaphoneModal(true);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '10px 14px',
+                borderRadius: '10px',
+                background: 'rgba(14, 46, 86, 0.9)',
+                border: '1.5px solid rgba(250, 204, 21, 0.55)',
+                color: '#fde047',
+                fontSize: '18px',
+                fontWeight: '800',
+                cursor: 'pointer',
+                textAlign: 'right',
+              }}
+            >
+              <Megaphone style={{ width: '22px', height: '22px', color: '#facc15', flexShrink: 0 }} />
+              <span>بوق الإعلانات العالمي</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowActionMenu(false);
+                setShowSettingsModal(true);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '10px 14px',
+                borderRadius: '10px',
+                background: 'rgba(14, 46, 86, 0.9)',
+                border: '1.5px solid rgba(56, 189, 248, 0.5)',
+                color: '#ffffff',
+                fontSize: '18px',
+                fontWeight: '800',
+                cursor: 'pointer',
+                textAlign: 'right',
+              }}
+            >
+              <Settings style={{ width: '22px', height: '22px', color: '#38bdf8', flexShrink: 0 }} />
+              <span>إعدادات الشات والحظر</span>
+            </button>
+          </div>
+        )}
+
+        {/* ===================== BOTTOM DOCK BAR (Left: Emoji + Gift/Actions | Center: Input | Right: Golden Send) ===================== */}
         <div
           style={{
-            marginTop: '12px',
-            paddingTop: '12px',
-            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-            borderTop: '1.5px solid rgba(212, 175, 55, 0.5)',
+            marginTop: '6px',
+            padding: '8px',
+            paddingBottom: 'max(8px, env(safe-area-inset-bottom, 8px))',
+            background: 'linear-gradient(180deg, #072248 0%, #04142c 100%)',
+            border: '2px solid #2b8be6',
+            borderRadius: '14px',
             display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
+            alignItems: 'stretch',
+            gap: '8px',
             flexShrink: 0,
             position: 'relative',
             zIndex: 10,
-            direction: 'ltr', // LTR layout: Megaphone & Settings on left, Input in center, Send on right
+            direction: 'ltr', // Left column (2 stacked buttons), Center (Input), Right (Golden Send)
+            boxShadow: 'inset 0 0 18px rgba(43, 139, 230, 0.25), 0 4px 16px rgba(0,0,0,0.6)',
           }}
         >
-          {/* Button 1: Megaphone 📢 (Broadcast announcement) */}
-          <button
-            type="button"
-            onClick={() => setShowMegaphoneModal(true)}
-            title="بوق الإعلانات العالمي"
+          {/* Left Column: Stacked Emoji (top) + Gift/Broadcast/Settings (bottom) */}
+          <div
             style={{
-              width: '58px',
-              height: '58px',
-              borderRadius: '12px',
-              background: 'linear-gradient(180deg, #163658 0%, #0a1c30 100%)',
-              border: '1.5px solid rgba(212, 175, 55, 0.7)',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
+              flexDirection: 'column',
+              gap: '6px',
               flexShrink: 0,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-              transition: 'all 0.15s ease',
             }}
           >
-            <Megaphone style={{ width: '26px', height: '26px', color: '#facc15' }} />
-          </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowActionMenu(false);
+                setShowEmojiPicker(!showEmojiPicker);
+              }}
+              title="إضافة رمز تعبيري"
+              style={{
+                width: '54px',
+                height: '46px',
+                borderRadius: '10px',
+                background: 'linear-gradient(180deg, #0e3d78 0%, #062146 100%)',
+                border: '1.5px solid #2b8be6',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                boxShadow: 'inset 0 1px 0 rgba(147,197,253,0.25)',
+              }}
+            >
+              <Smile style={{ width: '28px', height: '28px', color: '#facc15' }} />
+            </button>
 
-          {/* Button 2: Settings ⚙️ (Chat sound, Block, Report) */}
-          <button
-            type="button"
-            onClick={() => setShowSettingsModal(true)}
-            title="إعدادات الشات والحظر"
-            style={{
-              width: '58px',
-              height: '58px',
-              borderRadius: '12px',
-              background: 'linear-gradient(180deg, #163658 0%, #0a1c30 100%)',
-              border: '1.5px solid rgba(212, 175, 55, 0.7)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              flexShrink: 0,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <Settings style={{ width: '26px', height: '26px', color: '#facc15' }} />
-          </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowEmojiPicker(false);
+                setShowActionMenu(!showActionMenu);
+              }}
+              title="بوق الإعلانات وإعدادات الشات"
+              style={{
+                width: '54px',
+                height: '46px',
+                borderRadius: '10px',
+                background: 'linear-gradient(180deg, #0e3d78 0%, #062146 100%)',
+                border: '1.5px solid #2b8be6',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                boxShadow: 'inset 0 1px 0 rgba(147,197,253,0.25)',
+              }}
+            >
+              <Gift style={{ width: '26px', height: '26px', color: '#facc15' }} />
+            </button>
+          </div>
 
-          {/* Center Input Form */}
+          {/* Center Input + Right Golden Send Form */}
           <form
             id="chat-form"
             onSubmit={sendChatMessage}
@@ -1122,104 +1142,69 @@ export const ChatView: React.FC<ChatViewProps> = ({
               flex: 1,
               minWidth: 0,
               display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
+              alignItems: 'stretch',
+              gap: '8px',
             }}
           >
-            {/* Input Wrapper with internal Emoji Smile button on the right */}
-            <div
+            <input
+              type="text"
+              placeholder={
+                activeTab === 'private'
+                  ? selectedWhisperPlayer
+                    ? `همس إلى @${selectedWhisperPlayer}...`
+                    : 'اكتب رسالتك الخاصة ...'
+                  : activeTab === 'tribe'
+                  ? 'اكتب في شات القبيلة ...'
+                  : 'اكتب رسالتك هنا ...'
+              }
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              dir="rtl"
               style={{
-                position: 'relative',
                 flex: 1,
                 minWidth: 0,
-                display: 'flex',
-                alignItems: 'center',
+                height: '98px',
+                background: 'linear-gradient(180deg, #041730 0%, #031024 100%)',
+                border: '1.5px solid #2574c7',
+                borderRadius: '10px',
+                padding: '0 20px',
+                color: '#ffffff',
+                fontSize: '21px',
+                fontWeight: '700',
+                outline: 'none',
+                boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.6)',
+                boxSizing: 'border-box',
+                userSelect: 'text',
+                WebkitUserSelect: 'text',
               }}
-            >
-              <input
-                type="text"
-                placeholder={
-                  activeTab === 'private'
-                    ? selectedWhisperPlayer
-                      ? `همس إلى @${selectedWhisperPlayer}...`
-                      : 'اكتب رسالتك الخاصة...'
-                    : activeTab === 'tribe'
-                    ? 'اكتب في شات القبيلة...'
-                    : 'اكتب رسالتك هنا...'
-                }
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                dir="rtl"
-                style={{
-                  width: '100%',
-                  minWidth: 0,
-                  height: '58px',
-                  background: 'rgba(6, 20, 35, 0.96)',
-                  border: '2px solid rgba(56, 189, 248, 0.65)',
-                  borderRadius: '12px',
-                  padding: '0 54px 0 18px', // Right padding for emoji button
-                  color: '#ffffff',
-                  fontSize: '21px',
-                  fontWeight: '700',
-                  outline: 'none',
-                  boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.6)',
-                  boxSizing: 'border-box',
-                  userSelect: 'text',
-                  WebkitUserSelect: 'text',
-                }}
-              />
+            />
 
-              {/* Emoji Face Button inside Input on the right */}
-              <button
-                type="button"
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                title="إضافة رمز تعبيري"
-                style={{
-                  position: 'absolute',
-                  right: '14px',
-                  background: 'transparent',
-                  border: 'none',
-                  padding: 0,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Smile style={{ width: '28px', height: '28px', color: '#facc15' }} />
-              </button>
-            </div>
-
-            {/* Button 4: Golden Send ✈️ (with paper airplane) */}
+            {/* Right: Tall Golden Send Button with Black Paper Airplane */}
             <button
               type="submit"
               disabled={!chatInput.trim()}
               title="إرسال"
               style={{
-                width: '62px',
-                height: '58px',
+                width: '74px',
+                height: '98px',
                 borderRadius: '12px',
-                background: chatInput.trim()
-                  ? 'linear-gradient(135deg, #facc15 0%, #eab308 50%, #ca8a04 100%)'
-                  : 'linear-gradient(180deg, #334155 0%, #1e293b 100%)',
-                border: chatInput.trim() ? '1.5px solid #fef08a' : '1.5px solid #475569',
+                background: 'linear-gradient(180deg, #fde047 0%, #eab308 55%, #b45309 100%)',
+                border: '2px solid #fef08a',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: chatInput.trim() ? 'pointer' : 'not-allowed',
-                opacity: chatInput.trim() ? 1 : 0.5,
+                opacity: chatInput.trim() ? 1 : 0.85,
                 flexShrink: 0,
-                boxShadow: chatInput.trim()
-                  ? '0 0 14px rgba(250, 204, 21, 0.5)'
-                  : 'none',
+                boxShadow: '0 0 14px rgba(250, 204, 21, 0.45), inset 0 1px 0 rgba(255,255,255,0.65)',
                 transition: 'all 0.15s ease',
               }}
             >
               <Send
                 style={{
-                  width: '26px',
-                  height: '26px',
-                  color: chatInput.trim() ? '#0f172a' : '#94a3b8',
+                  width: '34px',
+                  height: '34px',
+                  color: '#0f172a',
                   transform: 'rotate(-45deg)',
                 }}
               />

@@ -67,6 +67,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { 
   doc, 
   getDoc, 
+  getDocFromCache,
   getDocs,
   setDoc, 
   updateDoc,
@@ -78,7 +79,8 @@ import {
   orderBy, 
   onSnapshot, 
   limit,
-  serverTimestamp
+  serverTimestamp,
+  enableNetwork
 } from 'firebase/firestore';
 
 function normalizeString(str?: string): string {
@@ -3742,8 +3744,87 @@ export default function App() {
       unsubUserSnapshot.current = null;
     }
 
+    const attachUserRealtimeListener = () => {
+      unsubUserSnapshot.current = onSnapshot(userDocRef, (docSnap) => {
+        if (isDeletingAccount.current || docSnap.metadata.hasPendingWrites) {
+          return;
+        }
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+
+          const serverDeviceId = data.currentDeviceId;
+          const localDeviceId = getOrCreateDeviceId();
+          const serverSessionId = data.currentSessionId;
+          const localSessionId = getLocalSessionId();
+          const serverStatus = data.sessionStatus;
+
+          if (localStorage.getItem('pirate_login_in_progress') !== 'true') {
+            if ((serverDeviceId && localDeviceId && serverDeviceId !== localDeviceId) || serverStatus === 'EXPIRED') {
+              handleTerminateOldSession({
+                newDevice: data.lastLoginDevice || 'جهاز أو متصفح آخر',
+                lastLoginAt: data.lastLoginAt
+              });
+              return;
+            }
+          }
+
+          if (serverDeviceId === localDeviceId && serverSessionId && localSessionId !== serverSessionId) {
+            setLocalSessionId(serverSessionId);
+          }
+
+          applyFirestoreUserData(data, { isInitialLoad: !isLoadedFromFirebase.current });
+          activeAuthUidRef.current = user.uid;
+          isLoadedFromFirebase.current = true;
+          setUserDocReadyUid(user.uid);
+        }
+        setLoadingFirebase(false);
+      }, (err) => {
+        const msg = err?.message || String(err || '');
+        if (err?.code === 'unavailable' || /offline|unavailable/i.test(msg)) {
+          console.warn('Real-time user listener waiting for network recovery:', msg);
+        } else {
+          console.error("Error in real-time user document listener:", err);
+        }
+        setLoadingFirebase(false);
+      });
+    };
+
+    const isTransientOfflineError = (err: any) => {
+      const msg = (err?.message || String(err || '')).toLowerCase();
+      return err?.code === 'unavailable' || msg.includes('offline') || msg.includes('unavailable');
+    };
+
     try {
-      const initialSnap = await getDoc(userDocRef);
+      let initialSnap: any = null;
+      try {
+        initialSnap = await getDoc(userDocRef);
+      } catch (firstErr: any) {
+        if (isTransientOfflineError(firstErr)) {
+          await enableNetwork(db).catch(() => {});
+          await new Promise(resolve => setTimeout(resolve, 600));
+          try {
+            initialSnap = await getDoc(userDocRef);
+          } catch (retryErr: any) {
+            if (isTransientOfflineError(retryErr)) {
+              initialSnap = await getDocFromCache(userDocRef).catch(() => null);
+            } else {
+              throw retryErr;
+            }
+          }
+        } else {
+          throw firstErr;
+        }
+      }
+
+      if (!initialSnap) {
+        // Offline / cache empty: attach real-time listener so profile hydrates automatically once online
+        console.warn('Firestore temporarily offline during initial load; attaching real-time sync listener.');
+        attachUserRealtimeListener();
+        setIsLoggedIn(true);
+        setLoadingFirebase(false);
+        return;
+      }
+
       if (initialSnap.exists()) {
         let data = initialSnap.data();
 
@@ -3891,50 +3972,21 @@ export default function App() {
       }
 
       // Attach real-time listener for current user updates
-      unsubUserSnapshot.current = onSnapshot(userDocRef, (docSnap) => {
-        if (isDeletingAccount.current || docSnap.metadata.hasPendingWrites) {
-          return;
-        }
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-
-          const serverDeviceId = data.currentDeviceId;
-          const localDeviceId = getOrCreateDeviceId();
-          const serverSessionId = data.currentSessionId;
-          const localSessionId = getLocalSessionId();
-          const serverStatus = data.sessionStatus;
-
-          if (localStorage.getItem('pirate_login_in_progress') !== 'true') {
-            if ((serverDeviceId && localDeviceId && serverDeviceId !== localDeviceId) || serverStatus === 'EXPIRED') {
-              handleTerminateOldSession({
-                newDevice: data.lastLoginDevice || 'جهاز أو متصفح آخر',
-                lastLoginAt: data.lastLoginAt
-              });
-              return;
-            }
-          }
-
-          if (serverDeviceId === localDeviceId && serverSessionId && localSessionId !== serverSessionId) {
-            setLocalSessionId(serverSessionId);
-          }
-
-          applyFirestoreUserData(data, { isInitialLoad: false });
-          activeAuthUidRef.current = user.uid;
-          isLoadedFromFirebase.current = true;
-        }
-        setLoadingFirebase(false);
-      }, (err) => {
-        console.error("Error in real-time user document listener:", err);
-        setLoadingFirebase(false);
-      });
+      attachUserRealtimeListener();
 
       setIsLoggedIn(true);
       setLoadingFirebase(false);
     } catch (error) {
-      console.error("Error loading user profile from Firestore:", error);
-      try {
-        handleFirestoreError(error, OperationType.GET, `users/${user.uid}`);
-      } catch (e) {}
+      if (isTransientOfflineError(error)) {
+        console.warn("Firestore offline while loading user profile; attaching real-time listener:", error);
+        attachUserRealtimeListener();
+        setIsLoggedIn(true);
+      } else {
+        console.error("Error loading user profile from Firestore:", error);
+        try {
+          handleFirestoreError(error, OperationType.GET, `users/${user.uid}`);
+        } catch (e) {}
+      }
       setLoadingFirebase(false);
     }
   };

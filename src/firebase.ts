@@ -1,20 +1,20 @@
 import { initializeApp } from 'firebase/app';
 import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
 import { getAuth } from 'firebase/auth';
-import { initializeFirestore, getFirestore, doc } from 'firebase/firestore';
+import {
+  initializeFirestore,
+  getFirestore,
+  enableNetwork,
+  doc,
+  type Firestore,
+  type FirestoreSettings,
+} from 'firebase/firestore';
 import firebaseAppletConfig from '../firebase-applet-config.json';
 
 export const firebaseConfig = {
-  apiKey: "AIzaSyANi1hKBMLRQk2keakcLjLv9PsQAxJTQN8",
-  authDomain: "kingofdeep.firebaseapp.com",
-  databaseURL: "https://kingofdeep-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "kingofdeep",
-  storageBucket: "kingofdeep.firebasestorage.app",
-  messagingSenderId: "865058774465",
-  appId: "1:865058774465:web:083d2a7ee22f2d61b92340",
-  measurementId: "G-41F5PSQ7LR",
-  firestoreDatabaseId: firebaseAppletConfig.firestoreDatabaseId || "(default)",
-  recaptchaSiteKey: firebaseAppletConfig.recaptchaSiteKey || ""
+  ...firebaseAppletConfig,
+  firestoreDatabaseId: firebaseAppletConfig.firestoreDatabaseId || '(default)',
+  recaptchaSiteKey: firebaseAppletConfig.recaptchaSiteKey || '',
 };
 
 // Initialize Firebase App only once
@@ -37,30 +37,52 @@ if (typeof window !== 'undefined') {
 // Initialize Firebase Auth and Cloud Firestore instances strictly once
 export const auth = getAuth(app);
 
-const customDbId = (firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)') 
-  ? firebaseConfig.firestoreDatabaseId 
-  : undefined;
+const customDbId =
+  firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)'
+    ? firebaseConfig.firestoreDatabaseId
+    : undefined;
 
-// Initialize Firestore with auto-detect long-polling
-if (customDbId) {
-  initializeFirestore(app, {
-    experimentalAutoDetectLongPolling: true,
-  }, customDbId);
-} else {
-  initializeFirestore(app, {
-    experimentalAutoDetectLongPolling: true,
-  });
+const firestoreSettings: FirestoreSettings =
+  typeof window !== 'undefined'
+    ? {
+        experimentalForceLongPolling: true,
+        experimentalLongPollingOptions: {
+          timeoutSeconds: 15,
+        },
+      }
+    : {};
+
+let dbInstance: Firestore;
+try {
+  dbInstance = customDbId
+    ? initializeFirestore(app, firestoreSettings, customDbId)
+    : initializeFirestore(app, firestoreSettings);
+} catch {
+  dbInstance = customDbId ? getFirestore(app, customDbId) : getFirestore(app);
 }
 
-export const db = customDbId ? getFirestore(app, customDbId) : getFirestore(app); /* CRITICAL: The app will break without this line */
-
-console.log("[FIREBASE] Initialized Firebase Auth and Cloud Firestore with database:", customDbId || '(default)');
+export const db: Firestore = dbInstance;
 
 // Validate live connection to Firestore at startup
 export async function testConnection() {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return;
+  }
   try {
     const { getDocFromServer } = await import('firebase/firestore');
-    await getDocFromServer(doc(db, 'test', 'connection'));
+    try {
+      await getDocFromServer(doc(db, 'test', 'connection'));
+    } catch (firstError) {
+      if (
+        firstError instanceof Error &&
+        firstError.message.includes('the client is offline')
+      ) {
+        await enableNetwork(db).catch(() => {});
+        await getDocFromServer(doc(db, 'test', 'connection'));
+      } else {
+        throw firstError;
+      }
+    }
   } catch (error) {
     if (error instanceof Error && error.message.includes('the client is offline')) {
       console.error('Please check your Firebase configuration.');

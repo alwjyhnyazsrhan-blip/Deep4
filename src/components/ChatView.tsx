@@ -428,11 +428,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
               onClick={() => setActiveTab('general')}
               style={{
                 flex: 1,
-                height: '52px',
+                height: '56px',
                 padding: '0 14px',
                 borderRadius: '10px',
                 cursor: 'pointer',
-                fontSize: '21px',
+                fontFamily: 'inherit',
+                fontSize: '24px',
                 fontWeight: '900',
                 whiteSpace: 'nowrap',
                 textAlign: 'center',
@@ -460,11 +461,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
               onClick={() => setActiveTab('private')}
               style={{
                 flex: 1,
-                height: '52px',
+                height: '56px',
                 padding: '0 14px',
                 borderRadius: '10px',
                 cursor: 'pointer',
-                fontSize: '21px',
+                fontFamily: 'inherit',
+                fontSize: '24px',
                 fontWeight: '900',
                 whiteSpace: 'nowrap',
                 textAlign: 'center',
@@ -492,11 +494,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
               onClick={() => setActiveTab('tribe')}
               style={{
                 flex: 1,
-                height: '52px',
+                height: '56px',
                 padding: '0 14px',
                 borderRadius: '10px',
                 cursor: 'pointer',
-                fontSize: '21px',
+                fontFamily: 'inherit',
+                fontSize: '24px',
                 fontWeight: '900',
                 whiteSpace: 'nowrap',
                 textAlign: 'center',
@@ -524,11 +527,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
               onClick={() => setActiveTab('friends')}
               style={{
                 flex: 1,
-                height: '52px',
+                height: '56px',
                 padding: '0 14px',
                 borderRadius: '10px',
                 cursor: 'pointer',
-                fontSize: '21px',
+                fontFamily: 'inherit',
+                fontSize: '24px',
                 fontWeight: '900',
                 whiteSpace: 'nowrap',
                 textAlign: 'center',
@@ -557,13 +561,13 @@ export const ChatView: React.FC<ChatViewProps> = ({
             onClick={onClose}
             title="إغلاق والعودة للميناء"
             style={{
-              width: '54px',
-              height: '52px',
+              width: '58px',
+              height: '56px',
               borderRadius: '10px',
               background: 'linear-gradient(180deg, #0a2e5c 0%, #051833 100%)',
               border: '2px solid #3898ff',
               color: '#ffffff',
-              fontSize: '24px',
+              fontSize: '26px',
               fontWeight: '900',
               display: 'flex',
               alignItems: 'center',
@@ -581,7 +585,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
         {activeTab === 'private' && (
           <div
             style={{
-              padding: '8px 14px',
+              padding: '10px 14px',
               background: 'rgba(10, 38, 74, 0.9)',
               borderRadius: '10px',
               border: '1.5px solid #2b8be6',
@@ -590,7 +594,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: '12px',
-              fontSize: '17px',
+              fontSize: '20px',
               fontWeight: '700',
               color: '#bae6fd',
               flexShrink: 0,
@@ -606,8 +610,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   color: '#fde047',
                   border: '1.5px solid #2b8be6',
                   borderRadius: '8px',
-                  padding: '5px 12px',
-                  fontSize: '16px',
+                  padding: '6px 14px',
+                  fontFamily: 'inherit',
+                  fontSize: '19px',
                   fontWeight: '700',
                 }}
               >
@@ -625,7 +630,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
         {activeTab === 'tribe' && !tribeId && (
           <div
             style={{
-              padding: '8px 14px',
+              padding: '10px 14px',
               background: 'rgba(14, 42, 78, 0.95)',
               borderRadius: '10px',
               border: '1.5px solid #eab308',
@@ -634,7 +639,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: '12px',
-              fontSize: '17px',
+              fontSize: '20px',
               fontWeight: '700',
               color: '#fef08a',
               flexShrink: 0,
@@ -649,8 +654,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   color: '#1e1202',
                   border: '1px solid #fef08a',
                   borderRadius: '8px',
-                  padding: '5px 14px',
-                  fontSize: '16px',
+                  padding: '7px 16px',
+                  fontFamily: 'inherit',
+                  fontSize: '19px',
                   fontWeight: '900',
                   cursor: 'pointer',
                 }}
@@ -692,8 +698,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 gap: '12px',
               }}
             >
-              <MessageCircle style={{ width: '56px', height: '56px', color: '#38bdf8', opacity: 0.7 }} />
-              <p style={{ margin: 0, fontSize: '23px', fontWeight: '900', color: '#ffffff' }}>
+              <MessageCircle style={{ width: '62px', height: '62px', color: '#38bdf8', opacity: 0.7 }} />
+              <p style={{ margin: 0, fontSize: '27px', fontWeight: '900', color: '#ffffff' }}>
                 {activeTab === 'friends'
                   ? 'لا توجد رسائل أصدقاء حالياً'
                   : activeTab === 'private'
@@ -702,7 +708,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   ? 'لا توجد رسائل في شات القبيلة'
                   : 'لا توجد رسائل'}
               </p>
-              <p style={{ margin: 0, fontSize: '18px', color: '#94a3b8', fontWeight: '700' }}>
+              <p style={{ margin: 0, fontSize: '21px', color: '#cbd5e1', fontWeight: '700' }}>
                 اكتب رسالتك في الأسفل وكن أول من يبدأ الحديث!
               </p>
             </div>
@@ -746,15 +752,15 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   <div
                     style={{
                       position: 'relative',
-                      width: '64px',
-                      height: '64px',
+                      width: '72px',
+                      height: '72px',
                       flexShrink: 0,
                     }}
                   >
                     <div
                       style={{
-                        width: '64px',
-                        height: '64px',
+                        width: '72px',
+                        height: '72px',
                         borderRadius: '50%',
                         border: isGoldCard ? '2.5px solid #facc15' : '2.5px solid #38bdf8',
                         overflow: 'hidden',
@@ -786,9 +792,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
                         bottom: '-4px',
                         left: '50%',
                         transform: 'translateX(-50%)',
-                        minWidth: '28px',
-                        height: '21px',
-                        padding: '0 6px',
+                        minWidth: '32px',
+                        height: '24px',
+                        padding: '0 7px',
                         background: 'linear-gradient(180deg, #0b3366 0%, #04152e 100%)',
                         border: isGoldCard ? '1.5px solid #facc15' : '1.5px solid #38bdf8',
                         borderRadius: '9999px',
@@ -802,7 +808,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     >
                       <span
                         style={{
-                          fontSize: '13.5px',
+                          fontSize: '16px',
                           fontWeight: '900',
                           color: '#ffffff',
                           lineHeight: 1,
@@ -823,7 +829,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       textAlign: 'right',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '2px',
+                      gap: '3px',
                     }}
                   >
                     {/* Sender Name + VIP Badge */}
@@ -839,7 +845,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       >
                         <span
                           style={{
-                            fontSize: '19px',
+                            fontSize: '23px',
                             fontWeight: '900',
                             color: (isGoldCard || details.isVip) ? '#facc15' : '#f8fafc',
                             textShadow: '0 1px 2px rgba(0, 0, 0, 0.75)',
@@ -853,9 +859,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
                             style={{
                               background: 'linear-gradient(180deg, #fde047 0%, #d97706 100%)',
                               color: '#1e1002',
-                              fontSize: '13px',
+                              fontSize: '15px',
                               fontWeight: '900',
-                              padding: '1px 7px',
+                              padding: '2px 8px',
                               borderRadius: '5px',
                               lineHeight: 1.2,
                               border: '1px solid #fef08a',
@@ -871,10 +877,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     {/* Message Body Text */}
                     <div
                       style={{
-                        fontSize: '20px',
+                        fontSize: '25px',
                         fontWeight: '700',
                         color: '#ffffff',
-                        lineHeight: '1.42',
+                        lineHeight: '1.45',
                         wordBreak: 'break-word',
                         textAlign: 'right',
                         whiteSpace: 'pre-line',
@@ -894,9 +900,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     >
                       <span
                         style={{
-                          fontSize: '14px',
+                          fontSize: '17px',
                           color: '#cbd5e1',
-                          fontWeight: '600',
+                          fontWeight: '700',
                           fontVariantNumeric: 'tabular-nums',
                         }}
                       >
@@ -935,7 +941,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 paddingBottom: '8px',
                 borderBottom: '1px solid rgba(56, 189, 248, 0.3)',
                 marginBottom: '10px',
-                fontSize: '18px',
+                fontSize: '21px',
                 fontWeight: '900',
                 color: '#7dd3fc',
               }}
@@ -948,7 +954,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   border: 'none',
                   color: '#cbd5e1',
                   cursor: 'pointer',
-                  fontSize: '20px',
+                  fontSize: '22px',
                   fontWeight: 'bold',
                 }}
               >
@@ -974,8 +980,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     background: 'rgba(14, 42, 78, 0.8)',
                     border: '1.5px solid rgba(56, 189, 248, 0.35)',
                     borderRadius: '10px',
-                    height: '48px',
-                    fontSize: '25px',
+                    height: '52px',
+                    fontSize: '28px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -994,7 +1000,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
           <div
             style={{
               position: 'absolute',
-              bottom: '126px',
+              bottom: '132px',
               left: '14px',
               zIndex: 35,
               background: 'linear-gradient(180deg, #0b2d59 0%, #051733 100%)',
@@ -1004,7 +1010,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               display: 'flex',
               flexDirection: 'column',
               gap: '8px',
-              minWidth: '240px',
+              minWidth: '260px',
               boxShadow: '0 10px 30px rgba(0,0,0,0.85)',
             }}
           >
@@ -1018,18 +1024,19 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '10px',
-                padding: '10px 14px',
+                padding: '12px 16px',
                 borderRadius: '10px',
                 background: 'rgba(14, 46, 86, 0.9)',
                 border: '1.5px solid rgba(250, 204, 21, 0.55)',
                 color: '#fde047',
-                fontSize: '18px',
+                fontFamily: 'inherit',
+                fontSize: '20px',
                 fontWeight: '800',
                 cursor: 'pointer',
                 textAlign: 'right',
               }}
             >
-              <Megaphone style={{ width: '22px', height: '22px', color: '#facc15', flexShrink: 0 }} />
+              <Megaphone style={{ width: '24px', height: '24px', color: '#facc15', flexShrink: 0 }} />
               <span>بوق الإعلانات العالمي</span>
             </button>
             <button
@@ -1042,18 +1049,19 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '10px',
-                padding: '10px 14px',
+                padding: '12px 16px',
                 borderRadius: '10px',
                 background: 'rgba(14, 46, 86, 0.9)',
                 border: '1.5px solid rgba(56, 189, 248, 0.5)',
                 color: '#ffffff',
-                fontSize: '18px',
+                fontFamily: 'inherit',
+                fontSize: '20px',
                 fontWeight: '800',
                 cursor: 'pointer',
                 textAlign: 'right',
               }}
             >
-              <Settings style={{ width: '22px', height: '22px', color: '#38bdf8', flexShrink: 0 }} />
+              <Settings style={{ width: '24px', height: '24px', color: '#38bdf8', flexShrink: 0 }} />
               <span>إعدادات الشات والحظر</span>
             </button>
           </div>
@@ -1095,8 +1103,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
               }}
               title="إضافة رمز تعبيري"
               style={{
-                width: '54px',
-                height: '46px',
+                width: '56px',
+                height: '48px',
                 borderRadius: '10px',
                 background: 'linear-gradient(180deg, #0e3d78 0%, #062146 100%)',
                 border: '1.5px solid #2b8be6',
@@ -1118,8 +1126,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
               }}
               title="بوق الإعلانات وإعدادات الشات"
               style={{
-                width: '54px',
-                height: '46px',
+                width: '56px',
+                height: '48px',
                 borderRadius: '10px',
                 background: 'linear-gradient(180deg, #0e3d78 0%, #062146 100%)',
                 border: '1.5px solid #2b8be6',
@@ -1163,13 +1171,15 @@ export const ChatView: React.FC<ChatViewProps> = ({
               style={{
                 flex: 1,
                 minWidth: 0,
-                height: '98px',
+                height: '102px',
                 background: 'linear-gradient(180deg, #041730 0%, #031024 100%)',
                 border: '1.5px solid #2574c7',
                 borderRadius: '10px',
-                padding: '0 20px',
+                padding: '0 22px',
                 color: '#ffffff',
-                fontSize: '21px',
+                fontFamily: "'Cairo', 'Tajawal', system-ui, -apple-system, sans-serif",
+                fontSize: '28px',
+                lineHeight: '1.4',
                 fontWeight: '700',
                 outline: 'none',
                 boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.6)',
@@ -1185,8 +1195,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
               disabled={!chatInput.trim()}
               title="إرسال"
               style={{
-                width: '74px',
-                height: '98px',
+                width: '76px',
+                height: '102px',
                 borderRadius: '12px',
                 background: 'linear-gradient(180deg, #fde047 0%, #eab308 55%, #b45309 100%)',
                 border: '2px solid #fef08a',
@@ -1253,8 +1263,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Megaphone style={{ width: '26px', height: '26px', color: '#facc15' }} />
-                <h3 style={{ margin: 0, fontSize: '23px', fontWeight: '900', color: '#fef08a' }}>
+                <Megaphone style={{ width: '28px', height: '28px', color: '#facc15' }} />
+                <h3 style={{ margin: 0, fontSize: '25px', fontWeight: '900', color: '#fef08a' }}>
                   بوق الإعلانات العالمي
                 </h3>
               </div>
@@ -1264,7 +1274,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   background: 'transparent',
                   border: 'none',
                   color: '#cbd5e1',
-                  fontSize: '22px',
+                  fontSize: '24px',
                   cursor: 'pointer',
                 }}
               >
@@ -1272,7 +1282,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               </button>
             </div>
 
-            <p style={{ fontSize: '18px', color: '#e2e8f0', lineHeight: '1.6', margin: '0 0 16px 0', fontWeight: '600' }}>
+            <p style={{ fontSize: '20px', color: '#e2e8f0', lineHeight: '1.6', margin: '0 0 16px 0', fontWeight: '600' }}>
               أطلق نداءً مدوياً لجميع القراصنة والبحارة في ملوك الأعماق بلون ذهبي مميز!
             </p>
 
@@ -1287,10 +1297,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   background: 'rgba(5, 16, 28, 0.92)',
                   border: '1.5px solid rgba(250, 204, 21, 0.5)',
                   borderRadius: '12px',
-                  padding: '12px 14px',
+                  padding: '14px 16px',
                   color: '#ffffff',
-                  fontSize: '19px',
-                  fontWeight: '600',
+                  fontFamily: 'inherit',
+                  fontSize: '23px',
+                  fontWeight: '700',
                   outline: 'none',
                   boxSizing: 'border-box',
                   resize: 'none',
@@ -1307,8 +1318,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     color: '#e2e8f0',
                     border: '1px solid #475569',
                     borderRadius: '10px',
-                    padding: '10px 20px',
-                    fontSize: '18px',
+                    padding: '10px 22px',
+                    fontFamily: 'inherit',
+                    fontSize: '20px',
                     fontWeight: 'bold',
                     cursor: 'pointer',
                   }}
@@ -1324,7 +1336,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     border: 'none',
                     borderRadius: '10px',
                     padding: '10px 24px',
-                    fontSize: '18px',
+                    fontFamily: 'inherit',
+                    fontSize: '20px',
                     fontWeight: '900',
                     cursor: megaphoneText.trim() ? 'pointer' : 'not-allowed',
                     opacity: megaphoneText.trim() ? 1 : 0.5,
@@ -1378,8 +1391,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Settings style={{ width: '26px', height: '26px', color: '#38bdf8' }} />
-                <h3 style={{ margin: 0, fontSize: '23px', fontWeight: '900', color: '#ffffff' }}>
+                <Settings style={{ width: '28px', height: '28px', color: '#38bdf8' }} />
+                <h3 style={{ margin: 0, fontSize: '25px', fontWeight: '900', color: '#ffffff' }}>
                   إعدادات الشات والخصوصية
                 </h3>
               </div>
@@ -1389,7 +1402,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   background: 'transparent',
                   border: 'none',
                   color: '#cbd5e1',
-                  fontSize: '22px',
+                  fontSize: '24px',
                   cursor: 'pointer',
                 }}
               >
@@ -1412,13 +1425,13 @@ export const ChatView: React.FC<ChatViewProps> = ({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 {internalMuted ? (
-                  <VolumeX style={{ width: '24px', height: '24px', color: '#f87171' }} />
+                  <VolumeX style={{ width: '26px', height: '26px', color: '#f87171' }} />
                 ) : (
-                  <Volume2 style={{ width: '24px', height: '24px', color: '#38bdf8' }} />
+                  <Volume2 style={{ width: '26px', height: '26px', color: '#38bdf8' }} />
                 )}
                 <div>
-                  <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#ffffff' }}>أصوات إشعارات الشات</div>
-                  <div style={{ fontSize: '15px', color: '#cbd5e1' }}>
+                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#ffffff' }}>أصوات إشعارات الشات</div>
+                  <div style={{ fontSize: '17px', color: '#cbd5e1' }}>
                     {internalMuted ? 'الصوت مكتوم حالياً' : 'الصوت مفعل للرسائل الواردة'}
                   </div>
                 </div>
@@ -1433,8 +1446,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   color: '#fff',
                   border: 'none',
                   borderRadius: '10px',
-                  padding: '8px 18px',
-                  fontSize: '16px',
+                  padding: '9px 18px',
+                  fontFamily: 'inherit',
+                  fontSize: '18px',
                   fontWeight: 'bold',
                   cursor: 'pointer',
                 }}
@@ -1445,7 +1459,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
             {/* Block Players Section */}
             <div style={{ marginBottom: '18px' }}>
-              <label style={{ display: 'block', fontSize: '17px', fontWeight: 'bold', color: '#e2e8f0', marginBottom: '8px' }}>
+              <label style={{ display: 'block', fontSize: '19px', fontWeight: 'bold', color: '#e2e8f0', marginBottom: '8px' }}>
                 🚫 حظر لاعب مزعج:
               </label>
               <div style={{ display: 'flex', gap: '10px' }}>
@@ -1459,9 +1473,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     background: 'rgba(5, 16, 28, 0.92)',
                     border: '1.5px solid #475569',
                     borderRadius: '10px',
-                    padding: '10px 14px',
+                    padding: '12px 14px',
                     color: '#fff',
-                    fontSize: '17px',
+                    fontFamily: 'inherit',
+                    fontSize: '21px',
+                    fontWeight: '700',
                     outline: 'none',
                   }}
                 />
@@ -1473,8 +1489,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     color: '#fff',
                     border: 'none',
                     borderRadius: '10px',
-                    padding: '10px 20px',
-                    fontSize: '17px',
+                    padding: '10px 22px',
+                    fontFamily: 'inherit',
+                    fontSize: '19px',
                     fontWeight: 'bold',
                     cursor: 'pointer',
                   }}
@@ -1486,11 +1503,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
             {/* Blocked List */}
             <div style={{ marginBottom: '18px' }}>
-              <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#cbd5e1', marginBottom: '8px' }}>
+              <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#cbd5e1', marginBottom: '8px' }}>
                 قائمة المحظورين ({blockedUsers.length}):
               </div>
               {blockedUsers.length === 0 ? (
-                <div style={{ fontSize: '15px', color: '#94a3b8' }}>لا يوجد أي لاعب محظور حالياً.</div>
+                <div style={{ fontSize: '17px', color: '#94a3b8' }}>لا يوجد أي لاعب محظور حالياً.</div>
               ) : (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', maxHeight: '110px', overflowY: 'auto' }}>
                   {blockedUsers.map((name) => (
@@ -1503,8 +1520,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
                         background: 'rgba(239, 68, 68, 0.18)',
                         border: '1px solid rgba(239, 68, 68, 0.45)',
                         borderRadius: '8px',
-                        padding: '5px 10px',
-                        fontSize: '16px',
+                        padding: '6px 12px',
+                        fontSize: '18px',
                       }}
                     >
                       <span>{name}</span>
@@ -1516,7 +1533,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                           color: '#f87171',
                           cursor: 'pointer',
                           padding: 0,
-                          fontSize: '15px',
+                          fontSize: '17px',
                         }}
                       >
                         ✕
@@ -1549,7 +1566,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   color: '#facc15',
                   borderRadius: '10px',
                   padding: '9px 16px',
-                  fontSize: '16px',
+                  fontFamily: 'inherit',
+                  fontSize: '18px',
                   fontWeight: 'bold',
                   display: 'flex',
                   alignItems: 'center',
@@ -1557,7 +1575,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   cursor: 'pointer',
                 }}
               >
-                <ShieldAlert style={{ width: '18px', height: '18px' }} />
+                <ShieldAlert style={{ width: '20px', height: '20px' }} />
                 <span>الإبلاغ عن إساءة أو شتائم</span>
               </button>
 
@@ -1569,7 +1587,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   border: 'none',
                   borderRadius: '10px',
                   padding: '9px 22px',
-                  fontSize: '17px',
+                  fontFamily: 'inherit',
+                  fontSize: '19px',
                   fontWeight: 'bold',
                   cursor: 'pointer',
                 }}
@@ -1621,8 +1640,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <ShieldAlert style={{ width: '26px', height: '26px', color: '#ef4444' }} />
-                <h3 style={{ margin: 0, fontSize: '23px', fontWeight: '900', color: '#f87171' }}>
+                <ShieldAlert style={{ width: '28px', height: '28px', color: '#ef4444' }} />
+                <h3 style={{ margin: 0, fontSize: '25px', fontWeight: '900', color: '#f87171' }}>
                   إبلاغ عن مخالفة
                 </h3>
               </div>
@@ -1632,7 +1651,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   background: 'transparent',
                   border: 'none',
                   color: '#cbd5e1',
-                  fontSize: '22px',
+                  fontSize: '24px',
                   cursor: 'pointer',
                 }}
               >
@@ -1642,7 +1661,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
             <form onSubmit={handleSubmitReport}>
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '17px', fontWeight: 'bold', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '19px', fontWeight: 'bold', marginBottom: '6px' }}>
                   اسم اللاعب المخالف:
                 </label>
                 <input
@@ -1655,9 +1674,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     background: '#180d12',
                     border: '1.5px solid #7f1d1d',
                     borderRadius: '10px',
-                    padding: '10px 14px',
+                    padding: '12px 14px',
                     color: '#fff',
-                    fontSize: '18px',
+                    fontFamily: 'inherit',
+                    fontSize: '21px',
+                    fontWeight: '700',
                     outline: 'none',
                     boxSizing: 'border-box',
                   }}
@@ -1665,7 +1686,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               </div>
 
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '17px', fontWeight: 'bold', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '19px', fontWeight: 'bold', marginBottom: '6px' }}>
                   سبب البلاغ:
                 </label>
                 <select
@@ -1676,9 +1697,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     background: '#180d12',
                     border: '1.5px solid #7f1d1d',
                     borderRadius: '10px',
-                    padding: '10px 14px',
+                    padding: '12px 14px',
                     color: '#fff',
-                    fontSize: '18px',
+                    fontFamily: 'inherit',
+                    fontSize: '20px',
+                    fontWeight: '700',
                     outline: 'none',
                     boxSizing: 'border-box',
                   }}
@@ -1692,7 +1715,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               </div>
 
               <div style={{ marginBottom: '18px' }}>
-                <label style={{ display: 'block', fontSize: '17px', fontWeight: 'bold', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '19px', fontWeight: 'bold', marginBottom: '6px' }}>
                   تفاصيل إضافية:
                 </label>
                 <textarea
@@ -1705,9 +1728,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     background: '#180d12',
                     border: '1.5px solid #7f1d1d',
                     borderRadius: '10px',
-                    padding: '10px 14px',
+                    padding: '12px 14px',
                     color: '#fff',
-                    fontSize: '18px',
+                    fontFamily: 'inherit',
+                    fontSize: '21px',
+                    fontWeight: '700',
                     outline: 'none',
                     boxSizing: 'border-box',
                     resize: 'none',
@@ -1724,8 +1749,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     color: '#e2e8f0',
                     border: '1px solid #4a1d2d',
                     borderRadius: '10px',
-                    padding: '10px 20px',
-                    fontSize: '17px',
+                    padding: '10px 22px',
+                    fontFamily: 'inherit',
+                    fontSize: '19px',
                     fontWeight: 'bold',
                     cursor: 'pointer',
                   }}
@@ -1741,7 +1767,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     border: 'none',
                     borderRadius: '10px',
                     padding: '10px 24px',
-                    fontSize: '17px',
+                    fontFamily: 'inherit',
+                    fontSize: '19px',
                     fontWeight: '900',
                     cursor: 'pointer',
                   }}

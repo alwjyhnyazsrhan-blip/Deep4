@@ -657,7 +657,7 @@ export default function TribeView({
           }}
         >
           {/* Left Pill: لوحة القبيلة */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             <button
               onClick={() => setActiveSubTab('board')}
               style={{
@@ -666,16 +666,17 @@ export default function TribeView({
                 gap: '10px',
                 background:
                   activeSubTab === 'board'
-                    ? 'rgba(13, 148, 136, 0.3)'
-                    : 'rgba(15, 23, 42, 0.7)',
+                    ? 'rgba(13, 148, 136, 0.34)'
+                    : 'rgba(15, 23, 42, 0.78)',
                 border:
                   activeSubTab === 'board'
-                    ? '1.5px solid rgba(45, 212, 191, 0.55)'
-                    : '1.5px solid rgba(51, 65, 85, 0.7)',
+                    ? '2px solid rgba(45, 212, 191, 0.65)'
+                    : '1.5px solid rgba(71, 85, 105, 0.8)',
                 borderRadius: '9999px',
-                padding: '10px 18px',
-                color: activeSubTab === 'board' ? '#5eead4' : '#e2e8f0',
-                fontSize: '19px',
+                padding: '12px 22px',
+                color: activeSubTab === 'board' ? '#5eead4' : '#f1f5f9',
+                fontFamily: 'inherit',
+                fontSize: '25px',
                 fontWeight: '900',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
@@ -683,8 +684,8 @@ export default function TribeView({
             >
               <span
                 style={{
-                  width: '10px',
-                  height: '10px',
+                  width: '13px',
+                  height: '13px',
                   borderRadius: '50%',
                   background: '#10b981',
                   boxShadow: '0 0 8px #10b981',
@@ -697,14 +698,15 @@ export default function TribeView({
             <button
               onClick={() => setActiveSubTab('donations')}
               style={{
-                background: activeSubTab === 'donations' ? 'rgba(56, 189, 248, 0.22)' : 'rgba(15, 23, 42, 0.45)',
-                border: activeSubTab === 'donations' ? '1.5px solid rgba(56, 189, 248, 0.5)' : '1.5px solid transparent',
-                color: activeSubTab === 'donations' ? '#7dd3fc' : '#e2e8f0',
-                fontSize: '19px',
+                background: activeSubTab === 'donations' ? 'rgba(56, 189, 248, 0.24)' : 'rgba(15, 23, 42, 0.55)',
+                border: activeSubTab === 'donations' ? '2px solid rgba(56, 189, 248, 0.6)' : '1.5px solid rgba(51, 65, 85, 0.45)',
+                color: activeSubTab === 'donations' ? '#7dd3fc' : '#f1f5f9',
+                fontFamily: 'inherit',
+                fontSize: '25px',
                 fontWeight: '800',
                 cursor: 'pointer',
-                padding: '10px 16px',
-                borderRadius: '10px',
+                padding: '12px 20px',
+                borderRadius: '12px',
               }}
             >
               التبرعات
@@ -713,14 +715,15 @@ export default function TribeView({
             <button
               onClick={() => setActiveSubTab('levels')}
               style={{
-                background: activeSubTab === 'levels' ? 'rgba(56, 189, 248, 0.22)' : 'rgba(15, 23, 42, 0.45)',
-                border: activeSubTab === 'levels' ? '1.5px solid rgba(56, 189, 248, 0.5)' : '1.5px solid transparent',
-                color: activeSubTab === 'levels' ? '#7dd3fc' : '#e2e8f0',
-                fontSize: '19px',
+                background: activeSubTab === 'levels' ? 'rgba(56, 189, 248, 0.24)' : 'rgba(15, 23, 42, 0.55)',
+                border: activeSubTab === 'levels' ? '2px solid rgba(56, 189, 248, 0.6)' : '1.5px solid rgba(51, 65, 85, 0.45)',
+                color: activeSubTab === 'levels' ? '#7dd3fc' : '#f1f5f9',
+                fontFamily: 'inherit',
+                fontSize: '25px',
                 fontWeight: '800',
                 cursor: 'pointer',
-                padding: '10px 16px',
-                borderRadius: '10px',
+                padding: '12px 20px',
+                borderRadius: '12px',
               }}
             >
               المستويات
@@ -729,14 +732,15 @@ export default function TribeView({
             <button
               onClick={() => setActiveSubTab('allTribes')}
               style={{
-                background: activeSubTab === 'allTribes' ? 'rgba(56, 189, 248, 0.22)' : 'rgba(15, 23, 42, 0.45)',
-                border: activeSubTab === 'allTribes' ? '1.5px solid rgba(56, 189, 248, 0.5)' : '1.5px solid transparent',
-                color: activeSubTab === 'allTribes' ? '#7dd3fc' : '#e2e8f0',
-                fontSize: '19px',
+                background: activeSubTab === 'allTribes' ? 'rgba(56, 189, 248, 0.24)' : 'rgba(15, 23, 42, 0.55)',
+                border: activeSubTab === 'allTribes' ? '2px solid rgba(56, 189, 248, 0.6)' : '1.5px solid rgba(51, 65, 85, 0.45)',
+                color: activeSubTab === 'allTribes' ? '#7dd3fc' : '#f1f5f9',
+                fontFamily: 'inherit',
+                fontSize: '25px',
                 fontWeight: '800',
                 cursor: 'pointer',
-                padding: '10px 16px',
-                borderRadius: '10px',
+                padding: '12px 20px',
+                borderRadius: '12px',
               }}
             >
               القبائل ({toArabicDigits(tribes.length)})
@@ -744,7 +748,7 @@ export default function TribeView({
           </div>
 
           {/* Right: Golden Crown Badge & Close button */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexShrink: 0 }}>
             <div
               style={{
                 position: 'relative',
@@ -755,9 +759,9 @@ export default function TribeView({
             >
               <div
                 style={{
-                  width: '54px',
-                  height: '54px',
-                  borderRadius: '14px',
+                  width: '66px',
+                  height: '66px',
+                  borderRadius: '16px',
                   border: '2px solid #d4af37',
                   background: 'linear-gradient(135deg, rgba(30, 24, 12, 0.9) 0%, rgba(12, 31, 51, 0.95) 100%)',
                   display: 'flex',
@@ -767,8 +771,8 @@ export default function TribeView({
                 }}
               >
                 <svg
-                  width="30"
-                  height="30"
+                  width="38"
+                  height="38"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="#facc15"
@@ -782,12 +786,12 @@ export default function TribeView({
               <span
                 style={{
                   position: 'absolute',
-                  bottom: '-7px',
+                  bottom: '-9px',
                   background: 'linear-gradient(to right, #d4af37, #ca8a04)',
                   color: '#1a1303',
-                  fontSize: '12px',
+                  fontSize: '15px',
                   fontWeight: '900',
-                  padding: '1px 7px',
+                  padding: '2px 9px',
                   borderRadius: '9999px',
                   border: '1px solid #fef08a',
                   letterSpacing: '0.5px',
@@ -802,13 +806,14 @@ export default function TribeView({
               onClick={onClose}
               title="إغلاق والعودة للميناء"
               style={{
-                background: 'rgba(15, 23, 42, 0.75)',
-                border: '1.5px solid rgba(100, 116, 139, 0.75)',
+                background: 'rgba(15, 23, 42, 0.85)',
+                border: '2px solid rgba(148, 163, 184, 0.85)',
                 color: '#ffffff',
-                width: '48px',
-                height: '48px',
-                borderRadius: '12px',
-                fontSize: '22px',
+                width: '60px',
+                height: '60px',
+                borderRadius: '14px',
+                fontFamily: 'inherit',
+                fontSize: '28px',
                 fontWeight: '900',
                 display: 'flex',
                 alignItems: 'center',
@@ -859,13 +864,13 @@ export default function TribeView({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '10px',
-                  color: '#cbd5e1',
-                  fontSize: '18px',
-                  fontWeight: '700',
+                  gap: '12px',
+                  color: '#e2e8f0',
+                  fontSize: '23px',
+                  fontWeight: '800',
                 }}
               >
-                <span style={{ color: '#38bdf8', fontSize: '21px' }}>≋</span>
+                <span style={{ color: '#38bdf8', fontSize: '28px' }}>≋</span>
                 <span>سجل قبيلة واحدة • عشرة أعماق</span>
               </div>
 
@@ -875,15 +880,15 @@ export default function TribeView({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: '16px',
+                  gap: '20px',
                 }}
               >
                 {/* Circular Emblem (Left side) */}
                 <div
                   style={{
                     position: 'relative',
-                    width: '114px',
-                    height: '114px',
+                    width: '142px',
+                    height: '142px',
                     flexShrink: 0,
                     display: 'flex',
                     alignItems: 'center',
@@ -895,17 +900,17 @@ export default function TribeView({
                       position: 'absolute',
                       inset: 0,
                       borderRadius: '50%',
-                      border: '2px solid rgba(56, 189, 248, 0.35)',
-                      boxShadow: '0 0 20px rgba(14, 165, 233, 0.2)',
+                      border: '2.5px solid rgba(56, 189, 248, 0.45)',
+                      boxShadow: '0 0 24px rgba(14, 165, 233, 0.25)',
                     }}
                   />
                   <span
                     style={{
                       position: 'absolute',
                       top: '6px',
-                      right: '10px',
+                      right: '12px',
                       color: '#facc15',
-                      fontSize: '14px',
+                      fontSize: '19px',
                     }}
                   >
                     ✦
@@ -913,10 +918,10 @@ export default function TribeView({
                   <span
                     style={{
                       position: 'absolute',
-                      bottom: '8px',
-                      left: '8px',
+                      bottom: '10px',
+                      left: '10px',
                       color: '#38bdf8',
-                      fontSize: '13px',
+                      fontSize: '18px',
                     }}
                   >
                     ✦
@@ -924,22 +929,22 @@ export default function TribeView({
 
                   <div
                     style={{
-                      width: '84px',
-                      height: '84px',
+                      width: '108px',
+                      height: '108px',
                       borderRadius: '50%',
-                      border: '2px solid rgba(212, 175, 55, 0.7)',
+                      border: '2.5px solid rgba(212, 175, 55, 0.8)',
                       background: 'linear-gradient(145deg, #0e2740 0%, #051424 100%)',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '4px',
-                      boxShadow: 'inset 0 2px 6px rgba(0, 0, 0, 0.6)',
+                      gap: '5px',
+                      boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.65)',
                     }}
                   >
                     <svg
-                      width="30"
-                      height="30"
+                      width="42"
+                      height="42"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="#facc15"
@@ -952,7 +957,7 @@ export default function TribeView({
                     <span
                       style={{
                         color: '#38bdf8',
-                        fontSize: '15px',
+                        fontSize: '21px',
                         letterSpacing: '1px',
                         lineHeight: 1,
                       }}
@@ -966,8 +971,8 @@ export default function TribeView({
                 <div style={{ flex: 1, textAlign: 'right' }}>
                   <h2
                     style={{
-                      margin: '0 0 8px 0',
-                      fontSize: '36px',
+                      margin: '0 0 10px 0',
+                      fontSize: '46px',
                       fontWeight: '900',
                       background: 'linear-gradient(to bottom, #ffffff 0%, #fef08a 40%, #eab308 100%)',
                       WebkitBackgroundClip: 'text',
@@ -980,9 +985,9 @@ export default function TribeView({
                   <p
                     style={{
                       margin: 0,
-                      fontSize: '19px',
-                      fontWeight: '600',
-                      color: '#e2e8f0',
+                      fontSize: '24px',
+                      fontWeight: '700',
+                      color: '#f1f5f9',
                       lineHeight: '1.6',
                     }}
                   >
@@ -998,21 +1003,22 @@ export default function TribeView({
                   style={{
                     background: 'linear-gradient(135deg, #facc15 0%, #eab308 50%, #ca8a04 100%)',
                     color: '#0f172a',
-                    border: '1.5px solid #fef08a',
-                    borderRadius: '12px',
-                    padding: '12px 26px',
-                    fontSize: '20px',
+                    border: '2px solid #fef08a',
+                    borderRadius: '14px',
+                    padding: '14px 30px',
+                    fontFamily: 'inherit',
+                    fontSize: '25px',
                     fontWeight: '900',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '10px',
+                    gap: '12px',
                     cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(234, 179, 8, 0.4)',
+                    boxShadow: '0 4px 16px rgba(234, 179, 8, 0.45)',
                     transition: 'all 0.15s ease',
                   }}
                 >
                   <span>استكشف المستويات</span>
-                  <span style={{ fontSize: '22px' }}>←</span>
+                  <span style={{ fontSize: '27px' }}>←</span>
                 </button>
               </div>
             </div>
@@ -1022,17 +1028,17 @@ export default function TribeView({
               style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
-                gap: '14px',
+                gap: '16px',
               }}
             >
               {/* Card 1: إجمالي رصيد القبيلة */}
               <div
                 style={{
                   position: 'relative',
-                  borderRadius: '16px',
-                  border: '1.5px solid rgba(56, 189, 248, 0.25)',
+                  borderRadius: '18px',
+                  border: '1.5px solid rgba(56, 189, 248, 0.3)',
                   background: 'linear-gradient(145deg, #0b1f33 0%, #061322 100%)',
-                  padding: '18px 18px',
+                  padding: '20px 22px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -1042,39 +1048,39 @@ export default function TribeView({
                 <span
                   style={{
                     position: 'absolute',
-                    top: '8px',
-                    left: '10px',
+                    top: '10px',
+                    left: '12px',
                     color: '#facc15',
-                    fontSize: '14px',
-                    opacity: 0.85,
+                    fontSize: '18px',
+                    opacity: 0.9,
                   }}
                 >
                   ✦
                 </span>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <span style={{ fontSize: '18px', color: '#cbd5e1', fontWeight: '800' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <span style={{ fontSize: '23px', color: '#e2e8f0', fontWeight: '800' }}>
                     إجمالي رصيد القبيلة
                   </span>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                    <span style={{ fontSize: '30px', fontWeight: '900', color: '#ffffff' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                    <span style={{ fontSize: '38px', fontWeight: '900', color: '#ffffff' }}>
                       {toArabicDigits(totalBalancePoints)}
                     </span>
-                    <span style={{ fontSize: '17px', color: '#e2e8f0', fontWeight: '700' }}>نقطة</span>
+                    <span style={{ fontSize: '22px', color: '#e2e8f0', fontWeight: '800' }}>نقطة</span>
                   </div>
                 </div>
 
                 <div
                   style={{
-                    width: '54px',
-                    height: '54px',
-                    borderRadius: '14px',
-                    border: '1.5px solid rgba(212, 175, 55, 0.45)',
-                    background: 'rgba(212, 175, 55, 0.12)',
+                    width: '72px',
+                    height: '72px',
+                    borderRadius: '16px',
+                    border: '2px solid rgba(212, 175, 55, 0.55)',
+                    background: 'rgba(212, 175, 55, 0.14)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '26px',
+                    fontSize: '36px',
                     flexShrink: 0,
                   }}
                 >
@@ -1085,39 +1091,39 @@ export default function TribeView({
               {/* Card 2: الإضافة اليومية */}
               <div
                 style={{
-                  borderRadius: '16px',
-                  border: '1.5px solid rgba(56, 189, 248, 0.25)',
+                  borderRadius: '18px',
+                  border: '1.5px solid rgba(56, 189, 248, 0.3)',
                   background: 'linear-gradient(145deg, #0b1f33 0%, #061322 100%)',
-                  padding: '18px 18px',
+                  padding: '20px 22px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   boxShadow: '0 6px 16px rgba(0, 0, 0, 0.4)',
                 }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <span style={{ fontSize: '18px', color: '#cbd5e1', fontWeight: '800' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <span style={{ fontSize: '23px', color: '#e2e8f0', fontWeight: '800' }}>
                     الإضافة اليومية
                   </span>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                    <span style={{ fontSize: '30px', fontWeight: '900', color: '#ffffff' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                    <span style={{ fontSize: '38px', fontWeight: '900', color: '#ffffff' }}>
                       {toArabicDigits(totalDailyAddition)}
                     </span>
-                    <span style={{ fontSize: '17px', color: '#e2e8f0', fontWeight: '700' }}>نقطة / يوم</span>
+                    <span style={{ fontSize: '22px', color: '#e2e8f0', fontWeight: '800' }}>نقطة / يوم</span>
                   </div>
                 </div>
 
                 <div
                   style={{
-                    width: '54px',
-                    height: '54px',
-                    borderRadius: '14px',
-                    border: '1.5px solid rgba(56, 189, 248, 0.45)',
-                    background: 'rgba(14, 165, 233, 0.12)',
+                    width: '72px',
+                    height: '72px',
+                    borderRadius: '16px',
+                    border: '2px solid rgba(56, 189, 248, 0.55)',
+                    background: 'rgba(14, 165, 233, 0.14)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '26px',
+                    fontSize: '36px',
                     flexShrink: 0,
                   }}
                 >
@@ -1129,42 +1135,42 @@ export default function TribeView({
             {/* FULL WIDTH SCHEDULE CARD */}
             <div
               style={{
-                borderRadius: '16px',
-                border: '1.5px solid rgba(56, 189, 248, 0.25)',
+                borderRadius: '18px',
+                border: '1.5px solid rgba(56, 189, 248, 0.3)',
                 background: 'linear-gradient(145deg, #0b1f33 0%, #061322 100%)',
-                padding: '18px 20px',
+                padding: '20px 22px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 boxShadow: '0 6px 16px rgba(0, 0, 0, 0.4)',
               }}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                <span style={{ fontSize: '18px', color: '#cbd5e1', fontWeight: '800' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <span style={{ fontSize: '23px', color: '#e2e8f0', fontWeight: '800' }}>
                   موعد الإضافة
                 </span>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-                  <span style={{ fontSize: '28px', fontWeight: '900', color: '#ffffff' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
+                  <span style={{ fontSize: '34px', fontWeight: '900', color: '#ffffff' }}>
                     بعد ١٢ ليلاً
                   </span>
-                  <span style={{ fontSize: '17px', color: '#e2e8f0', fontWeight: '700' }}>توقيت السعودية</span>
+                  <span style={{ fontSize: '22px', color: '#e2e8f0', fontWeight: '700' }}>توقيت السعودية</span>
                 </div>
-                <span style={{ fontSize: '16px', color: '#cbd5e1', marginTop: '2px', fontWeight: '600' }}>
+                <span style={{ fontSize: '20px', color: '#cbd5e1', marginTop: '2px', fontWeight: '700' }}>
                   آخر سجل: {realLastLogDate}
                 </span>
               </div>
 
               <div
                 style={{
-                  width: '56px',
-                  height: '56px',
-                  borderRadius: '14px',
-                  border: '1.5px solid rgba(212, 175, 55, 0.45)',
-                  background: 'rgba(212, 175, 55, 0.1)',
+                  width: '74px',
+                  height: '74px',
+                  borderRadius: '16px',
+                  border: '2px solid rgba(212, 175, 55, 0.55)',
+                  background: 'rgba(212, 175, 55, 0.14)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '28px',
+                  fontSize: '38px',
                   flexShrink: 0,
                 }}
               >
@@ -1178,20 +1184,20 @@ export default function TribeView({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
-                  color: '#cbd5e1',
-                  fontSize: '18px',
-                  fontWeight: '700',
+                  gap: '10px',
+                  color: '#e2e8f0',
+                  fontSize: '23px',
+                  fontWeight: '800',
                   marginBottom: '6px',
                 }}
               >
                 <span>التدرّج إلى القمة</span>
-                <span style={{ color: '#facc15' }}>✦</span>
+                <span style={{ color: '#facc15', fontSize: '24px' }}>✦</span>
               </div>
               <h3
                 style={{
-                  margin: '0 0 6px 0',
-                  fontSize: '28px',
+                  margin: '0 0 8px 0',
+                  fontSize: '36px',
                   fontWeight: '900',
                   color: '#ffffff',
                 }}
@@ -1201,9 +1207,9 @@ export default function TribeView({
               <p
                 style={{
                   margin: 0,
-                  fontSize: '18px',
-                  color: '#cbd5e1',
-                  fontWeight: '600',
+                  fontSize: '23px',
+                  color: '#e2e8f0',
+                  fontWeight: '700',
                 }}
               >
                 كلما ارتفع المستوى، اشتدّ التحدي وزادت نقاطه اليومية.
@@ -1216,11 +1222,11 @@ export default function TribeView({
                 position: 'relative',
                 display: 'flex',
                 alignItems: 'center',
-                borderRadius: '12px',
-                border: '1.5px solid rgba(56, 189, 248, 0.35)',
-                background: 'rgba(11, 31, 51, 0.78)',
-                padding: '13px 18px',
-                gap: '12px',
+                borderRadius: '14px',
+                border: '2px solid rgba(56, 189, 248, 0.4)',
+                background: 'rgba(11, 31, 51, 0.85)',
+                padding: '15px 20px',
+                gap: '14px',
               }}
             >
               <input
@@ -1234,13 +1240,13 @@ export default function TribeView({
                   border: 'none',
                   outline: 'none',
                   color: '#ffffff',
-                  fontSize: '20px',
+                  fontSize: '25px',
                   fontWeight: '700',
                   fontFamily: 'inherit',
                   direction: 'rtl',
                 }}
               />
-              <span style={{ color: '#cbd5e1', fontSize: '21px' }}>🔍</span>
+              <span style={{ color: '#e2e8f0', fontSize: '27px' }}>🔍</span>
             </div>
 
             {/* LIST OF 10 LEVELS */}
@@ -1282,16 +1288,16 @@ export default function TribeView({
                       }}
                     >
                       {/* Left Side: Points */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         <span
                           style={{
-                            background: 'rgba(15, 23, 42, 0.85)',
-                            border: '1.5px solid rgba(56, 189, 248, 0.35)',
+                            background: 'rgba(15, 23, 42, 0.9)',
+                            border: '1.5px solid rgba(56, 189, 248, 0.45)',
                             color: '#7dd3fc',
-                            fontSize: '16px',
-                            fontWeight: '800',
-                            padding: '5px 12px',
-                            borderRadius: '8px',
+                            fontSize: '21px',
+                            fontWeight: '900',
+                            padding: '7px 15px',
+                            borderRadius: '10px',
                             letterSpacing: '0.3px',
                           }}
                         >
@@ -1300,41 +1306,41 @@ export default function TribeView({
 
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                            <span style={{ fontSize: '24px', fontWeight: '900', color: '#ffffff' }}>
+                            <span style={{ fontSize: '31px', fontWeight: '900', color: '#ffffff' }}>
                               {toArabicDigits(lvl.points)}
                             </span>
-                            <span style={{ fontSize: '16px', color: '#e2e8f0', fontWeight: '700' }}>نقطة</span>
+                            <span style={{ fontSize: '21px', color: '#e2e8f0', fontWeight: '700' }}>نقطة</span>
                           </div>
-                          <span style={{ fontSize: '15px', color: '#cbd5e1', fontWeight: '600' }}>
+                          <span style={{ fontSize: '19px', color: '#cbd5e1', fontWeight: '700' }}>
                             رصيد المستوى
                           </span>
                         </div>
                       </div>
 
                       {/* Right Side: Title, Tag, Icon Circle & Number Box */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                          <span style={{ fontSize: '21px', fontWeight: '900', color: '#ffffff' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                          <span style={{ fontSize: '27px', fontWeight: '900', color: '#ffffff' }}>
                             {lvl.name}
                           </span>
-                          <span style={{ fontSize: '16px', color: '#cbd5e1', fontWeight: '700' }}>
+                          <span style={{ fontSize: '21px', color: '#e2e8f0', fontWeight: '700' }}>
                             {lvl.tag}
                           </span>
                         </div>
 
                         <div
                           style={{
-                            width: '48px',
-                            height: '48px',
+                            width: '66px',
+                            height: '66px',
                             borderRadius: '50%',
-                            border: `2px solid ${lvl.accentColor}`,
-                            background: 'rgba(15, 23, 42, 0.85)',
+                            border: `2.5px solid ${lvl.accentColor}`,
+                            background: 'rgba(15, 23, 42, 0.9)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '22px',
+                            fontSize: '32px',
                             flexShrink: 0,
-                            boxShadow: `0 0 10px ${lvl.accentColor}33`,
+                            boxShadow: `0 0 12px ${lvl.accentColor}44`,
                           }}
                         >
                           {lvl.icon}
@@ -1342,15 +1348,15 @@ export default function TribeView({
 
                         <div
                           style={{
-                            width: '44px',
-                            height: '44px',
-                            borderRadius: '10px',
-                            border: '1.5px solid rgba(255, 255, 255, 0.25)',
-                            background: 'rgba(255, 255, 255, 0.06)',
+                            width: '58px',
+                            height: '58px',
+                            borderRadius: '12px',
+                            border: '2px solid rgba(255, 255, 255, 0.35)',
+                            background: 'rgba(255, 255, 255, 0.08)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '20px',
+                            fontSize: '26px',
                             fontWeight: '900',
                             color: '#ffffff',
                             flexShrink: 0,
@@ -1369,8 +1375,8 @@ export default function TribeView({
                         justifyContent: 'center',
                         alignItems: 'center',
                         cursor: 'pointer',
-                        color: '#cbd5e1',
-                        fontSize: '18px',
+                        color: '#e2e8f0',
+                        fontSize: '26px',
                         paddingTop: '2px',
                       }}
                     >
@@ -1388,33 +1394,34 @@ export default function TribeView({
                     {isExpanded && (
                       <div
                         style={{
-                          borderTop: '1px solid rgba(56, 189, 248, 0.2)',
-                          paddingTop: '12px',
+                          borderTop: '1px solid rgba(56, 189, 248, 0.25)',
+                          paddingTop: '14px',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: '10px',
-                          fontSize: '18px',
-                          color: '#f1f5f9',
-                          lineHeight: '1.6',
+                          gap: '12px',
+                          fontSize: '23px',
+                          color: '#f8fafc',
+                          lineHeight: '1.65',
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ color: '#facc15', fontSize: '20px' }}>✨</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ color: '#facc15', fontSize: '26px' }}>✨</span>
                           <span><strong>ميزة المستوى:</strong> {lvl.bonusDesc}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px', gap: '12px', flexWrap: 'wrap' }}>
-                          <span style={{ color: '#e2e8f0', fontSize: '17px', fontWeight: '600' }}>
+                          <span style={{ color: '#e2e8f0', fontSize: '22px', fontWeight: '700' }}>
                             تكلفة الترقية والمساهمة: <strong style={{ color: '#fde047' }}>{lvl.costToUnlock.toLocaleString('ar-EG')} 🪙</strong>
                           </span>
                           <button
                             onClick={() => handleRealDonate(Math.min(1000, lvl.costToUnlock / 100))}
                             style={{
                               background: 'linear-gradient(to right, #0284c7, #0369a1)',
-                              border: '1.5px solid #38bdf8',
+                              border: '2px solid #38bdf8',
                               color: '#fff',
-                              borderRadius: '10px',
-                              padding: '8px 16px',
-                              fontSize: '17px',
+                              borderRadius: '12px',
+                              padding: '10px 22px',
+                              fontFamily: 'inherit',
+                              fontSize: '22px',
                               fontWeight: '900',
                               cursor: 'pointer',
                             }}
@@ -1433,58 +1440,59 @@ export default function TribeView({
 
         {/* ===================== VIEW 2: DONATIONS TAB (التبرعات) ===================== */}
         {activeSubTab === 'donations' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
             <div
               style={{
-                borderRadius: '18px',
-                border: '1.5px solid rgba(56, 189, 248, 0.25)',
+                borderRadius: '20px',
+                border: '1.5px solid rgba(56, 189, 248, 0.3)',
                 background: 'linear-gradient(145deg, #0b1f33 0%, #061424 100%)',
-                padding: '22px',
+                padding: '26px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '16px',
+                gap: '18px',
               }}
             >
-              <h3 style={{ margin: 0, fontSize: '26px', fontWeight: '900', color: '#facc15' }}>
+              <h3 style={{ margin: 0, fontSize: '32px', fontWeight: '900', color: '#facc15' }}>
                 🪙 خزينة تبرعات القبيلة
               </h3>
-              <p style={{ margin: 0, fontSize: '18px', color: '#e2e8f0', lineHeight: 1.65, fontWeight: '600' }}>
+              <p style={{ margin: 0, fontSize: '23px', color: '#f1f5f9', lineHeight: 1.65, fontWeight: '600' }}>
                 تبرع بالذهب لرفع رصيد القبيلة وفتح مستويات الأعماق العشرة! يتم حفظ التبرعات فورياً في قاعدة البيانات الحقيقية وتحديث رصيد القبيلة وأعضائها.
               </p>
 
               {/* Current Gold in user account */}
               <div
                 style={{
-                  background: 'rgba(15, 23, 42, 0.7)',
-                  border: '1.5px solid rgba(56, 189, 248, 0.25)',
-                  borderRadius: '12px',
-                  padding: '14px 18px',
+                  background: 'rgba(15, 23, 42, 0.78)',
+                  border: '1.5px solid rgba(56, 189, 248, 0.3)',
+                  borderRadius: '14px',
+                  padding: '16px 20px',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
                 }}
               >
-                <span style={{ fontSize: '18px', color: '#e2e8f0', fontWeight: '700' }}>رصيدك الفعلي من الذهب:</span>
-                <span style={{ fontSize: '24px', fontWeight: '900', color: '#fef08a' }}>
+                <span style={{ fontSize: '23px', color: '#f1f5f9', fontWeight: '800' }}>رصيدك الفعلي من الذهب:</span>
+                <span style={{ fontSize: '30px', fontWeight: '900', color: '#fef08a' }}>
                   {gold.toLocaleString('ar-EG')} 🪙
                 </span>
               </div>
 
               {/* Quick Donation buttons */}
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                 {[100, 500, 2000, 10000, 50000].map((amt) => (
                   <button
                     key={amt}
                     onClick={() => handleRealDonate(amt)}
                     style={{
                       flex: 1,
-                      minWidth: '110px',
+                      minWidth: '135px',
                       background: 'linear-gradient(135deg, #ca8a04 0%, #854d0e 100%)',
-                      border: '1.5px solid #facc15',
+                      border: '2px solid #facc15',
                       color: '#fef08a',
-                      borderRadius: '10px',
-                      padding: '12px 14px',
-                      fontSize: '18px',
+                      borderRadius: '12px',
+                      padding: '14px 16px',
+                      fontFamily: 'inherit',
+                      fontSize: '23px',
                       fontWeight: '900',
                       cursor: 'pointer',
                     }}
@@ -1495,7 +1503,7 @@ export default function TribeView({
               </div>
 
               {/* Custom Donation Amount */}
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 <input
                   type="number"
                   min={10}
@@ -1503,13 +1511,13 @@ export default function TribeView({
                   onChange={(e) => setCustomDonationAmount(Math.max(1, Number(e.target.value) || 0))}
                   style={{
                     flex: 1,
-                    background: 'rgba(15, 23, 42, 0.85)',
-                    border: '1.5px solid rgba(56, 189, 248, 0.35)',
-                    borderRadius: '10px',
-                    padding: '12px 16px',
+                    background: 'rgba(15, 23, 42, 0.9)',
+                    border: '2px solid rgba(56, 189, 248, 0.4)',
+                    borderRadius: '12px',
+                    padding: '14px 18px',
                     color: '#fff',
-                    fontSize: '19px',
-                    fontWeight: '700',
+                    fontSize: '24px',
+                    fontWeight: '800',
                     fontFamily: 'inherit',
                   }}
                 />
@@ -1517,11 +1525,12 @@ export default function TribeView({
                   onClick={() => handleRealDonate(customDonationAmount)}
                   style={{
                     background: 'linear-gradient(to right, #16a34a, #15803d)',
-                    border: '1.5px solid #86efac',
+                    border: '2px solid #86efac',
                     color: '#fff',
-                    borderRadius: '10px',
-                    padding: '12px 22px',
-                    fontSize: '19px',
+                    borderRadius: '12px',
+                    padding: '14px 26px',
+                    fontFamily: 'inherit',
+                    fontSize: '24px',
                     fontWeight: '900',
                     cursor: 'pointer',
                   }}
@@ -1534,20 +1543,20 @@ export default function TribeView({
             {/* Real Donation Ranks / Real Users */}
             <div
               style={{
-                borderRadius: '18px',
-                border: '1.5px solid rgba(56, 189, 248, 0.25)',
+                borderRadius: '20px',
+                border: '1.5px solid rgba(56, 189, 248, 0.3)',
                 background: 'linear-gradient(145deg, #0b1f33 0%, #061424 100%)',
-                padding: '18px 20px',
+                padding: '22px 24px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '12px',
+                gap: '14px',
               }}
             >
-              <div style={{ fontWeight: '900', color: '#7dd3fc', fontSize: '20px' }}>
+              <div style={{ fontWeight: '900', color: '#7dd3fc', fontSize: '25px' }}>
                 🛡️ المتبرعون الحقيقيون في القبيلة ({toArabicDigits(realTribeDonors.length)})
               </div>
               {realTribeDonors.length === 0 ? (
-                <div style={{ fontSize: '18px', color: '#cbd5e1', textAlign: 'center', padding: '12px' }}>
+                <div style={{ fontSize: '22px', color: '#e2e8f0', textAlign: 'center', padding: '14px' }}>
                   لم يتم تسجيل أي تبرعات بعد في هذه القبيلة. كن أول المتبرعين!
                 </div>
               ) : (
@@ -1558,16 +1567,16 @@ export default function TribeView({
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      fontSize: '18px',
+                      fontSize: '23px',
                       fontWeight: '700',
-                      color: '#f1f5f9',
-                      borderBottom: '1px solid rgba(255,255,255,0.08)',
-                      paddingBottom: '8px',
+                      color: '#f8fafc',
+                      borderBottom: '1px solid rgba(255,255,255,0.1)',
+                      paddingBottom: '10px',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <span style={{ color: '#facc15', fontWeight: '900' }}>#{toArabicDigits(idx + 1)}</span>
-                      <span style={{ fontSize: '20px' }}>{donor.avatar}</span>
+                      <span style={{ fontSize: '28px' }}>{donor.avatar}</span>
                       <span>@{donor.name}</span>
                     </div>
                     <span style={{ color: '#fef08a', fontWeight: '900' }}>
@@ -1582,19 +1591,19 @@ export default function TribeView({
 
         {/* ===================== VIEW 3: LEVELS TAB (المستويات) ===================== */}
         {activeSubTab === 'levels' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div
               style={{
-                borderRadius: '16px',
-                border: '1.5px solid rgba(56, 189, 248, 0.25)',
+                borderRadius: '18px',
+                border: '1.5px solid rgba(56, 189, 248, 0.3)',
                 background: 'linear-gradient(145deg, #0b1f33 0%, #061424 100%)',
-                padding: '18px 20px',
+                padding: '22px 24px',
               }}
             >
-              <h3 style={{ margin: '0 0 6px 0', fontSize: '24px', fontWeight: '900', color: '#facc15' }}>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '30px', fontWeight: '900', color: '#facc15' }}>
                 مستويات الأعماق العشرة (١٠ مستويات)
               </h3>
-              <p style={{ margin: 0, fontSize: '18px', color: '#e2e8f0', fontWeight: '600', lineHeight: 1.55 }}>
+              <p style={{ margin: 0, fontSize: '23px', color: '#f1f5f9', fontWeight: '700', lineHeight: 1.6 }}>
                 إجمالي رصيد المستويات: {toArabicDigits(totalBalancePoints)} نقطة • معدل الإضافة: {toArabicDigits(totalDailyAddition)} نقطة / يوم بعد ١٢ ليلاً.
               </p>
             </div>
@@ -1605,11 +1614,11 @@ export default function TribeView({
                 position: 'relative',
                 display: 'flex',
                 alignItems: 'center',
-                borderRadius: '12px',
-                border: '1.5px solid rgba(56, 189, 248, 0.35)',
-                background: 'rgba(11, 31, 51, 0.78)',
-                padding: '13px 18px',
-                gap: '12px',
+                borderRadius: '14px',
+                border: '2px solid rgba(56, 189, 248, 0.4)',
+                background: 'rgba(11, 31, 51, 0.85)',
+                padding: '15px 20px',
+                gap: '14px',
               }}
             >
               <input
@@ -1623,17 +1632,17 @@ export default function TribeView({
                   border: 'none',
                   outline: 'none',
                   color: '#ffffff',
-                  fontSize: '20px',
+                  fontSize: '25px',
                   fontWeight: '700',
                   fontFamily: 'inherit',
                   direction: 'rtl',
                 }}
               />
-              <span style={{ color: '#cbd5e1', fontSize: '21px' }}>🔍</span>
+              <span style={{ color: '#e2e8f0', fontSize: '27px' }}>🔍</span>
             </div>
 
             {/* All Levels */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {filteredLevels.map((lvl) => {
                 const isExpanded = !!expandedLevels[lvl.level];
                 const isActiveOrFirst = lvl.level === 1;
@@ -1642,17 +1651,17 @@ export default function TribeView({
                   <div
                     key={lvl.level}
                     style={{
-                      borderRadius: '16px',
+                      borderRadius: '18px',
                       border: isActiveOrFirst
-                        ? '1.8px solid #eab308'
-                        : '1.5px solid rgba(56, 189, 248, 0.25)',
+                        ? '2px solid #eab308'
+                        : '1.5px solid rgba(56, 189, 248, 0.3)',
                       background: isActiveOrFirst
                         ? 'linear-gradient(145deg, #16202c 0%, #0c1c2e 100%)'
                         : 'linear-gradient(145deg, #0b1f33 0%, #061424 100%)',
-                      padding: '16px 18px',
+                      padding: '18px 20px',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '10px',
+                      gap: '12px',
                     }}
                   >
                     <div
@@ -1664,57 +1673,57 @@ export default function TribeView({
                         cursor: 'pointer',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         <span
                           style={{
-                            background: 'rgba(15, 23, 42, 0.85)',
-                            border: '1.5px solid rgba(56, 189, 248, 0.35)',
+                            background: 'rgba(15, 23, 42, 0.9)',
+                            border: '1.5px solid rgba(56, 189, 248, 0.45)',
                             color: '#7dd3fc',
-                            fontSize: '16px',
-                            fontWeight: '800',
-                            padding: '5px 12px',
-                            borderRadius: '8px',
+                            fontSize: '21px',
+                            fontWeight: '900',
+                            padding: '7px 15px',
+                            borderRadius: '10px',
                           }}
                         >
                           +{toArabicDigits(lvl.dailyPoints)} يوم
                         </span>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontSize: '22px', fontWeight: '900', color: '#ffffff' }}>{toArabicDigits(lvl.points)} نقطة</span>
-                          <span style={{ fontSize: '15px', color: '#cbd5e1', fontWeight: '600' }}>رصيد المستوى</span>
+                          <span style={{ fontSize: '29px', fontWeight: '900', color: '#ffffff' }}>{toArabicDigits(lvl.points)} نقطة</span>
+                          <span style={{ fontSize: '19px', color: '#cbd5e1', fontWeight: '700' }}>رصيد المستوى</span>
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                         <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontWeight: '900', fontSize: '21px', color: '#ffffff' }}>{lvl.name}</div>
-                          <div style={{ fontSize: '16px', color: '#cbd5e1', fontWeight: '700' }}>{lvl.tag}</div>
+                          <div style={{ fontWeight: '900', fontSize: '27px', color: '#ffffff' }}>{lvl.name}</div>
+                          <div style={{ fontSize: '21px', color: '#e2e8f0', fontWeight: '700' }}>{lvl.tag}</div>
                         </div>
                         <div
                           style={{
-                            width: '46px',
-                            height: '46px',
+                            width: '64px',
+                            height: '64px',
                             borderRadius: '50%',
-                            border: `2px solid ${lvl.accentColor}`,
-                            background: 'rgba(15, 23, 42, 0.85)',
+                            border: `2.5px solid ${lvl.accentColor}`,
+                            background: 'rgba(15, 23, 42, 0.9)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '21px',
+                            fontSize: '31px',
                           }}
                         >
                           {lvl.icon}
                         </div>
                         <div
                           style={{
-                            width: '42px',
-                            height: '42px',
-                            borderRadius: '10px',
-                            border: '1.5px solid rgba(255, 255, 255, 0.25)',
-                            background: 'rgba(255, 255, 255, 0.06)',
+                            width: '56px',
+                            height: '56px',
+                            borderRadius: '12px',
+                            border: '2px solid rgba(255, 255, 255, 0.35)',
+                            background: 'rgba(255, 255, 255, 0.08)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '20px',
+                            fontSize: '26px',
                             fontWeight: '900',
                             color: '#ffffff',
                           }}
@@ -1727,14 +1736,14 @@ export default function TribeView({
                     {isExpanded && (
                       <div
                         style={{
-                          borderTop: '1px solid rgba(56, 189, 248, 0.2)',
-                          paddingTop: '10px',
-                          fontSize: '18px',
-                          color: '#f1f5f9',
-                          lineHeight: 1.6,
+                          borderTop: '1px solid rgba(56, 189, 248, 0.25)',
+                          paddingTop: '12px',
+                          fontSize: '23px',
+                          color: '#f8fafc',
+                          lineHeight: 1.65,
                         }}
                       >
-                        <span style={{ color: '#facc15' }}>✨ </span>
+                        <span style={{ color: '#facc15', fontSize: '25px' }}>✨ </span>
                         <strong>ميزة المستوى:</strong> {lvl.bonusDesc}
                       </div>
                     )}
@@ -1747,25 +1756,25 @@ export default function TribeView({
 
         {/* ===================== VIEW 4: ALL REAL TRIBES BROWSER (قائمة القبائل) ===================== */}
         {activeSubTab === 'allTribes' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div
               style={{
-                borderRadius: '16px',
-                border: '1.5px solid rgba(56, 189, 248, 0.25)',
+                borderRadius: '18px',
+                border: '1.5px solid rgba(56, 189, 248, 0.3)',
                 background: 'linear-gradient(145deg, #0b1f33 0%, #061424 100%)',
-                padding: '18px 20px',
+                padding: '22px 24px',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                gap: '12px',
+                gap: '14px',
                 flexWrap: 'wrap',
               }}
             >
               <div>
-                <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '900', color: '#facc15' }}>
+                <h3 style={{ margin: 0, fontSize: '30px', fontWeight: '900', color: '#facc15' }}>
                   القبائل المسجلة ({toArabicDigits(tribes.length)})
                 </h3>
-                <p style={{ margin: '4px 0 0 0', fontSize: '17px', color: '#e2e8f0', fontWeight: '600' }}>
+                <p style={{ margin: '6px 0 0 0', fontSize: '22px', color: '#f1f5f9', fontWeight: '700' }}>
                   اختر أي قبيلة للانضمام إليها أو التبديل بين القبائل.
                 </p>
               </div>
@@ -1774,10 +1783,11 @@ export default function TribeView({
                 style={{
                   background: 'linear-gradient(to right, #16a34a, #15803d)',
                   color: '#fff',
-                  border: '1.5px solid #86efac',
-                  borderRadius: '10px',
-                  padding: '10px 18px',
-                  fontSize: '17px',
+                  border: '2px solid #86efac',
+                  borderRadius: '12px',
+                  padding: '12px 22px',
+                  fontFamily: 'inherit',
+                  fontSize: '22px',
                   fontWeight: '900',
                   cursor: 'pointer',
                 }}
@@ -1790,27 +1800,28 @@ export default function TribeView({
               <div
                 style={{
                   textAlign: 'center',
-                  padding: '34px 18px',
-                  background: 'rgba(11, 31, 51, 0.65)',
-                  borderRadius: '16px',
-                  border: '1.5px dashed rgba(56, 189, 248, 0.35)',
-                  color: '#e2e8f0',
+                  padding: '40px 20px',
+                  background: 'rgba(11, 31, 51, 0.75)',
+                  borderRadius: '18px',
+                  border: '2px dashed rgba(56, 189, 248, 0.4)',
+                  color: '#f1f5f9',
                 }}
               >
-                <div style={{ fontSize: '38px', marginBottom: '10px' }}>👑</div>
-                <div style={{ fontWeight: '900', fontSize: '22px', color: '#fef08a', marginBottom: '6px' }}>
+                <div style={{ fontSize: '52px', marginBottom: '12px' }}>👑</div>
+                <div style={{ fontWeight: '900', fontSize: '28px', color: '#fef08a', marginBottom: '8px' }}>
                   لا توجد قبائل مسجلة حالياً
                 </div>
                 <button
                   onClick={() => setShowCreateModal(true)}
                   style={{
-                    marginTop: '12px',
+                    marginTop: '14px',
                     background: '#ca8a04',
                     color: '#000',
                     border: 'none',
-                    borderRadius: '10px',
-                    padding: '10px 20px',
-                    fontSize: '18px',
+                    borderRadius: '12px',
+                    padding: '12px 26px',
+                    fontFamily: 'inherit',
+                    fontSize: '23px',
                     fontWeight: '900',
                     cursor: 'pointer',
                   }}
@@ -1825,30 +1836,30 @@ export default function TribeView({
                   <div
                     key={t.id}
                     style={{
-                      borderRadius: '16px',
-                      border: isMember ? '2px solid #facc15' : '1.5px solid rgba(56, 189, 248, 0.25)',
+                      borderRadius: '18px',
+                      border: isMember ? '2px solid #facc15' : '1.5px solid rgba(56, 189, 248, 0.3)',
                       background: isMember
-                        ? 'linear-gradient(145deg, rgba(234, 179, 8, 0.14) 0%, rgba(12, 31, 51, 0.94) 100%)'
+                        ? 'linear-gradient(145deg, rgba(234, 179, 8, 0.16) 0%, rgba(12, 31, 51, 0.96) 100%)'
                         : 'linear-gradient(145deg, #0b1f33 0%, #061424 100%)',
-                      padding: '16px 18px',
+                      padding: '18px 22px',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      gap: '12px',
+                      gap: '14px',
                     }}
                   >
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '26px' }}>{t.emblem || '👑'}</span>
-                        <span style={{ fontWeight: '900', fontSize: '21px', color: '#ffffff' }}>{t.name}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '36px' }}>{t.emblem || '👑'}</span>
+                        <span style={{ fontWeight: '900', fontSize: '27px', color: '#ffffff' }}>{t.name}</span>
                         {isMember && (
                           <span
                             style={{
                               background: '#facc15',
                               color: '#0f172a',
-                              fontSize: '15px',
-                              padding: '2px 10px',
-                              borderRadius: '6px',
+                              fontSize: '19px',
+                              padding: '3px 12px',
+                              borderRadius: '8px',
                               fontWeight: '900',
                             }}
                           >
@@ -1856,24 +1867,25 @@ export default function TribeView({
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: '17px', color: '#e2e8f0', marginTop: '6px', fontWeight: '600' }}>
+                      <div style={{ fontSize: '22px', color: '#f1f5f9', marginTop: '8px', fontWeight: '700' }}>
                         القائد: <span style={{ color: '#7dd3fc', fontWeight: '800' }}>@{t.leaderName}</span> | الأعضاء: <span style={{ color: '#fde047', fontWeight: '800' }}>{t.membersCount || t.members?.length || 1}</span>
                       </div>
-                      <div style={{ fontSize: '17px', color: '#cbd5e1', marginTop: '4px', fontWeight: '600' }}>
+                      <div style={{ fontSize: '21px', color: '#cbd5e1', marginTop: '5px', fontWeight: '700' }}>
                         رصيد القوة: 🛡️ {(t.power || 0).toLocaleString()} | التبرعات: 🪙 {(t.donations || 0).toLocaleString()}
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', gap: '10px', flexShrink: 0 }}>
                       <button
                         onClick={() => handleToggleJoin(t)}
                         style={{
                           background: isMember ? '#dc2626' : '#0284c7',
                           color: '#fff',
-                          border: '1.5px solid rgba(255,255,255,0.2)',
-                          borderRadius: '10px',
-                          padding: '10px 20px',
-                          fontSize: '17px',
+                          border: '1.5px solid rgba(255,255,255,0.25)',
+                          borderRadius: '12px',
+                          padding: '12px 24px',
+                          fontFamily: 'inherit',
+                          fontSize: '22px',
                           fontWeight: '900',
                           cursor: 'pointer',
                         }}
@@ -1891,28 +1903,29 @@ export default function TribeView({
         {/* Footer: current tribe info & تأسيس قبيلة جديدة */}
         <div
           style={{
-            marginTop: '18px',
-            paddingTop: '14px',
-            borderTop: '1px solid rgba(56, 189, 248, 0.2)',
+            marginTop: '20px',
+            paddingTop: '16px',
+            borderTop: '1px solid rgba(56, 189, 248, 0.25)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            gap: '12px',
+            gap: '14px',
             flexWrap: 'wrap',
           }}
         >
-          <span style={{ fontSize: '17px', color: '#cbd5e1', fontWeight: '700' }}>
+          <span style={{ fontSize: '22px', color: '#e2e8f0', fontWeight: '700' }}>
             التحالف: {currentTribe?.name || 'ملوك الأعماق'} | القائد: @{currentTribe?.leaderName || username}
           </span>
           <button
             onClick={() => setShowCreateModal(true)}
             style={{
-              background: 'rgba(56, 189, 248, 0.16)',
-              border: '1.5px solid rgba(56, 189, 248, 0.4)',
+              background: 'rgba(56, 189, 248, 0.2)',
+              border: '2px solid rgba(56, 189, 248, 0.5)',
               color: '#7dd3fc',
-              borderRadius: '10px',
-              padding: '9px 18px',
-              fontSize: '17px',
+              borderRadius: '12px',
+              padding: '11px 22px',
+              fontFamily: 'inherit',
+              fontSize: '22px',
               fontWeight: '900',
               cursor: 'pointer',
             }}
@@ -1940,22 +1953,22 @@ export default function TribeView({
             style={{
               background: '#0c1f33',
               border: '2px solid #d4af37',
-              borderRadius: '20px',
-              padding: '24px',
-              maxWidth: '520px',
+              borderRadius: '22px',
+              padding: '28px',
+              maxWidth: '620px',
               width: '100%',
               display: 'flex',
               flexDirection: 'column',
-              gap: '16px',
+              gap: '18px',
               direction: 'rtl',
             }}
           >
-            <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '900', color: '#fef08a', textAlign: 'center' }}>
+            <h3 style={{ margin: 0, fontSize: '30px', fontWeight: '900', color: '#fef08a', textAlign: 'center' }}>
               👑 تأسيس قبيلة جديدة
             </h3>
 
             <div>
-              <label style={{ fontSize: '18px', color: '#e2e8f0', fontWeight: '700', display: 'block', marginBottom: '6px' }}>
+              <label style={{ fontSize: '23px', color: '#f1f5f9', fontWeight: '800', display: 'block', marginBottom: '8px' }}>
                 اسم القبيلة:
               </label>
               <input
@@ -1965,33 +1978,34 @@ export default function TribeView({
                 onChange={(e) => setNewTribeNameInput(e.target.value)}
                 style={{
                   width: '100%',
-                  background: 'rgba(15, 23, 42, 0.85)',
-                  border: '1.5px solid rgba(56, 189, 248, 0.4)',
-                  borderRadius: '10px',
-                  padding: '10px 14px',
+                  background: 'rgba(15, 23, 42, 0.9)',
+                  border: '2px solid rgba(56, 189, 248, 0.45)',
+                  borderRadius: '12px',
+                  padding: '14px 16px',
                   color: '#fff',
-                  fontSize: '18px',
-                  fontWeight: '600',
+                  fontFamily: 'inherit',
+                  fontSize: '24px',
+                  fontWeight: '700',
                   boxSizing: 'border-box',
                 }}
               />
             </div>
 
             <div>
-              <label style={{ fontSize: '18px', color: '#e2e8f0', fontWeight: '700', display: 'block', marginBottom: '6px' }}>
+              <label style={{ fontSize: '23px', color: '#f1f5f9', fontWeight: '800', display: 'block', marginBottom: '8px' }}>
                 شعار القبيلة:
               </label>
-              <div style={{ display: 'flex', gap: '10px', fontSize: '26px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '12px', fontSize: '34px', flexWrap: 'wrap' }}>
                 {['👑', '⚓', '🌊', '🦈', '🐉', '💎', '⚔️'].map((emoji) => (
                   <div
                     key={emoji}
                     onClick={() => setNewTribeEmblemInput(emoji)}
                     style={{
                       cursor: 'pointer',
-                      padding: '8px 12px',
+                      padding: '10px 16px',
                       background: newTribeEmblemInput === emoji ? '#ca8a04' : 'rgba(15, 23, 42, 0.85)',
-                      borderRadius: '10px',
-                      border: newTribeEmblemInput === emoji ? '2px solid #fff' : '1.5px solid #475569',
+                      borderRadius: '12px',
+                      border: newTribeEmblemInput === emoji ? '2.5px solid #fff' : '1.5px solid #475569',
                     }}
                   >
                     {emoji}
@@ -2001,7 +2015,7 @@ export default function TribeView({
             </div>
 
             <div>
-              <label style={{ fontSize: '18px', color: '#e2e8f0', fontWeight: '700', display: 'block', marginBottom: '6px' }}>
+              <label style={{ fontSize: '23px', color: '#f1f5f9', fontWeight: '800', display: 'block', marginBottom: '8px' }}>
                 وصف وشعار القبيلة:
               </label>
               <textarea
@@ -2011,29 +2025,31 @@ export default function TribeView({
                 rows={2}
                 style={{
                   width: '100%',
-                  background: 'rgba(15, 23, 42, 0.85)',
-                  border: '1.5px solid rgba(56, 189, 248, 0.4)',
-                  borderRadius: '10px',
-                  padding: '10px 14px',
+                  background: 'rgba(15, 23, 42, 0.9)',
+                  border: '2px solid rgba(56, 189, 248, 0.45)',
+                  borderRadius: '12px',
+                  padding: '14px 16px',
                   color: '#fff',
-                  fontSize: '18px',
-                  fontWeight: '600',
+                  fontFamily: 'inherit',
+                  fontSize: '23px',
+                  fontWeight: '700',
                   resize: 'none',
                   boxSizing: 'border-box',
                 }}
               />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '6px' }}>
               <button
                 onClick={() => setShowCreateModal(false)}
                 style={{
                   background: '#334155',
                   color: '#fff',
                   border: 'none',
-                  padding: '10px 20px',
-                  borderRadius: '10px',
-                  fontSize: '18px',
+                  padding: '12px 24px',
+                  borderRadius: '12px',
+                  fontFamily: 'inherit',
+                  fontSize: '22px',
                   fontWeight: 'bold',
                   cursor: 'pointer',
                 }}
@@ -2046,9 +2062,10 @@ export default function TribeView({
                   background: 'linear-gradient(to right, #16a34a, #15803d)',
                   color: '#fff',
                   border: 'none',
-                  padding: '10px 22px',
-                  borderRadius: '10px',
-                  fontSize: '18px',
+                  padding: '12px 26px',
+                  borderRadius: '12px',
+                  fontFamily: 'inherit',
+                  fontSize: '22px',
                   fontWeight: '900',
                   cursor: 'pointer',
                 }}

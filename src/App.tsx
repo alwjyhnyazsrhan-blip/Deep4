@@ -9749,12 +9749,13 @@ export default function App() {
                                 toggleAutoFishing(ship.id);
                               }}
                               title={ship.autoFishingPaused ? "الصيد التلقائي متوقف حالياً - اضغط للتشغيل" : "الصيد التلقائي يعمل - اضغط للإيقاف مؤقتاً"}
-                              className={`cursor-pointer absolute -top-7 left-1/2 flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black border shadow-lg whitespace-nowrap z-30 transition-all hover:scale-105 active:scale-95 ${
+                              className={`cursor-pointer absolute left-1/2 flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black border shadow-lg whitespace-nowrap z-30 transition-all hover:scale-105 active:scale-95 ${
                                 ship.autoFishingPaused 
                                   ? 'bg-slate-900/95 text-slate-300 border-slate-500 shadow-slate-950/60' 
                                   : 'bg-amber-950/95 text-amber-200 border-amber-400/90 shadow-amber-500/40 animate-pulse'
                               }`}
                               style={{
+                                bottom: getShipFishingTimerState(ship, timerNow).isFishing ? 'calc(100% + 31px)' : 'calc(100% - 7px)',
                                 transform: `translateX(-50%) scaleX(${ship.scaleX < 0 ? -1 : 1})`,
                               }}
                             >
@@ -9776,7 +9777,14 @@ export default function App() {
                               title={`نوع الصيد المتوقع بواسطة المرشد: ${ship.expectedFish || (ship.fishTypes && ship.fishTypes[ship.fishTypes.length - 1]) || 'السردين'} - اضغط لاختيار وتغيير نوع السمك`}
                               className="cursor-pointer absolute left-1/2 flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border shadow-lg whitespace-nowrap z-30 transition-all hover:scale-105 active:scale-95 bg-sky-950/95 text-sky-200 border-sky-400/90 shadow-sky-500/40"
                               style={{
-                                top: (ship.assignedCrew.includes('golden_hunter') || ship.assignedCrew.includes('gold_fisher')) ? '-64px' : '-30px',
+                                bottom: (() => {
+                                  const hasGH = ship.assignedCrew.includes('golden_hunter') || ship.assignedCrew.includes('gold_fisher');
+                                  const fishingActive = getShipFishingTimerState(ship, timerNow).isFishing;
+                                  if (hasGH) {
+                                    return fishingActive ? 'calc(100% + 65px)' : 'calc(100% + 27px)';
+                                  }
+                                  return fishingActive ? 'calc(100% + 31px)' : 'calc(100% - 7px)';
+                                })(),
                                 transform: `translateX(-50%) scaleX(${ship.scaleX < 0 ? -1 : 1})`,
                               }}
                             >
@@ -9918,13 +9926,7 @@ export default function App() {
                             ? 0
                             : (curH >= maxH ? 100 : Math.max(1, Math.min(99, Math.round((curH / maxH) * 100))));
 
-                          const hasGH = Boolean(!isShipDestroyed && ship.assignedCrew && (ship.assignedCrew.includes('golden_hunter') || ship.assignedCrew.includes('gold_fisher')));
-                          const hasGuide = Boolean(!isShipDestroyed && ship.assignedCrew && ship.assignedCrew.includes('guide'));
-                          const bottomOffset = (hasGH && hasGuide)
-                            ? 'calc(100% + 72px)'
-                            : (hasGH || hasGuide)
-                              ? 'calc(100% + 36px)'
-                              : 'calc(100% - 14px)';
+                          const bottomOffset = 'calc(100% - 46px)';
 
                           let fishingPct = 0;
                           if (!isShipDestroyed && ship.status === 'fishing') {
@@ -13232,7 +13234,7 @@ export default function App() {
                             maxHeart={maxHeart}
                             isDestroyed={isShipDestroyed}
                             scaleX={shipScaleX}
-                            bottomOffset="calc(100% + 16px)"
+                            bottomOffset="calc(100% - 14px)"
                           />
                         );
                       })()}
@@ -13268,7 +13270,7 @@ export default function App() {
                       {/* Floating Name Overlay */}
                       <span style={{
                         position: 'absolute',
-                        top: '-10px',
+                        top: '20px',
                         left: '50%',
                         transform: `translateX(-50%) scaleX(${shipScaleX < 0 ? -1 : 1})`, // Keep text readable even when ship is flipped left
                         background: 'rgba(15, 10, 5, 0.95)',

@@ -60,7 +60,9 @@ export default function ShipWarehouse({
   useEffect(() => {
     if (!hasAnyFishingShip) return;
     setTimerNow(Date.now());
-    const interval = setInterval(() => setTimerNow(Date.now()), 1000);
+    const interval = setInterval(() => {
+      if (!document.hidden) setTimerNow(Date.now());
+    }, 1000);
     return () => clearInterval(interval);
   }, [hasAnyFishingShip]);
 

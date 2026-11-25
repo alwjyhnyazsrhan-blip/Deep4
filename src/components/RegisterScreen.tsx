@@ -79,6 +79,7 @@ export default function RegisterScreen({ onSuccess, onNavigateToLogin, onNavigat
 
     setLoading(true);
     setError('');
+    localStorage.setItem('pirate_login_in_progress', 'true');
 
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -88,6 +89,7 @@ export default function RegisterScreen({ onSuccess, onNavigateToLogin, onNavigat
       const emailQ = query(collection(db, 'users'), where('email', '==', cleanEmail));
       const emailSnap = await getDocs(emailQ);
       if (!emailSnap.empty) {
+        localStorage.removeItem('pirate_login_in_progress');
         setError('❌ هذا البريد الإلكتروني مستخدم بالفعل لحساب آخر. لا يمكن إنشاء أكثر من حساب بنفس البريد الإلكتروني.');
         setLoading(false);
         return;
@@ -100,6 +102,7 @@ export default function RegisterScreen({ onSuccess, onNavigateToLogin, onNavigat
         return u && u.trim().toLowerCase() === cleanUsername.toLowerCase();
       });
       if (isUsernameTaken) {
+        localStorage.removeItem('pirate_login_in_progress');
         setError('❌ اسم القبطان هذا مستخدم بالفعل لدى لاعب آخر. يرجى اختيار اسم غير مكرر.');
         setLoading(false);
         return;
@@ -107,11 +110,13 @@ export default function RegisterScreen({ onSuccess, onNavigateToLogin, onNavigat
 
       const result = await createUserWithEmailAndPassword(auth, cleanEmail, password);
       if (result.user && result.user.email) {
-        // Save username to firestore database user profile
+        const nowIso = new Date().toISOString();
+        // Save complete initial player profile & achievements to Firestore
         try {
           const userDocRef = doc(db, 'users', result.user.uid);
           await setDoc(userDocRef, {
             userId: result.user.uid,
+            authProvider: 'password',
             username: cleanUsername,
             email: cleanEmail,
             avatar: '⚓',
@@ -123,7 +128,87 @@ export default function RegisterScreen({ onSuccess, onNavigateToLogin, onNavigat
             redGems: 2450,
             fishStorageLevel: 1,
             shipTowerLevel: 1,
-            updatedAt: new Date().toISOString()
+            ships: [
+              { id: 's1', name: 'قارب خشبي متهالك', status: 'docked', left: '45%', top: '38%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' },
+              { id: 's2', name: 'قارب خشبي متهالك', status: 'docked', left: '45%', top: '49%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' },
+              { id: 's3', name: 'قارب خشبي متهالك', status: 'docked', left: '45%', top: '60%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' }
+            ],
+            crew: [
+              { id: 'c1', name: 'القبطان صخر', role: 'قبطان البحار', power: 30, cost: 150, avatar: '👨‍✈️', hired: false },
+              { id: 'c2', name: 'الملاح رعد', role: 'ملاح الميناء', power: 15, cost: 80, avatar: '🧭', hired: false },
+              { id: 'c3', name: 'المدفعجي غضب', role: 'رئيس المدفعية', power: 45, cost: 250, avatar: '💣', hired: false },
+              { id: 'c4', name: 'البحار سندباد', role: 'مستكشف الجزر', power: 20, cost: 120, avatar: '🌊', hired: false },
+            ],
+            quests: [
+              { id: 'q1', title: 'صياد الأنشوجة النشيط', target: 'أرسل السفن للصيد 3 مرات', progress: 0, max: 3, rewardGold: 100, rewardGems: 2, completed: false, claimed: false },
+              { id: 'q2', title: 'توسيع طاقم القيادة', target: 'قم بتعيين بحار واحد على الأقل', progress: 0, max: 1, rewardGold: 150, rewardGems: 5, completed: false, claimed: false },
+              { id: 'q3', title: 'دعم التحالف الحليف', target: 'تبرع للتحالف بـ 50 ذهب', progress: 0, max: 50, rewardGold: 80, rewardGems: 1, completed: false, claimed: false },
+            ],
+            battleReports: [],
+            attackLogs: [],
+            supportGifts: [],
+            fishInventory: {
+              'أنشوجة المياه الدافئة 🐟': 15,
+              'سردين ملوك الأعماق 🐟': 8,
+            },
+            weapons: {
+              smallRocket: 320,
+              mediumRocket: 902,
+              largeRocket: 6435,
+              atomicBomb: 795,
+              adBomb: 101,
+              antiRocketDisabler: 6,
+              antiNukeDisabler: 6,
+              antiAdDisabler: 7,
+              smallRepair: 2,
+              mediumRepair: 0,
+              largeRepair: 0,
+              legendaryRepair: 0,
+            },
+            crewServices: {
+              luck: false,
+              sailors: false,
+              guide: false,
+              police: false,
+              thief: false,
+              merchant: false,
+              repairer_small: 5,
+              repairer_medium: 3,
+              repairer_large: 1,
+              repairer_legendary: 0,
+            },
+            crewInventory: {
+              guide: 1,
+              luck: 1,
+              sailor: 0,
+              thief: 1,
+              cop: 1,
+              merchant: 0,
+              fixer_sm: 5,
+              fixer_md: 3,
+              fixer_lg: 1,
+              fixer_epic: 0,
+              market_expert: 1,
+              gold_fisher: 1,
+            },
+            shieldInventory: {
+              shield_4h: 1,
+              shield_1d: 0,
+              shield_2d: 0,
+              anti_nuke: 0,
+              anti_emp: 0,
+              disable_anti_range: 0,
+              disable_anti_core: 0,
+            },
+            friends: [],
+            friendRequests: [],
+            tribeId: '',
+            tribeName: '',
+            portDestroyed: false,
+            bgTheme: 'classic',
+            profileTheme: 'default',
+            createdAt: nowIso,
+            updatedAt: nowIso
           }, { merge: true });
         } catch (dbErr) {
           console.error("Error setting initial profile in Firestore during registration:", dbErr);
@@ -137,10 +222,12 @@ export default function RegisterScreen({ onSuccess, onNavigateToLogin, onNavigat
 
         // Register unique active session in Firestore to invalidate any old sessions
         await registerNewUserSession(result.user.uid);
+        localStorage.removeItem('pirate_login_in_progress');
 
         onSuccess(cleanUsername, result.user.email);
       }
     } catch (err: any) {
+      localStorage.removeItem('pirate_login_in_progress');
       console.error('Email registration error:', err);
       let message = 'حدث خطأ أثناء إنشاء الحساب. يرجى إعادة المحاولة.';
       if (err.code === 'auth/email-already-in-use') {
@@ -152,6 +239,7 @@ export default function RegisterScreen({ onSuccess, onNavigateToLogin, onNavigat
       }
       setError(message);
     } finally {
+      localStorage.removeItem('pirate_login_in_progress');
       setLoading(false);
     }
   };
@@ -161,6 +249,7 @@ export default function RegisterScreen({ onSuccess, onNavigateToLogin, onNavigat
     googleRegisterInProgress.current = true;
     setLoading(true);
     setError('');
+    localStorage.setItem('pirate_login_in_progress', 'true');
 
     try {
       const provider = new GoogleAuthProvider();
@@ -193,16 +282,19 @@ export default function RegisterScreen({ onSuccess, onNavigateToLogin, onNavigat
         localStorage.setItem('google_auth_token', token);
         localStorage.setItem('google_auth_email', user.email);
         localStorage.setItem('google_auth_name', name);
+        localStorage.setItem('google_auth_uid', user.uid);
         if (user.photoURL) {
           localStorage.setItem('google_auth_avatar', user.photoURL);
         }
 
         // Register unique active session in Firestore to invalidate any old sessions
         await registerNewUserSession(user.uid);
+        localStorage.removeItem('pirate_login_in_progress');
 
         onSuccess(name, user.email);
       }
     } catch (err: any) {
+      localStorage.removeItem('pirate_login_in_progress');
       if (err.code === 'auth/cancelled-popup-request' || err.code === 'auth/popup-closed-by-user') {
         console.warn('Google auth register popup dismissed:', err.code);
       } else {
@@ -220,6 +312,7 @@ export default function RegisterScreen({ onSuccess, onNavigateToLogin, onNavigat
       }
       setError(userFriendlyMessage);
     } finally {
+      localStorage.removeItem('pirate_login_in_progress');
       googleRegisterInProgress.current = false;
       setLoading(false);
     }

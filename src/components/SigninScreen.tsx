@@ -33,6 +33,7 @@ export default function SigninScreen({ onSuccess, onNavigateToRegister, onNaviga
         const { idToken, email: tunnelEmail, displayName, photoURL } = event.data;
         setGoogleLoading(true);
         setError('');
+        localStorage.setItem('pirate_login_in_progress', 'true');
         try {
           const { GoogleAuthProvider, signInWithCredential } = await import('firebase/auth');
           const credential = GoogleAuthProvider.credential(idToken);
@@ -52,13 +53,16 @@ export default function SigninScreen({ onSuccess, onNavigateToRegister, onNaviga
 
             // Register fresh active session in Firestore, terminating all other devices
             await registerNewUserSession(result.user.uid);
+            localStorage.removeItem('pirate_login_in_progress');
 
             onSuccess(name, result.user.email);
           }
         } catch (err: any) {
+          localStorage.removeItem('pirate_login_in_progress');
           console.error('Tunnel signin credential error:', err);
           setError('فشل إكمال تسجيل الدخول: ' + (err.message || String(err)));
         } finally {
+          localStorage.removeItem('pirate_login_in_progress');
           setGoogleLoading(false);
         }
       } else if (event.data && event.data.type === 'GOOGLE_TUNNEL_ERROR') {
@@ -129,6 +133,7 @@ export default function SigninScreen({ onSuccess, onNavigateToRegister, onNaviga
 
     setFallbackLoading(true);
     setError('');
+    localStorage.setItem('pirate_login_in_progress', 'true');
 
     const shadowPassword = generateShadowPassword(googleEmailFallback);
     const displayName = googleEmailFallback.split('@')[0];
@@ -146,6 +151,7 @@ export default function SigninScreen({ onSuccess, onNavigateToRegister, onNaviga
         localStorage.setItem('google_auth_uid', result.user.uid);
 
         await registerNewUserSession(result.user.uid);
+        localStorage.removeItem('pirate_login_in_progress');
 
         setFallbackSuccess(true);
         setTimeout(() => {
@@ -172,6 +178,7 @@ export default function SigninScreen({ onSuccess, onNavigateToRegister, onNaviga
             localStorage.setItem('google_auth_uid', registerResult.user.uid);
 
             await registerNewUserSession(registerResult.user.uid);
+            localStorage.removeItem('pirate_login_in_progress');
 
             setFallbackSuccess(true);
             setTimeout(() => {
@@ -180,14 +187,17 @@ export default function SigninScreen({ onSuccess, onNavigateToRegister, onNaviga
             }, 1500);
           }
         } catch (regErr: any) {
+          localStorage.removeItem('pirate_login_in_progress');
           console.error('Fallback register error:', regErr);
           setError('فشل تسجيل الدخول السريع: ' + (regErr.message || 'خطأ غير معروف'));
         }
       } else {
+        localStorage.removeItem('pirate_login_in_progress');
         console.error('Fallback login error:', err);
         setError('فشل تسجيل الدخول السريع: ' + (err.message || 'خطأ غير معروف'));
       }
     } finally {
+      localStorage.removeItem('pirate_login_in_progress');
       setFallbackLoading(false);
     }
   };
@@ -201,6 +211,7 @@ export default function SigninScreen({ onSuccess, onNavigateToRegister, onNaviga
 
     setLoading(true);
     setError('');
+    localStorage.setItem('pirate_login_in_progress', 'true');
 
     try {
       let targetEmail = email.trim();
@@ -250,10 +261,12 @@ export default function SigninScreen({ onSuccess, onNavigateToRegister, onNaviga
 
         // Register fresh active session in Firestore, terminating all other devices
         await registerNewUserSession(result.user.uid);
+        localStorage.removeItem('pirate_login_in_progress');
 
         onSuccess(finalUsername, result.user.email);
       }
     } catch (err: any) {
+      localStorage.removeItem('pirate_login_in_progress');
       console.error('Email signin error:', err);
       let message = 'حدث خطأ أثناء تسجيل الدخول. يرجى التحقق من صحة البيانات.';
       if (err.message && (err.message.includes('اسم المستخدم') || err.message.includes('بريد إلكتروني'))) {
@@ -267,6 +280,7 @@ export default function SigninScreen({ onSuccess, onNavigateToRegister, onNaviga
       }
       setError(message);
     } finally {
+      localStorage.removeItem('pirate_login_in_progress');
       setLoading(false);
     }
   };
@@ -276,6 +290,7 @@ export default function SigninScreen({ onSuccess, onNavigateToRegister, onNaviga
     googleLoginInProgress.current = true;
     setGoogleLoading(true);
     setError('');
+    localStorage.setItem('pirate_login_in_progress', 'true');
 
     try {
       const provider = new GoogleAuthProvider();
@@ -309,16 +324,19 @@ export default function SigninScreen({ onSuccess, onNavigateToRegister, onNaviga
         localStorage.setItem('google_auth_token', token);
         localStorage.setItem('google_auth_email', user.email);
         localStorage.setItem('google_auth_name', name);
+        localStorage.setItem('google_auth_uid', user.uid);
         if (user.photoURL) {
           localStorage.setItem('google_auth_avatar', user.photoURL);
         }
 
         // Register fresh active session in Firestore, terminating all other devices
         await registerNewUserSession(user.uid);
+        localStorage.removeItem('pirate_login_in_progress');
 
         onSuccess(name, user.email);
       }
     } catch (err: any) {
+      localStorage.removeItem('pirate_login_in_progress');
       if (err.code === 'auth/cancelled-popup-request' || err.code === 'auth/popup-closed-by-user') {
         console.warn('Google auth popup dismissed:', err.code);
       } else {
@@ -342,6 +360,7 @@ export default function SigninScreen({ onSuccess, onNavigateToRegister, onNaviga
       }
       setError(userFriendlyMessage);
     } finally {
+      localStorage.removeItem('pirate_login_in_progress');
       googleLoginInProgress.current = false;
       setGoogleLoading(false);
     }

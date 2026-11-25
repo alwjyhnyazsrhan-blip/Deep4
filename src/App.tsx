@@ -27,7 +27,8 @@ import {
   playSmallRocketExplosionSound,
   playAtomicBombDropSound,
   playAtomicBombExplosionSound,
-  playMediaBombExplosionSound
+  playMediaBombExplosionSound,
+  getAudioContext
 } from './utils/explosionSound';
 import { playDetonationWarningVoiceAndSound } from './utils/warningDetonationSound';
 import {
@@ -341,156 +342,26 @@ export default function App() {
     setIsLoggedIn(false);
   };
 
+  const activeAuthUidRef = useRef<string | null>(null);
+  const handleRecoverSessionRef = useRef<(() => Promise<void>) | null>(null);
+  const loadAndSubscribeUserDocRef = useRef<((user: any, opts?: { forceTakeoverSession?: boolean }) => Promise<void>) | null>(null);
   const handleRecoverSessionFromThisDevice = async () => {
-    setIsRecoveringSession(true);
-    try {
-      const targetUid = auth.currentUser?.uid || localStorage.getItem('google_auth_uid');
-      if (!targetUid) {
-        setSessionTerminationNotice(null);
-        isSessionTerminated.current = false;
-        setIsLoggedIn(false);
-        setAuthScreen('login');
-        return;
-      }
-
-      // 1. Invalidate and freeze the previous session on the other device and register this device as ACTIVE
-      const { sessionId, deviceId, userDocData } = await recoverSessionFromDevice(targetUid);
-
-      // 2. Direct Re-fetch of User Progress (gold, gems, levels, buildings, quests, inventory)
-      const userDocRef = doc(db, 'users', targetUid);
-      let data = userDocData;
-      if (!data) {
-        const freshSnap = await getDoc(userDocRef);
-        if (freshSnap.exists()) {
-          data = freshSnap.data();
-        }
-      }
-
-      if (data) {
-        lastDbData.current = data;
-        justLoadedFromFirestore.current = true;
-
-        if (data.username) setUsername(data.username);
-        if (data.avatar) setAvatar(data.avatar);
-        if (data.server) setServer(data.server);
-        if (data.pirateClass) setPirateClass(data.pirateClass);
-        
-        if (typeof data.gold === 'number') setGold(data.gold);
-        if (typeof data.gems === 'number') setGems(data.gems);
-        if (typeof data.exp === 'number') setExp(data.exp);
-        if (typeof data.redGems === 'number') setRedGems(data.redGems);
-        if (typeof data.fishStorageLevel === 'number') setFishStorageLevel(data.fishStorageLevel);
-        if (typeof data.shipTowerLevel === 'number') setShipTowerLevel(data.shipTowerLevel);
-        
-        if (data.ships && Array.isArray(data.ships) && data.ships.length > 0) {
-          const synced = data.ships.map(syncShipMetadata);
-          setShips(synced);
-          localStorage.setItem('pirate_ships', JSON.stringify(synced));
-        }
-        if (data.crew) setCrew(data.crew);
-        if (data.quests) setQuests(data.quests);
-        if (data.battleReports) setBattleReports(data.battleReports);
-        if (data.fishInventory) setFishInventory(data.fishInventory);
-        if (data.weapons) setWeapons(data.weapons);
-        if (data.crewServices) setCrewServices(data.crewServices);
-        if (data.crewInventory) setCrewInventory(data.crewInventory);
-        if (data.shieldInventory) setShieldInventory(data.shieldInventory);
-        if (Array.isArray(data.friends)) setFriends(data.friends);
-        if (Array.isArray(data.friendRequests)) setFriendRequests(data.friendRequests);
-        if (data.tribeId) setTribeId(data.tribeId);
-        if (data.tribeName) setTribeName(data.tribeName);
-        if (typeof data.portDestroyed === 'boolean') {
-          setPortDestroyed(data.portDestroyed);
-          localStorage.setItem('pirate_port_destroyed', data.portDestroyed.toString());
-        }
-      }
-
-      // 3. Clear termination state and return immediately to game
-      isSessionTerminated.current = false;
-      setSessionTerminationNotice(null);
-      setIsLoggedIn(true);
-      localStorage.setItem('pirate_is_logged_in', 'true');
-
-      // 4. Re-attach real-time listener for future multi-device conflicts
-      if (unsubUserSnapshot.current) {
-        try { unsubUserSnapshot.current(); } catch (e) {}
-      }
-      unsubUserSnapshot.current = onSnapshot(userDocRef, (docSnap) => {
-        if (isDeletingAccount.current || docSnap.metadata.hasPendingWrites) return;
-        if (docSnap.exists()) {
-          const snapData = docSnap.data();
-          const serverDeviceId = snapData.currentDeviceId;
-          const localDevId = getOrCreateDeviceId();
-          const serverStatus = snapData.sessionStatus;
-
-          if ((serverDeviceId && localDevId && serverDeviceId !== localDevId) || serverStatus === 'EXPIRED') {
-            handleTerminateOldSession({
-              newDevice: snapData.lastLoginDevice || 'جهاز أو متصفح آخر',
-              lastLoginAt: snapData.lastLoginAt
-            });
-            return;
-          }
-
-          lastDbData.current = snapData;
-          justLoadedFromFirestore.current = true;
-          
-          if (typeof snapData.gold === 'number') setGold(snapData.gold);
-          if (typeof snapData.gems === 'number') setGems(snapData.gems);
-          if (typeof snapData.exp === 'number') setExp(snapData.exp);
-          if (typeof snapData.redGems === 'number') setRedGems(snapData.redGems);
-          if (typeof snapData.fishStorageLevel === 'number') setFishStorageLevel(snapData.fishStorageLevel);
-          if (typeof snapData.shipTowerLevel === 'number') setShipTowerLevel(snapData.shipTowerLevel);
-          if (snapData.ships && Array.isArray(snapData.ships)) setShips(snapData.ships.map((s: any) => ({ ...s, moving: false })));
-          if (snapData.quests) setQuests(snapData.quests);
-        }
-      }, (err) => {
-        console.warn("Real-time listener after recovery warning:", err);
-      });
-
-      console.log(`[SESSION RECOVERY] Successfully recovered session ${sessionId} for user ${targetUid} on device ${deviceId}`);
-    } catch (err: any) {
-      console.error('Failed to recover session:', err);
-      alert('تعذر استعادة الجلسة في الوقت الحالي. يرجى إعادة المحاولة.');
-    } finally {
-      setIsRecoveringSession(false);
+    if (handleRecoverSessionRef.current) {
+      await handleRecoverSessionRef.current();
     }
-  };
-
-  const areFieldsEqual = (a: any, b: any) => {
-    if (!a || !b) return false;
-    
-    // Compare primitives
-    const primitives = [
-      'username', 'avatar', 'server', 'pirateClass', 'gold', 'gems', 'exp', 
-      'redGems', 'fishStorageLevel', 'shipTowerLevel', 'portDestroyed'
-    ];
-    for (const key of primitives) {
-      const valA = a[key];
-      const valB = b[key];
-      if ((valA ?? '') !== (valB ?? '')) {
-        if (typeof valA === 'number' && typeof valB === 'number' && valA === valB) continue;
-        return false;
-      }
-    }
-    
-    // JSON stringify comparison for structured objects/arrays, normalizing undefined/null to defaults
-    const structured = [
-      'ships', 'crew', 'quests', 'battleReports', 'fishInventory', 'weapons', 'crewServices'
-    ];
-    for (const key of structured) {
-      const valA = a[key] || (['ships', 'crew', 'quests', 'battleReports'].includes(key) ? [] : {});
-      const valB = b[key] || (['ships', 'crew', 'quests', 'battleReports'].includes(key) ? [] : {});
-      if (JSON.stringify(valA) !== JSON.stringify(valB)) {
-        return false;
-      }
-    }
-    
-    return true;
   };
   const videoRefA = useRef<HTMLVideoElement | null>(null);
-  const videoRefB = useRef<HTMLVideoElement | null>(null);
-  const [activeVideo, setActiveVideo] = useState<'A' | 'B'>('A');
-  const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
+  const [isPageHidden, setIsPageHidden] = useState<boolean>(() =>
+    typeof document !== 'undefined' ? document.hidden : false
+  );
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsPageHidden(document.hidden);
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
   // --- Leaping Sea Creatures State ---
   const [creatures, setCreatures] = useState(() => [
@@ -503,8 +374,10 @@ export default function App() {
   ]);
 
   const handleCreatureIteration = (id: number) => {
-    // Only handle leaders (1, 2, 3) to keep leader and follower positions perfectly aligned
+    // Only handle leaders (1, 2, 3) and skip React updates when viewport is hidden or off-harbor
     if (id !== 1 && id !== 2 && id !== 3) return;
+    if (typeof document !== 'undefined' && document.hidden) return;
+    if (activeTab !== 'harbor' || inspectedPlayerShipVisit) return;
 
     // Choose one of 4 zones randomly to distribute creatures widely:
     // Zone 0: Behind/around the docked ships (left/background)
@@ -617,6 +490,29 @@ export default function App() {
     repairer_large: 1,
     repairer_legendary: 0,
   };
+  const DEFAULT_CREW_INVENTORY: Record<string, number> = {
+    guide: 1,
+    luck: 1,
+    sailor: 0,
+    thief: 1,
+    cop: 1,
+    merchant: 0,
+    fixer_sm: 5,
+    fixer_md: 3,
+    fixer_lg: 1,
+    fixer_epic: 0,
+    market_expert: 1,
+    gold_fisher: 1,
+  };
+  const DEFAULT_SHIELD_INVENTORY: Record<string, number> = {
+    shield_4h: 1,
+    shield_1d: 0,
+    shield_2d: 0,
+    anti_nuke: 0,
+    anti_emp: 0,
+    disable_anti_range: 0,
+    disable_anti_core: 0,
+  };
 
   const resetStateToDefaults = () => {
     // Reset React States
@@ -630,10 +526,22 @@ export default function App() {
     setCrew(DEFAULT_CREW);
     setQuests(DEFAULT_QUESTS);
     setBattleReports([]);
+    setAttackLogs([]);
+    setSupportGifts([]);
     setFishInventory(DEFAULT_FISH_INVENTORY);
     setWeapons(DEFAULT_WEAPONS);
     setCrewServices(DEFAULT_CREW_SERVICES);
+    setCrewInventory(DEFAULT_CREW_INVENTORY);
+    setShieldInventory(DEFAULT_SHIELD_INVENTORY);
     setPortDestroyed(false);
+    setActiveAd(null);
+    setUserDocReadyUid(null);
+    setOwnAttackEffect(null);
+    setIsOwnHarborShaking(false);
+    setIncomingAttackAlert(null);
+    processedHarborEventIdsRef.current.clear();
+    setBgTheme('classic');
+    setProfileTheme('default');
     setUsername('سياف_البحار');
     setAvatar('☠️');
     setServer('سيرفر الأسطورة 1');
@@ -642,20 +550,27 @@ export default function App() {
     setFriendRequests([]);
     setTribeId('');
     setTribeName('');
+    setTribes([]);
     setChatMessages([]);
     setInspectedPlayer(null);
     setSelectedVisitedShip(null);
     lastDbData.current = null;
+    activeAuthUidRef.current = null;
     
-    // Clear LocalStorage of game data and user tokens
+    // Clear LocalStorage of all account-specific game data and user tokens
     const keysToRemove = [
-      'gold', 'gems', 'pirate_exp', 'pirate_port_destroyed',
+      'gold', 'gems', 'pirate_exp', 'pirate_port_destroyed', 'pirate_active_ad',
       'pirate_username', 'pirate_avatar', 'pirate_server', 'pirate_class',
-      'pirate_crew_services', 'pirate_bg_theme', 'pirate_profile_theme',
-      'pirate_ships_v2', 'pirate_battle_reports', 'fish_storage_level',
-      'ship_tower_level', 'pirate_fish_inventory', 'pirate_red_gems',
-      'pirate_weapons', 'google_auth_token', 'google_auth_email',
-      'google_auth_name', 'google_auth_avatar', 'pirate_is_logged_in'
+      'pirate_crew_services', 'pirate_crew_inventory', 'pirate_shield_inventory',
+      'pirate_bg_theme', 'pirate_profile_theme',
+      'pirate_ships_v2', 'pirate_ships', 'pirate_quests',
+      'pirate_battle_reports', 'pirate_attack_logs', 'pirate_support_gifts',
+      'fish_storage_level', 'ship_tower_level', 'pirate_fish_inventory',
+      'pirate_red_gems', 'pirate_weapons',
+      'pirate_tribe_id', 'pirate_tribe_name', 'pirate_local_tribes',
+      'google_auth_token', 'google_auth_email', 'google_auth_name',
+      'google_auth_avatar', 'google_auth_uid',
+      'pirate_is_logged_in', 'pirate_login_in_progress'
     ];
     keysToRemove.forEach(key => localStorage.removeItem(key));
   };
@@ -677,6 +592,32 @@ export default function App() {
   const [portDestroyed, setPortDestroyed] = useState<boolean>(() => {
     return localStorage.getItem('pirate_port_destroyed') === 'true';
   });
+  const [activeAd, setActiveAd] = useState<string | null>(() => {
+    return localStorage.getItem('pirate_active_ad') || null;
+  });
+  const [userDocReadyUid, setUserDocReadyUid] = useState<string | null>(null);
+  const [ownAttackEffect, setOwnAttackEffect] = useState<{
+    type: 'ROCKET_SMALL' | 'ROCKET_MEDIUM' | 'ROCKET_LARGE' | 'ATOMIC_BOMB' | 'AD_BOMB';
+    targetX: string;
+    targetY: string;
+    damage: number;
+    phase: 'flying' | 'impact';
+  } | null>(null);
+  const [isOwnHarborShaking, setIsOwnHarborShaking] = useState<boolean>(false);
+  const [incomingAttackAlert, setIncomingAttackAlert] = useState<{
+    id: string;
+    attackerName: string;
+    attackerAvatar: string;
+    weaponTitle: string;
+    weaponIcon: string;
+    summary: string;
+    damage?: number;
+    goldLost?: number;
+    customMessage?: string;
+    time: string;
+  } | null>(null);
+  const processedHarborEventIdsRef = useRef<Set<string>>(new Set());
+  const latestUserStateRef = useRef<any>({});
 
   // --- Network Online Connectivity & Anti-Desync State ---
   const [isOnline, setIsOnline] = useState<boolean>(() => {
@@ -916,11 +857,24 @@ export default function App() {
   const [friendSearchQuery, setFriendSearchQuery] = useState('');
 
   // --- Quests State ---
-  const [quests, setQuests] = useState<Quest[]>([
-    { id: 'q1', title: 'صياد الأنشوجة النشيط', target: 'أرسل السفن للصيد 3 مرات', progress: 0, max: 3, rewardGold: 100, rewardGems: 2, completed: false, claimed: false },
-    { id: 'q2', title: 'توسيع طاقم القيادة', target: 'قم بتعيين بحار واحد على الأقل', progress: 0, max: 1, rewardGold: 150, rewardGems: 5, completed: false, claimed: false },
-    { id: 'q3', title: 'دعم التحالف الحليف', target: 'تبرع للتحالف بـ 50 ذهب', progress: 0, max: 50, rewardGold: 80, rewardGems: 1, completed: false, claimed: false },
-  ]);
+  const [quests, setQuests] = useState<Quest[]>(() => {
+    try {
+      const saved = localStorage.getItem('pirate_quests');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [
+      { id: 'q1', title: 'صياد الأنشوجة النشيط', target: 'أرسل السفن للصيد 3 مرات', progress: 0, max: 3, rewardGold: 100, rewardGems: 2, completed: false, claimed: false },
+      { id: 'q2', title: 'توسيع طاقم القيادة', target: 'قم بتعيين بحار واحد على الأقل', progress: 0, max: 1, rewardGold: 150, rewardGems: 5, completed: false, claimed: false },
+      { id: 'q3', title: 'دعم التحالف الحليف', target: 'تبرع للتحالف بـ 50 ذهب', progress: 0, max: 50, rewardGold: 80, rewardGems: 1, completed: false, claimed: false },
+    ];
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem('pirate_quests', JSON.stringify(quests)); } catch {}
+  }, [quests]);
 
   // --- Battle Reports State (Real gameplay data only) ---
   const [battleReports, setBattleReports] = useState<BattleReport[]>(() => {
@@ -928,13 +882,17 @@ export default function App() {
       const saved = localStorage.getItem('pirate_battle_reports');
       if (saved) {
         const parsed = JSON.parse(saved);
-        return Array.isArray(parsed) 
-          ? parsed.filter((r: any) => r.opponentName && r.opponentName !== 'قبطان معادٍ' && !r.id?.startsWith('mock_'))
+        return Array.isArray(parsed)
+          ? parsed.filter((r: any) => (r.opponentName || r.opponent) && (r.opponentName || r.opponent) !== 'قبطان معادٍ' && !r.id?.startsWith('mock_'))
           : [];
       }
     } catch {}
     return [];
   });
+
+  useEffect(() => {
+    try { localStorage.setItem('pirate_battle_reports', JSON.stringify(battleReports)); } catch {}
+  }, [battleReports]);
 
   // --- War & Revenge Log (سجل الغارات والانتقام والدعوم - بيانات حقيقية 100% فقط) ---
   const [showWarLogModal, setShowWarLogModal] = useState<boolean>(false);
@@ -951,6 +909,10 @@ export default function App() {
     return [];
   });
 
+  useEffect(() => {
+    try { localStorage.setItem('pirate_attack_logs', JSON.stringify(attackLogs)); } catch {}
+  }, [attackLogs]);
+
   const [supportGifts, setSupportGifts] = useState<SupportGiftItem[]>(() => {
     try {
       const saved = localStorage.getItem('pirate_support_gifts');
@@ -963,6 +925,27 @@ export default function App() {
     } catch {}
     return [];
   });
+
+  useEffect(() => {
+    try { localStorage.setItem('pirate_support_gifts', JSON.stringify(supportGifts)); } catch {}
+  }, [supportGifts]);
+
+  useEffect(() => {
+    try {
+      if (tribeId) localStorage.setItem('pirate_tribe_id', tribeId);
+      else localStorage.removeItem('pirate_tribe_id');
+      if (tribeName) localStorage.setItem('pirate_tribe_name', tribeName);
+      else localStorage.removeItem('pirate_tribe_name');
+    } catch {}
+  }, [tribeId, tribeName]);
+
+  useEffect(() => {
+    try {
+      if (Array.isArray(tribes) && tribes.length > 0) {
+        localStorage.setItem('pirate_local_tribes', JSON.stringify(tribes));
+      }
+    } catch {}
+  }, [tribes]);
 
   // --- Real-time Real Players (Multiplayer) ---
   const [realPlayers, setRealPlayers] = useState<any[]>([]);
@@ -1116,12 +1099,14 @@ export default function App() {
     // Immediate visual presentation
     queueNotification(notifPayload);
 
-    // Broadcast live to /globalNotifications collection for all connected players
+    // Broadcast live to /globalNotifications collection if permitted by Firestore rules
     if (currentUser) {
       try {
         await addDoc(collection(db, 'globalNotifications'), notifPayload);
-      } catch (err) {
-        handleFirestoreError(err, OperationType.CREATE, 'globalNotifications');
+      } catch (err: any) {
+        if (err?.code !== 'permission-denied') {
+          handleFirestoreError(err, OperationType.CREATE, 'globalNotifications');
+        }
       }
     }
   };
@@ -1145,10 +1130,8 @@ export default function App() {
 
   const playLuffyAdSound = () => {
     try {
-      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
-      if (ctx.state === 'suspended') ctx.resume();
+      const ctx = getAudioContext();
+      if (!ctx) return;
       
       const now = ctx.currentTime;
       
@@ -1210,10 +1193,8 @@ export default function App() {
 
   const playAdPoemSound = () => {
     try {
-      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
-      if (ctx.state === 'suspended') ctx.resume();
+      const ctx = getAudioContext();
+      if (!ctx) return;
       
       const now = ctx.currentTime;
       
@@ -1260,10 +1241,8 @@ export default function App() {
 
   const playLegendaryRepairSound = () => {
     try {
-      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
-      if (ctx.state === 'suspended') ctx.resume();
+      const ctx = getAudioContext();
+      if (!ctx) return;
       
       const now = ctx.currentTime;
       
@@ -1429,6 +1408,13 @@ export default function App() {
     }
   };
 
+  // Prefer actual Firestore document ID (auth UID) over stale/legacy userId fields when targeting players
+  const getTargetDefenderId = (player: any): string => {
+    if (!player) return '';
+    if (player.id && !String(player.id).startsWith('rival_')) return String(player.id);
+    return String(player.userId || player.id || '');
+  };
+
   // --- Attack & Steal Validation Function (دالة التحقق من شروط الهجوم والسرقة) ---
   const getShipEffectiveLevel = (s: any): number => {
     if (!s) return 0;
@@ -1539,7 +1525,7 @@ export default function App() {
       // Play authentic small rocket explosion sound
       playSmallRocketExplosionSound();
 
-      const targetDocId = inspectedPlayer.userId || inspectedPlayer.id;
+      const targetDocId = getTargetDefenderId(inspectedPlayer);
       const flatDamage = 1000;
       let dealtDamage = 0;
 
@@ -1565,13 +1551,17 @@ export default function App() {
         const activeUpdatedShips = updatedShips.filter((s: any) => s.exists !== false);
         allDestroyed = activeUpdatedShips.length > 0 && activeUpdatedShips.every((s: any) => typeof s.heart === 'number' && s.heart <= 0);
 
+        const nowTime = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
         const newReport = {
           id: `rocket_small_${Date.now()}`,
           opponent: username,
+          opponentName: username,
           opponentAvatar: avatar || '☠️',
           type: 'defense',
           result: 'defeat',
+          isVictory: false,
           goldChange: 0,
+          time: nowTime,
           date: new Date().toISOString(),
           title: allDestroyed ? '🚨 تم تدمير أسطولك ومينائك بالكامل!' : '🚀 استهداف سفينتك بصاروخ صغير!',
           log: [
@@ -1584,6 +1574,8 @@ export default function App() {
         createHarborEvent(targetDocId, 'ROCKET_SMALL', {
           damage: dealtDamage,
           targetShipId: resolvedTargetShipId,
+          targetShipIndex: resolvedTargetIdx,
+          targetName: inspectedPlayer.username || '',
           allDestroyed,
           newReport
         });
@@ -1695,7 +1687,7 @@ export default function App() {
       // Play authentic medium rocket explosion sound
       playMediumRocketExplosionSound();
 
-      const targetDocId = inspectedPlayer.userId || inspectedPlayer.id;
+      const targetDocId = getTargetDefenderId(inspectedPlayer);
       const flatDamage = 5000;
       let dealtDamage = 0;
 
@@ -1721,13 +1713,17 @@ export default function App() {
         const activeUpdatedShips = updatedShips.filter((s: any) => s.exists !== false);
         allDestroyed = activeUpdatedShips.length > 0 && activeUpdatedShips.every((s: any) => typeof s.heart === 'number' && s.heart <= 0);
 
+        const nowTime = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
         const newReport = {
           id: `rocket_med_${Date.now()}`,
           opponent: username,
+          opponentName: username,
           opponentAvatar: avatar || '☠️',
           type: 'defense',
           result: 'defeat',
+          isVictory: false,
           goldChange: 0,
+          time: nowTime,
           date: new Date().toISOString(),
           title: allDestroyed ? '🚨 تم تدمير أسطولك ومينائك بالكامل!' : '🚀 استهداف سفينتك بصاروخ متوسط!',
           log: [
@@ -1740,6 +1736,8 @@ export default function App() {
         createHarborEvent(targetDocId, 'ROCKET_MEDIUM', {
           damage: dealtDamage,
           targetShipId: resolvedTargetShipId,
+          targetShipIndex: resolvedTargetIdx,
+          targetName: inspectedPlayer.username || '',
           allDestroyed,
           newReport
         });
@@ -1855,7 +1853,7 @@ export default function App() {
       playLargeRocketExplosionSound();
 
       // Deal 10,000 damage ONLY to the selected target ship
-      const targetDocId = inspectedPlayer.userId || inspectedPlayer.id;
+      const targetDocId = getTargetDefenderId(inspectedPlayer);
       const flatDamage = 10000;
       let primaryDealtDamage = 0;
 
@@ -1887,13 +1885,17 @@ export default function App() {
         const activeUpdatedShips = updatedShips.filter((s: any) => s.exists !== false);
         allDestroyed = activeUpdatedShips.length > 0 && activeUpdatedShips.every((s: any) => typeof s.heart === 'number' && s.heart <= 0);
 
+        const nowTime = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
         const newReport = {
           id: `rocket_large_${Date.now()}`,
           opponent: username,
+          opponentName: username,
           opponentAvatar: avatar || '☠️',
           type: 'defense',
           result: 'defeat',
+          isVictory: false,
           goldChange: 0,
+          time: nowTime,
           date: new Date().toISOString(),
           title: allDestroyed ? '🚨 تم تدمير أسطولك ومينائك بالكامل!' : '🚀 قصف صاروخي فتاك على سفينتك!',
           log: [
@@ -1906,6 +1908,8 @@ export default function App() {
         createHarborEvent(targetDocId, 'ROCKET_LARGE', {
           damage: primaryDealtDamage,
           targetShipId: resolvedTargetShipId,
+          targetShipIndex: resolvedTargetIdx,
+          targetName: inspectedPlayer.username || '',
           allDestroyed,
           newReport
         });
@@ -1967,15 +1971,19 @@ export default function App() {
 
     let weaponKey = '';
     let message = '';
+    let weaponLabel = '';
     
     if (type === 'rocket') {
       weaponKey = 'antiRocketDisabler';
+      weaponLabel = 'معطل مضاد الصواريخ';
       message = `⚠️ مضاد الصواريخ معطل\nعطلت مضاد الصواريخ لدى القبطان @${inspectedPlayer.username} لمدة 10 دقائق.`;
     } else if (type === 'nuke') {
       weaponKey = 'antiNukeDisabler';
+      weaponLabel = 'معطل مضاد القنبلة الذرية';
       message = `⚠️ مضاد القنبلة الذرية معطل\nعطلت مضاد القنبلة الذرية لدى القبطان @${inspectedPlayer.username} لمدة 10 دقائق.`;
     } else if (type === 'ad') {
       weaponKey = 'antiAdDisabler';
+      weaponLabel = 'معطل مضاد القنبلة الإعلانية';
       message = `⚠️ مضاد القنبلة الإعلانية معطل\nعطلت مضاد القنبلة الإعلانية لدى القبطان @${inspectedPlayer.username} لمدة 10 دقائق.`;
     }
 
@@ -1988,7 +1996,16 @@ export default function App() {
       return updated;
     });
 
-    alert(message);
+    const targetDocId = getTargetDefenderId(inspectedPlayer);
+    if (targetDocId) {
+      createHarborEvent(targetDocId, 'DISABLE_DEFENSE', {
+        defenseType: type,
+        weaponLabel,
+        targetName: inspectedPlayer.username || ''
+      });
+    }
+
+    showToast(message.replace('\n', ' - '), 'success');
   };
 
   const handleLaunchAdBomb = async (selectedAdKey: string) => {
@@ -2038,7 +2055,7 @@ export default function App() {
 
       let allDestroyed = false;
       const flatDamage = 20000;
-      const targetDocId = inspectedPlayer.userId || inspectedPlayer.id;
+      const targetDocId = getTargetDefenderId(inspectedPlayer);
       if (targetDocId && db) {
         const baseShips = (inspectedPlayer.ships && Array.isArray(inspectedPlayer.ships) && inspectedPlayer.ships.length > 0)
           ? inspectedPlayer.ships
@@ -2062,13 +2079,17 @@ export default function App() {
 
         allDestroyed = updatedShips.length > 0 && updatedShips.every((s: any) => typeof s.heart === 'number' && s.heart <= 0);
 
+        const nowTime = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
         const newReport = {
           id: `ad_bomb_${Date.now()}`,
           opponent: username,
+          opponentName: username,
           opponentAvatar: avatar || '📡',
           type: 'defense',
           result: 'defeat',
+          isVictory: false,
           goldChange: 0,
+          time: nowTime,
           date: new Date().toISOString(),
           title: allDestroyed ? '🚨 رسالة التفجير: تم تدمير أسطولك ومينائك بالكامل!' : '📡 هجوم رسالة التفجير!',
           log: [
@@ -2084,6 +2105,7 @@ export default function App() {
           allDestroyed,
           adKey: selectedAdKey,
           adTitle,
+          targetName: inspectedPlayer.username || '',
           newReport
         });
 
@@ -2227,7 +2249,7 @@ export default function App() {
       
       setExp(prev => prev + 2500);
 
-      const targetDocId = inspectedPlayer.userId || inspectedPlayer.id;
+      const targetDocId = getTargetDefenderId(inspectedPlayer);
       const flatDamage = 70000;
       if (targetDocId && db) {
         const baseShips = (inspectedPlayer.ships && Array.isArray(inspectedPlayer.ships) && inspectedPlayer.ships.length > 0)
@@ -2253,13 +2275,17 @@ export default function App() {
 
         allDestroyed = updatedShips.length > 0 && updatedShips.every((s: any) => typeof s.heart === 'number' && s.heart <= 0);
 
+        const nowTime = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
         const newReport = {
           id: `atomic_${Date.now()}`,
           opponent: username,
+          opponentName: username,
           opponentAvatar: avatar || '💣',
           type: 'defense',
           result: 'defeat',
+          isVictory: false,
           goldChange: 0,
+          time: nowTime,
           date: new Date().toISOString(),
           title: allDestroyed ? '🚨 كارثة الموت الأسود: تم تدمير أسطولك ومينائك بالكامل!' : '💣 قصف بقنبلة الموت الأسود!',
           log: [
@@ -2273,6 +2299,7 @@ export default function App() {
         createHarborEvent(targetDocId, 'ATOMIC_BOMB', {
           damage: flatDamage,
           allDestroyed,
+          targetName: inspectedPlayer.username || '',
           newReport
         });
 
@@ -2389,7 +2416,7 @@ export default function App() {
   };
 
   // --- Revenge & Counter-Attack Logic (نظام رد الهجوم والانتقام الفوري في محيط المهاجم) ---
-  const handleRevenge = (attackerName: string, attackId?: string) => {
+  const handleRevenge = async (attackerName: string, attackId?: string) => {
     // 1. Mark as avenged in attack logs
     setAttackLogs(prev => {
       const updated = prev.map(a => 
@@ -2404,9 +2431,23 @@ export default function App() {
     // 2. Close modal & dismiss banner
     setShowWarLogModal(false);
     handleDismissNotification();
+    setIncomingAttackAlert(null);
 
-    // 3. Find or construct attacker's profile
-    let target = realPlayers.find(p => p.username === attackerName || p.displayName === attackerName);
+    // 3. Find attacker's real profile (match trimmed case-insensitively, or query Firestore)
+    const cleanAttacker = (attackerName || '').trim().toLowerCase();
+    let target = realPlayers.find(
+      p => (p.username || '').trim().toLowerCase() === cleanAttacker || (p.displayName || '').trim().toLowerCase() === cleanAttacker
+    );
+    if (!target && attackerName && db) {
+      try {
+        const snap = await getDocs(query(collection(db, 'users'), where('username', '==', attackerName.trim()), limit(1)));
+        if (!snap.empty) {
+          const dSnap = snap.docs[0];
+          const d = dSnap.data();
+          target = { id: dSnap.id, userId: dSnap.id, ...d };
+        }
+      } catch {}
+    }
     if (!target) {
       target = {
         id: 'rival_' + attackerName,
@@ -2428,7 +2469,7 @@ export default function App() {
       };
     }
 
-    // 4. Open their profile and ocean directly in visit / attack mode ("على طول تروح محيطها تفجرها")
+    // 4. Open their profile and ocean directly in visit / attack mode
     setActiveTab('harbor');
     setIsProfileLoading(true);
     setInspectedPlayer(target);
@@ -2965,7 +3006,7 @@ export default function App() {
   // --- Random Dynamic Weather Loop ---
   useEffect(() => {
     const interval = setInterval(() => {
-      const weathers: ('clear' | 'rain' | 'fog' | 'storm')[] = ['clear', 'rain', 'fog', 'storm'];
+      if (document.hidden) return;
       const rand = Math.random();
       let nextWeather: 'clear' | 'rain' | 'fog' | 'storm' = 'clear';
       if (rand < 0.45) {
@@ -2988,17 +3029,19 @@ export default function App() {
 
   // --- Lightning flash interval for storms ---
   useEffect(() => {
-    if (weather !== 'storm' || lowGraphics) {
+    if (weather !== 'storm' || lowGraphics || activeTab !== 'harbor' || inspectedPlayerShipVisit || isPageHidden) {
       setLightningActive(false);
       return;
     }
 
     let lightningTimeout: any;
     const triggerLightning = () => {
-      setLightningActive(true);
-      setTimeout(() => {
-        setLightningActive(false);
-      }, 450);
+      if (!document.hidden) {
+        setLightningActive(true);
+        setTimeout(() => {
+          setLightningActive(false);
+        }, 450);
+      }
 
       const nextDelay = 8000 + Math.random() * 14000;
       lightningTimeout = setTimeout(triggerLightning, nextDelay);
@@ -3007,7 +3050,7 @@ export default function App() {
     lightningTimeout = setTimeout(triggerLightning, 6000 + Math.random() * 6000);
 
     return () => clearTimeout(lightningTimeout);
-  }, [weather, lowGraphics]);
+  }, [weather, lowGraphics, activeTab, inspectedPlayerShipVisit, isPageHidden]);
 
   // --- Dynamic Tide & Ebb (المد والجزر) ---
   const [tide, setTide] = useState<'low' | 'incoming' | 'high' | 'outgoing'>(() => {
@@ -3044,6 +3087,7 @@ export default function App() {
   // --- Automatic Tide Cycle ---
   useEffect(() => {
     const interval = setInterval(() => {
+      if (document.hidden) return;
       const phases: ('low' | 'incoming' | 'high' | 'outgoing')[] = ['low', 'incoming', 'high', 'outgoing'];
       const nextIndex = (phases.indexOf(tide) + 1) % phases.length;
       changeTide(phases[nextIndex]);
@@ -3052,140 +3096,39 @@ export default function App() {
     return () => clearInterval(interval);
   }, [tide]);
 
-  // --- High-precision Seamless Background Video Monitor ---
+  // --- Power-Saving Single Background Video Controller (pauses automatically when off-harbor or hidden) ---
+  const shouldPlayHarborVideo =
+    isLoggedIn &&
+    !isPageHidden &&
+    activeTab === 'harbor' &&
+    !inspectedPlayerShipVisit &&
+    !portDestroyed &&
+    bgTheme !== 'destroyed' &&
+    !disableAnimatedBackground &&
+    !powerSaver;
+
   useEffect(() => {
-    if (portDestroyed || bgTheme === 'destroyed' || disableAnimatedBackground || powerSaver) {
+    const video = videoRefA.current;
+    if (!video) return;
+    if (!shouldPlayHarborVideo) {
       try {
-        if (videoRefA.current) videoRefA.current.pause();
-        if (videoRefB.current) videoRefB.current.pause();
+        video.pause();
       } catch (e) {}
       return;
     }
-
-    const intervalId = setInterval(() => {
-      if (isTransitioning) return;
-
-      const activeRef = activeVideo === 'A' ? videoRefA : videoRefB;
-      const nextRef = activeVideo === 'A' ? videoRefB : videoRefA;
-      const video = activeRef.current;
-      const nextVideo = nextRef.current;
-
-      if (video && video.duration && nextVideo) {
-        // Trigger a 1.5 seconds cross-fade 1.8 seconds before the current video ends
-        if (video.currentTime >= video.duration - 1.8) {
-          setIsTransitioning(true);
-          nextVideo.currentTime = 0;
-          
-          // Align initial audio status before playback starts
-          nextVideo.muted = isMusicMuted;
-          nextVideo.volume = isMusicMuted ? 0 : 0;
-          video.muted = isMusicMuted;
-          video.volume = isMusicMuted ? 0 : 1;
-
-          nextVideo.play().then(() => {
-            // Smoothly crossfade volumes
-            const startTime = Date.now();
-            const fadeDuration = 1500;
-            const fadeInterval = setInterval(() => {
-              const elapsed = Date.now() - startTime;
-              const progress = Math.min(elapsed / fadeDuration, 1);
-              
-              if (!isMusicMuted) {
-                video.volume = 1 - progress;
-                nextVideo.volume = progress;
-              } else {
-                video.volume = 0;
-                nextVideo.volume = 0;
-              }
-
-              if (progress >= 1) {
-                clearInterval(fadeInterval);
-              }
-            }, 50);
-
-            // After 1.5 seconds, finalize the swap (Smart State Swap)
-            setTimeout(() => {
-              setActiveVideo(activeVideo === 'A' ? 'B' : 'A');
-              setIsTransitioning(false);
-              
-              // Smart State Swap: pause and reset previous video
-              try {
-                video.pause();
-                video.currentTime = 0;
-                // safety reset volume
-                if (!isMusicMuted) {
-                  nextVideo.volume = 1;
-                  video.volume = 0;
-                }
-              } catch (e) {
-                console.log("Error resetting previous video:", e);
-              }
-            }, 1500);
-          }).catch(err => {
-            console.log("Failed to play next video buffer:", err);
-            setIsTransitioning(false);
-          });
-        }
-      }
-    }, 50);
-
-    return () => clearInterval(intervalId);
-  }, [activeVideo, isTransitioning, portDestroyed, bgTheme, isMusicMuted, disableAnimatedBackground, powerSaver]);
-
-  // Pause videos when animated background is disabled or power saver is active
-  useEffect(() => {
-    if (disableAnimatedBackground || powerSaver) {
-      if (videoRefA.current) {
-        try { videoRefA.current.pause(); } catch (e) {}
-      }
-      if (videoRefB.current) {
-        try { videoRefB.current.pause(); } catch (e) {}
-      }
-    } else {
-      const activeRef = activeVideo === 'A' ? videoRefA : videoRefB;
-      if (activeRef.current) {
-        activeRef.current.play().catch(() => {});
-      }
-    }
-  }, [disableAnimatedBackground, powerSaver, activeVideo]);
-
-  // Synchronize mute/unmute state instantly on user toggle
-  useEffect(() => {
-    if (disableAnimatedBackground || powerSaver) return;
-    const videoA = videoRefA.current;
-    const videoB = videoRefB.current;
-    if (videoA) {
-      videoA.muted = isMusicMuted;
-      if (!isMusicMuted && activeVideo === 'A') videoA.volume = 1;
-    }
-    if (videoB) {
-      videoB.muted = isMusicMuted;
-      if (!isMusicMuted && activeVideo === 'B') videoB.volume = 1;
-    }
-  }, [isMusicMuted, activeVideo, disableAnimatedBackground, powerSaver]);
-
-  // --- Background Video Audio Autoplay Handler ---
-  useEffect(() => {
-    if (disableAnimatedBackground || powerSaver) return;
-    const activeRef = activeVideo === 'A' ? videoRefA : videoRefB;
-    const video = activeRef.current;
-    if (video) {
-      video.muted = isMusicMuted;
-      video.volume = isMusicMuted ? 0 : 1;
-      video.play().catch(err => {
-        console.log("Video playback control error. Forcing muted fallback...", err);
-        video.muted = true;
-        video.play().catch(() => {});
-      });
-    }
-  }, [activeVideo, bgTheme, isMusicMuted, disableAnimatedBackground, powerSaver]);
+    video.muted = isMusicMuted;
+    video.volume = isMusicMuted ? 0 : 1;
+    video.play().catch(() => {
+      video.muted = true;
+      video.play().catch(() => {});
+    });
+  }, [shouldPlayHarborVideo, isMusicMuted]);
 
   useEffect(() => {
-    if (disableAnimatedBackground || powerSaver) return;
+    if (!shouldPlayHarborVideo) return;
     const handleFirstInteraction = () => {
-      const activeRef = activeVideo === 'A' ? videoRefA : videoRefB;
-      const video = activeRef.current;
-      if (video) {
+      const video = videoRefA.current;
+      if (video && shouldPlayHarborVideo) {
         video.muted = isMusicMuted;
         video.volume = isMusicMuted ? 0 : 1;
         video.play().catch(() => {});
@@ -3197,7 +3140,7 @@ export default function App() {
       window.removeEventListener('click', handleFirstInteraction);
       window.removeEventListener('touchstart', handleFirstInteraction);
     };
-  }, [activeVideo, bgTheme, isMusicMuted]);
+  }, [shouldPlayHarborVideo, isMusicMuted]);
 
   // --- Captain Level Calculation ---
   const playerLevel = Math.floor(exp / 100) + 1;
@@ -3389,278 +3332,656 @@ export default function App() {
     };
   }, []);
 
+  const areFieldsEqual = (a: any, b: any) => {
+    if (!a || !b) return false;
+    
+    // Compare primitives
+    const primitives = [
+      'username', 'avatar', 'server', 'pirateClass', 'gold', 'gems', 'exp',
+      'redGems', 'fishStorageLevel', 'shipTowerLevel', 'portDestroyed',
+      'activeAd', 'tribeId', 'tribeName', 'bgTheme', 'profileTheme'
+    ];
+    for (const key of primitives) {
+      const valA = a[key];
+      const valB = b[key];
+      if ((valA ?? '') !== (valB ?? '')) {
+        if (typeof valA === 'number' && typeof valB === 'number' && valA === valB) continue;
+        return false;
+      }
+    }
+    
+    // JSON stringify comparison for structured objects/arrays, normalizing undefined/null to defaults
+    const arrayKeys = ['ships', 'crew', 'quests', 'battleReports', 'attackLogs', 'supportGifts', 'friends', 'friendRequests'];
+    const objectKeys = ['fishInventory', 'weapons', 'crewServices', 'crewInventory', 'shieldInventory', 'settings', 'tribeSnapshot'];
+    for (const key of arrayKeys) {
+      const valA = Array.isArray(a[key]) ? a[key] : [];
+      const valB = Array.isArray(b[key]) ? b[key] : [];
+      if (JSON.stringify(valA) !== JSON.stringify(valB)) {
+        return false;
+      }
+    }
+    for (const key of objectKeys) {
+      const valA = a[key] && typeof a[key] === 'object' ? a[key] : {};
+      const valB = b[key] && typeof b[key] === 'object' ? b[key] : {};
+      if (JSON.stringify(valA) !== JSON.stringify(valB)) {
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
+  const buildCurrentUserPayload = (userEmailOverride?: string) => {
+    const cleanUserEmail = (userEmailOverride || auth.currentUser?.email || localStorage.getItem('google_auth_email') || '').toLowerCase().trim();
+    const activeTribeSnapshot = tribeId ? (tribes.find(t => t.id === tribeId) || null) : null;
+
+    return {
+      username,
+      email: cleanUserEmail,
+      avatar,
+      server,
+      pirateClass,
+      gold,
+      gems,
+      exp,
+      redGems,
+      fishStorageLevel,
+      shipTowerLevel,
+      ships: ships.map(s => ({ ...s, moving: false })),
+      crew,
+      quests,
+      battleReports: battleReports.slice(0, 30),
+      attackLogs: attackLogs.slice(0, 30),
+      supportGifts: supportGifts.slice(0, 30),
+      fishInventory,
+      weapons,
+      crewServices,
+      crewInventory,
+      shieldInventory,
+      portDestroyed,
+      activeAd,
+      friends,
+      friendRequests,
+      tribeId,
+      tribeName,
+      ...(activeTribeSnapshot ? { tribeSnapshot: activeTribeSnapshot } : {}),
+      bgTheme,
+      profileTheme,
+      settings: {
+        language,
+        showDeathBanners,
+        showAttackNotifications,
+        showChestNotifications,
+        showPopupAlerts,
+        disableAnimatedBackground,
+        powerSaver,
+        showSoundTones,
+        customizeIconFunctions,
+        showRelatedAlerts,
+        disableQuickChat,
+        powerSaverLogin,
+        stopRogueAlliances,
+        heatingEnergyIndex,
+        isMusicMuted,
+        isSfxMuted,
+        lowGraphics,
+      },
+    };
+  };
+
+  const applyFirestoreUserData = (data: any, options?: { isInitialLoad?: boolean }) => {
+    if (!data) return;
+    const isInitial = Boolean(options?.isInitialLoad);
+
+    lastDbData.current = data;
+    justLoadedFromFirestore.current = true;
+
+    if (data.username) setUsername(data.username);
+    else if (isInitial) setUsername('سياف_البحار');
+
+    if (data.avatar) setAvatar(data.avatar);
+    else if (isInitial) setAvatar('⚓');
+
+    if (data.server) setServer(data.server);
+    else if (isInitial) setServer('سيرفر الأسطورة 1');
+
+    if (data.pirateClass) setPirateClass(data.pirateClass);
+    else if (isInitial) setPirateClass('صياد البحار');
+
+    if (typeof data.gold === 'number') setGold(data.gold);
+    else if (isInitial) setGold(DEFAULT_GOLD);
+
+    if (typeof data.gems === 'number') setGems(data.gems);
+    else if (isInitial) setGems(DEFAULT_GEMS);
+
+    if (typeof data.exp === 'number') setExp(data.exp);
+    else if (isInitial) setExp(DEFAULT_EXP);
+
+    if (typeof data.redGems === 'number') setRedGems(data.redGems);
+    else if (isInitial) setRedGems(DEFAULT_RED_GEMS);
+
+    if (typeof data.fishStorageLevel === 'number') setFishStorageLevel(data.fishStorageLevel);
+    else if (isInitial) setFishStorageLevel(DEFAULT_FISH_STORAGE_LEVEL);
+
+    if (typeof data.shipTowerLevel === 'number') setShipTowerLevel(data.shipTowerLevel);
+    else if (isInitial) setShipTowerLevel(DEFAULT_SHIP_TOWER_LEVEL);
+
+    if (Array.isArray(data.ships) && data.ships.length > 0) {
+      const synced = data.ships.map((s: any) => syncShipMetadata({ ...s, moving: false }));
+      setShips(synced);
+      try {
+        localStorage.setItem('pirate_ships_v2', JSON.stringify(synced));
+        localStorage.setItem('pirate_ships', JSON.stringify(synced));
+      } catch {}
+    } else if (isInitial) {
+      setShips(DEFAULT_SHIPS);
+      try {
+        localStorage.setItem('pirate_ships_v2', JSON.stringify(DEFAULT_SHIPS));
+        localStorage.setItem('pirate_ships', JSON.stringify(DEFAULT_SHIPS));
+      } catch {}
+    }
+
+    if (Array.isArray(data.crew) && data.crew.length > 0) {
+      setCrew(data.crew);
+    } else if (isInitial) {
+      setCrew(DEFAULT_CREW);
+    }
+
+    if (Array.isArray(data.quests) && data.quests.length > 0) {
+      const mergedQuests = DEFAULT_QUESTS.map(dq => {
+        const savedQ = data.quests.find((sq: any) => sq.id === dq.id);
+        return savedQ ? { ...dq, ...savedQ } : dq;
+      });
+      const extraQuests = data.quests.filter((sq: any) => !DEFAULT_QUESTS.some(dq => dq.id === sq.id));
+      const finalQuests = [...mergedQuests, ...extraQuests];
+      setQuests(finalQuests);
+      try { localStorage.setItem('pirate_quests', JSON.stringify(finalQuests)); } catch {}
+    } else if (isInitial) {
+      setQuests(DEFAULT_QUESTS);
+      try { localStorage.setItem('pirate_quests', JSON.stringify(DEFAULT_QUESTS)); } catch {}
+    }
+
+    if (Array.isArray(data.battleReports)) {
+      setBattleReports(data.battleReports);
+      try { localStorage.setItem('pirate_battle_reports', JSON.stringify(data.battleReports)); } catch {}
+    } else if (isInitial) {
+      setBattleReports([]);
+      try { localStorage.removeItem('pirate_battle_reports'); } catch {}
+    }
+
+    if (Array.isArray(data.attackLogs)) {
+      setAttackLogs(data.attackLogs);
+      try { localStorage.setItem('pirate_attack_logs', JSON.stringify(data.attackLogs)); } catch {}
+    } else if (isInitial) {
+      setAttackLogs([]);
+      try { localStorage.removeItem('pirate_attack_logs'); } catch {}
+    }
+
+    if (Array.isArray(data.supportGifts)) {
+      setSupportGifts(data.supportGifts);
+      try { localStorage.setItem('pirate_support_gifts', JSON.stringify(data.supportGifts)); } catch {}
+    } else if (isInitial) {
+      setSupportGifts([]);
+      try { localStorage.removeItem('pirate_support_gifts'); } catch {}
+    }
+
+    if (data.fishInventory && typeof data.fishInventory === 'object') {
+      setFishInventory(data.fishInventory);
+    } else if (isInitial) {
+      setFishInventory(DEFAULT_FISH_INVENTORY);
+    }
+
+    if (data.weapons && typeof data.weapons === 'object') {
+      setWeapons({ ...DEFAULT_WEAPONS, ...data.weapons });
+    } else if (isInitial) {
+      setWeapons(DEFAULT_WEAPONS);
+    }
+
+    if (data.crewServices && typeof data.crewServices === 'object') {
+      setCrewServices({ ...DEFAULT_CREW_SERVICES, ...data.crewServices });
+    } else if (isInitial) {
+      setCrewServices(DEFAULT_CREW_SERVICES);
+    }
+
+    if (data.crewInventory && typeof data.crewInventory === 'object') {
+      setCrewInventory({ ...DEFAULT_CREW_INVENTORY, ...data.crewInventory });
+    } else if (isInitial) {
+      setCrewInventory(DEFAULT_CREW_INVENTORY);
+    }
+
+    if (data.shieldInventory && typeof data.shieldInventory === 'object') {
+      setShieldInventory({ ...DEFAULT_SHIELD_INVENTORY, ...data.shieldInventory });
+    } else if (isInitial) {
+      setShieldInventory(DEFAULT_SHIELD_INVENTORY);
+    }
+
+    if (Array.isArray(data.friends)) setFriends(data.friends);
+    else if (isInitial) setFriends([]);
+
+    if (Array.isArray(data.friendRequests) && isInitial) setFriendRequests(data.friendRequests);
+
+    if (typeof data.tribeId === 'string') {
+      setTribeId(data.tribeId);
+      try {
+        if (data.tribeId) localStorage.setItem('pirate_tribe_id', data.tribeId);
+        else localStorage.removeItem('pirate_tribe_id');
+      } catch {}
+    } else if (isInitial) {
+      setTribeId('');
+      try { localStorage.removeItem('pirate_tribe_id'); } catch {}
+    }
+
+    if (typeof data.tribeName === 'string') {
+      setTribeName(data.tribeName);
+      try {
+        if (data.tribeName) localStorage.setItem('pirate_tribe_name', data.tribeName);
+        else localStorage.removeItem('pirate_tribe_name');
+      } catch {}
+    } else if (isInitial) {
+      setTribeName('');
+      try { localStorage.removeItem('pirate_tribe_name'); } catch {}
+    }
+
+    if (data.tribeSnapshot && typeof data.tribeSnapshot === 'object' && data.tribeSnapshot.id) {
+      setTribes(prev => {
+        const filtered = prev.filter(t => t.id !== data.tribeSnapshot.id);
+        return [data.tribeSnapshot, ...filtered];
+      });
+    }
+
+    if (typeof data.portDestroyed === 'boolean') {
+      setPortDestroyed(data.portDestroyed);
+      try { localStorage.setItem('pirate_port_destroyed', data.portDestroyed.toString()); } catch {}
+    } else if (isInitial) {
+      setPortDestroyed(false);
+      try { localStorage.setItem('pirate_port_destroyed', 'false'); } catch {}
+    }
+
+    if (data.activeAd !== undefined) {
+      setActiveAd(data.activeAd || null);
+      try {
+        if (data.activeAd) localStorage.setItem('pirate_active_ad', data.activeAd);
+        else localStorage.removeItem('pirate_active_ad');
+      } catch {}
+    } else if (isInitial) {
+      setActiveAd(null);
+      try { localStorage.removeItem('pirate_active_ad'); } catch {}
+    }
+
+    if (data.bgTheme && ['classic', 'destroyed'].includes(data.bgTheme)) {
+      setBgTheme(data.bgTheme);
+    } else if (isInitial) {
+      setBgTheme('classic');
+    }
+
+    if (typeof data.profileTheme === 'string' && data.profileTheme) {
+      setProfileTheme(data.profileTheme);
+    } else if (isInitial) {
+      setProfileTheme('default');
+    }
+
+    if (data.settings && typeof data.settings === 'object') {
+      const s = data.settings;
+      if (typeof s.language === 'string') setLanguage(s.language);
+      if (typeof s.showDeathBanners === 'boolean') setShowDeathBanners(s.showDeathBanners);
+      if (typeof s.showAttackNotifications === 'boolean') setShowAttackNotifications(s.showAttackNotifications);
+      if (typeof s.showChestNotifications === 'boolean') setShowChestNotifications(s.showChestNotifications);
+      if (typeof s.showPopupAlerts === 'boolean') setShowPopupAlerts(s.showPopupAlerts);
+      if (typeof s.disableAnimatedBackground === 'boolean') setDisableAnimatedBackground(s.disableAnimatedBackground);
+      if (typeof s.powerSaver === 'boolean') setPowerSaver(s.powerSaver);
+      if (typeof s.showSoundTones === 'boolean') setShowSoundTones(s.showSoundTones);
+      if (typeof s.customizeIconFunctions === 'boolean') setCustomizeIconFunctions(s.customizeIconFunctions);
+      if (typeof s.showRelatedAlerts === 'boolean') setShowRelatedAlerts(s.showRelatedAlerts);
+      if (typeof s.disableQuickChat === 'boolean') setDisableQuickChat(s.disableQuickChat);
+      if (typeof s.powerSaverLogin === 'boolean') setPowerSaverLogin(s.powerSaverLogin);
+      if (typeof s.stopRogueAlliances === 'boolean') setStopRogueAlliances(s.stopRogueAlliances);
+      if (typeof s.heatingEnergyIndex === 'boolean') setHeatingEnergyIndex(s.heatingEnergyIndex);
+      if (typeof s.isMusicMuted === 'boolean') setIsMusicMuted(s.isMusicMuted);
+      if (typeof s.isSfxMuted === 'boolean') setIsSfxMuted(s.isSfxMuted);
+      if (typeof s.lowGraphics === 'boolean') setLowGraphics(s.lowGraphics);
+    }
+  };
+
+  const scoreAccountDocProgress = (d: any): number => {
+    if (!d) return 0;
+    const shipLvlScore = Array.isArray(d.ships)
+      ? d.ships.reduce((acc: number, s: any) => acc + (typeof s.level === 'number' ? s.level * 1000 : 0), 0)
+      : 0;
+    const questScore = Array.isArray(d.quests)
+      ? d.quests.reduce((acc: number, q: any) => acc + (q.progress || 0) * 50 + (q.claimed ? 500 : 0), 0)
+      : 0;
+    return (typeof d.exp === 'number' ? d.exp * 10 : 0)
+      + (typeof d.gold === 'number' ? d.gold : 0)
+      + (typeof d.gems === 'number' ? d.gems * 100 : 0)
+      + shipLvlScore
+      + questScore;
+  };
+
+  const findBestLegacyAccountByEmail = async (
+    cleanEmail: string,
+    excludeUid?: string
+  ): Promise<{ id: string; data: any; score: number } | null> => {
+    if (!cleanEmail) return null;
+    try {
+      const q = query(collection(db, 'users'), where('email', '==', cleanEmail));
+      const snap = await getDocs(q);
+      if (snap.empty) return null;
+
+      let bestDoc: { id: string; data: any; score: number } | null = null;
+      snap.forEach(docSnap => {
+        if (excludeUid && docSnap.id === excludeUid) return;
+        const d = docSnap.data();
+        const sc = scoreAccountDocProgress(d);
+        if (!bestDoc || sc > bestDoc.score) {
+          bestDoc = { id: docSnap.id, data: d, score: sc };
+        }
+      });
+      return bestDoc;
+    } catch (err) {
+      console.warn('Email account lookup notice:', err);
+      return null;
+    }
+  };
+
+  const loadAndSubscribeUserDoc = async (user: any, opts?: { forceTakeoverSession?: boolean }) => {
+    if (!user) return;
+    const userDocRef = doc(db, 'users', user.uid);
+    const cleanEmail = (user.email || localStorage.getItem('google_auth_email') || '').toLowerCase().trim();
+    const isActivelyLoggingIn = Boolean(opts?.forceTakeoverSession || localStorage.getItem('pirate_login_in_progress') === 'true');
+
+    if (unsubUserSnapshot.current) {
+      try { unsubUserSnapshot.current(); } catch {}
+      unsubUserSnapshot.current = null;
+    }
+
+    try {
+      const initialSnap = await getDoc(userDocRef);
+      if (initialSnap.exists()) {
+        let data = initialSnap.data();
+
+        // If this UID doc is partial/untouched (e.g., created during an earlier split login), recover richer progress from matching email doc
+        const isPartialOrBlank = !Array.isArray(data.ships) || (
+          (data.exp || 0) === 0 && (data.gold || 0) <= 500 && !data.ships.some((s: any) => (s.level || 0) > 0)
+        );
+        if (isPartialOrBlank && cleanEmail) {
+          const legacyMatch = await findBestLegacyAccountByEmail(cleanEmail, user.uid);
+          if (legacyMatch && legacyMatch.score > scoreAccountDocProgress(data) + 600) {
+            const mergedRestored = {
+              ...legacyMatch.data,
+              userId: user.uid,
+              email: cleanEmail,
+              migratedFromUid: legacyMatch.id,
+              updatedAt: new Date().toISOString()
+            };
+            await setDoc(userDocRef, mergedRestored, { merge: true }).catch(() => {});
+            data = mergedRestored;
+          }
+        }
+
+        // Session validation
+        const serverDeviceId = data.currentDeviceId;
+        const localDeviceId = getOrCreateDeviceId();
+        const serverSessionId = data.currentSessionId;
+        const serverStatus = data.sessionStatus;
+
+        if (isActivelyLoggingIn || !serverDeviceId || !serverSessionId) {
+          await registerNewUserSession(user.uid);
+        } else if (serverDeviceId === localDeviceId) {
+          if (serverStatus === 'EXPIRED') {
+            await registerNewUserSession(user.uid);
+          } else {
+            setLocalSessionId(serverSessionId);
+          }
+        } else {
+          await handleTerminateOldSession({
+            newDevice: data.lastLoginDevice || 'جهاز أو متصفح آخر',
+            lastLoginAt: data.lastLoginAt
+          });
+          setLoadingFirebase(false);
+          return;
+        }
+
+        if (cleanEmail && data.email !== cleanEmail) {
+          setDoc(userDocRef, { email: cleanEmail, updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
+        }
+
+        // Backfill missing structural fields on older/partial documents so Firestore is always complete
+        const backfill: Record<string, any> = {};
+        if (!Array.isArray(data.ships) || data.ships.length === 0) backfill.ships = DEFAULT_SHIPS;
+        if (!Array.isArray(data.crew) || data.crew.length === 0) backfill.crew = DEFAULT_CREW;
+        if (!Array.isArray(data.quests) || data.quests.length === 0) backfill.quests = DEFAULT_QUESTS;
+        if (!data.weapons) backfill.weapons = DEFAULT_WEAPONS;
+        if (!data.fishInventory) backfill.fishInventory = DEFAULT_FISH_INVENTORY;
+        if (!data.crewServices) backfill.crewServices = DEFAULT_CREW_SERVICES;
+        if (!data.crewInventory) backfill.crewInventory = DEFAULT_CREW_INVENTORY;
+        if (!data.shieldInventory) backfill.shieldInventory = DEFAULT_SHIELD_INVENTORY;
+        if (Object.keys(backfill).length > 0) {
+          backfill.updatedAt = new Date().toISOString();
+          setDoc(userDocRef, backfill, { merge: true }).catch(() => {});
+          data = { ...data, ...backfill };
+        }
+
+        applyFirestoreUserData(data, { isInitialLoad: true });
+        activeAuthUidRef.current = user.uid;
+        isLoadedFromFirebase.current = true;
+        setUserDocReadyUid(user.uid);
+      } else if (!isDeletingAccount.current) {
+        // Check if this email already has an existing account doc under another UID (e.g., different auth method)
+        const legacyMatch = cleanEmail ? await findBestLegacyAccountByEmail(cleanEmail, user.uid) : null;
+
+        if (legacyMatch) {
+          const migratedData = {
+            ...legacyMatch.data,
+            userId: user.uid,
+            googleUid: user.uid,
+            authProvider: user.providerData?.[0]?.providerId || legacyMatch.data.authProvider || 'firebase',
+            email: cleanEmail,
+            migratedFromUid: legacyMatch.id,
+            updatedAt: new Date().toISOString(),
+          };
+          await setDoc(userDocRef, migratedData, { merge: true }).catch((err) => {
+            console.error("Error migrating existing user document:", err);
+          });
+          await registerNewUserSession(user.uid);
+          applyFirestoreUserData(migratedData, { isInitialLoad: true });
+          activeAuthUidRef.current = user.uid;
+          isLoadedFromFirebase.current = true;
+          setUserDocReadyUid(user.uid);
+        } else {
+          // Truly new user: initialize isolated complete initial document
+          const storedName = localStorage.getItem('google_auth_name') || '';
+          const initialUsername = user.displayName || storedName || (cleanEmail ? cleanEmail.split('@')[0] : '') || 'سياف_البحار';
+          const nowIso = new Date().toISOString();
+
+          const initialData = {
+            userId: user.uid,
+            googleUid: user.uid,
+            authProvider: user.providerData?.[0]?.providerId || 'firebase',
+            username: initialUsername,
+            email: cleanEmail,
+            avatar: '⚓',
+            server: 'سيرفر الأسطورة 1',
+            pirateClass: 'صياد البحار',
+            gold: DEFAULT_GOLD,
+            gems: DEFAULT_GEMS,
+            exp: DEFAULT_EXP,
+            redGems: DEFAULT_RED_GEMS,
+            fishStorageLevel: DEFAULT_FISH_STORAGE_LEVEL,
+            shipTowerLevel: DEFAULT_SHIP_TOWER_LEVEL,
+            ships: DEFAULT_SHIPS,
+            crew: DEFAULT_CREW,
+            quests: DEFAULT_QUESTS,
+            battleReports: [],
+            attackLogs: [],
+            supportGifts: [],
+            fishInventory: DEFAULT_FISH_INVENTORY,
+            weapons: DEFAULT_WEAPONS,
+            crewServices: DEFAULT_CREW_SERVICES,
+            crewInventory: DEFAULT_CREW_INVENTORY,
+            shieldInventory: DEFAULT_SHIELD_INVENTORY,
+            friends: [],
+            friendRequests: [],
+            tribeId: '',
+            tribeName: '',
+            portDestroyed: false,
+            activeAd: null,
+            bgTheme: 'classic',
+            profileTheme: 'default',
+            createdAt: nowIso,
+            updatedAt: nowIso
+          };
+
+          applyFirestoreUserData(initialData, { isInitialLoad: true });
+          await setDoc(userDocRef, initialData, { merge: true }).catch((err) => {
+            console.error("Error creating initial user document:", err);
+          });
+          await registerNewUserSession(user.uid);
+          activeAuthUidRef.current = user.uid;
+          isLoadedFromFirebase.current = true;
+          setUserDocReadyUid(user.uid);
+        }
+      }
+
+      // Attach real-time listener for current user updates
+      unsubUserSnapshot.current = onSnapshot(userDocRef, (docSnap) => {
+        if (isDeletingAccount.current || docSnap.metadata.hasPendingWrites) {
+          return;
+        }
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+
+          const serverDeviceId = data.currentDeviceId;
+          const localDeviceId = getOrCreateDeviceId();
+          const serverSessionId = data.currentSessionId;
+          const localSessionId = getLocalSessionId();
+          const serverStatus = data.sessionStatus;
+
+          if (localStorage.getItem('pirate_login_in_progress') !== 'true') {
+            if ((serverDeviceId && localDeviceId && serverDeviceId !== localDeviceId) || serverStatus === 'EXPIRED') {
+              handleTerminateOldSession({
+                newDevice: data.lastLoginDevice || 'جهاز أو متصفح آخر',
+                lastLoginAt: data.lastLoginAt
+              });
+              return;
+            }
+          }
+
+          if (serverDeviceId === localDeviceId && serverSessionId && localSessionId !== serverSessionId) {
+            setLocalSessionId(serverSessionId);
+          }
+
+          applyFirestoreUserData(data, { isInitialLoad: false });
+          activeAuthUidRef.current = user.uid;
+          isLoadedFromFirebase.current = true;
+        }
+        setLoadingFirebase(false);
+      }, (err) => {
+        console.error("Error in real-time user document listener:", err);
+        setLoadingFirebase(false);
+      });
+
+      setIsLoggedIn(true);
+      setLoadingFirebase(false);
+    } catch (error) {
+      console.error("Error loading user profile from Firestore:", error);
+      try {
+        handleFirestoreError(error, OperationType.GET, `users/${user.uid}`);
+      } catch (e) {}
+      setLoadingFirebase(false);
+    }
+  };
+
+  loadAndSubscribeUserDocRef.current = loadAndSubscribeUserDoc;
+
+  handleRecoverSessionRef.current = async () => {
+    setIsRecoveringSession(true);
+    try {
+      const targetUid = auth.currentUser?.uid || localStorage.getItem('google_auth_uid');
+      if (!targetUid) {
+        setSessionTerminationNotice(null);
+        isSessionTerminated.current = false;
+        setIsLoggedIn(false);
+        setAuthScreen('login');
+        return;
+      }
+
+      const { sessionId, deviceId, userDocData } = await recoverSessionFromDevice(targetUid);
+      const userDocRef = doc(db, 'users', targetUid);
+      let data = userDocData;
+      if (!data) {
+        const freshSnap = await getDoc(userDocRef);
+        if (freshSnap.exists()) {
+          data = freshSnap.data();
+        }
+      }
+
+      if (data) {
+        applyFirestoreUserData(data, { isInitialLoad: true });
+      }
+
+      isSessionTerminated.current = false;
+      setSessionTerminationNotice(null);
+      setIsLoggedIn(true);
+      isLoadedFromFirebase.current = true;
+      activeAuthUidRef.current = targetUid;
+      setUserDocReadyUid(targetUid);
+      localStorage.setItem('pirate_is_logged_in', 'true');
+
+      if (unsubUserSnapshot.current) {
+        try { unsubUserSnapshot.current(); } catch {}
+      }
+      unsubUserSnapshot.current = onSnapshot(userDocRef, (docSnap) => {
+        if (isDeletingAccount.current || docSnap.metadata.hasPendingWrites) return;
+        if (docSnap.exists()) {
+          const snapData = docSnap.data();
+          const serverDeviceId = snapData.currentDeviceId;
+          const localDevId = getOrCreateDeviceId();
+          const serverStatus = snapData.sessionStatus;
+
+          if ((serverDeviceId && localDevId && serverDeviceId !== localDevId) || serverStatus === 'EXPIRED') {
+            handleTerminateOldSession({
+              newDevice: snapData.lastLoginDevice || 'جهاز أو متصفح آخر',
+              lastLoginAt: snapData.lastLoginAt
+            });
+            return;
+          }
+
+          applyFirestoreUserData(snapData, { isInitialLoad: false });
+        }
+      }, (err) => {
+        console.warn("Real-time listener after recovery warning:", err);
+      });
+
+      console.log(`[SESSION RECOVERY] Successfully recovered session ${sessionId} for user ${targetUid} on device ${deviceId}`);
+    } catch (err: any) {
+      console.error('Failed to recover session:', err);
+      alert('تعذر استعادة الجلسة في الوقت الحالي. يرجى إعادة المحاولة.');
+    } finally {
+      setIsRecoveringSession(false);
+    }
+  };
+
   // --- Firebase Loading Effect with real-time onSnapshot ---
   useEffect(() => {
-    let unsubSnapshot: (() => void) | null = null;
-
-    // Fast fallback timer: never block the user on loading screen for more than 200ms
     const quickTimer = setTimeout(() => {
       setLoadingFirebase(false);
     }, 200);
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      clearTimeout(quickTimer);
       setCurrentUser(user);
       if (user) {
-        try {
-          const userDocRef = doc(db, 'users', user.uid);
-          
-          // 1. Initial Load / Migration (Runs once on auth state change)
-          const initialSnap = await getDoc(userDocRef);
-          if (initialSnap.exists()) {
-            const data = initialSnap.data();
-
-            // Check if active session on server differs from this browser's session
-            const serverDeviceId = data.currentDeviceId;
-            const localDeviceId = getOrCreateDeviceId();
-            const serverSessionId = data.currentSessionId;
-            const serverStatus = data.sessionStatus;
-            let localSessionId = getLocalSessionId();
-
-            if (!serverDeviceId || !serverSessionId) {
-              const res = await registerNewUserSession(user.uid);
-              localSessionId = res.sessionId;
-            } else if (serverDeviceId === localDeviceId) {
-              // Same device: seamlessly resume session across page reloads and tab closures
-              if (serverStatus === 'EXPIRED') {
-                const res = await registerNewUserSession(user.uid);
-                localSessionId = res.sessionId;
-              } else {
-                setLocalSessionId(serverSessionId);
-                localSessionId = serverSessionId;
-              }
-            } else {
-              // Different device has active session
-              await handleTerminateOldSession({
-                newDevice: data.lastLoginDevice || 'جهاز أو متصفح آخر',
-                lastLoginAt: data.lastLoginAt
-              });
-              setLoadingFirebase(false);
-              return;
-            }
-
-            lastDbData.current = data;
-            justLoadedFromFirestore.current = true;
-
-            const currentCleanEmail = (user.email || localStorage.getItem('google_auth_email') || '').toLowerCase().trim();
-            if (currentCleanEmail && data.email !== currentCleanEmail) {
-              setDoc(userDocRef, { email: currentCleanEmail, updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
-            }
-
-            if (data.username) setUsername(data.username);
-            if (data.avatar) setAvatar(data.avatar);
-            if (data.server) setServer(data.server);
-            if (data.pirateClass) setPirateClass(data.pirateClass);
-            
-            if (typeof data.gold === 'number') setGold(data.gold);
-            if (typeof data.gems === 'number') setGems(data.gems);
-            if (typeof data.exp === 'number') setExp(data.exp);
-            if (typeof data.redGems === 'number') setRedGems(data.redGems);
-            if (typeof data.fishStorageLevel === 'number') setFishStorageLevel(data.fishStorageLevel);
-            if (typeof data.shipTowerLevel === 'number') setShipTowerLevel(data.shipTowerLevel);
-            
-            if (data.ships && Array.isArray(data.ships)) setShips(data.ships.map((s: any) => syncShipMetadata({ ...s, moving: false })));
-            if (data.crew) setCrew(data.crew);
-            if (data.quests) setQuests(data.quests);
-            if (data.battleReports) setBattleReports(data.battleReports);
-            if (data.fishInventory) setFishInventory(data.fishInventory);
-            if (data.weapons) setWeapons(data.weapons);
-            if (data.crewServices) setCrewServices(data.crewServices);
-            if (data.crewInventory) setCrewInventory(data.crewInventory);
-            if (data.shieldInventory) setShieldInventory(data.shieldInventory);
-            if (Array.isArray(data.friends)) setFriends(data.friends);
-            if (Array.isArray(data.friendRequests)) setFriendRequests(data.friendRequests);
-            if (data.tribeId) setTribeId(data.tribeId);
-            if (data.tribeName) setTribeName(data.tribeName);
-            if (typeof data.portDestroyed === 'boolean') setPortDestroyed(data.portDestroyed);
-
-            isLoadedFromFirebase.current = true;
-          } else if (!isDeletingAccount.current) {
-            // New user: strictly initialize fresh isolated state for this unique user.uid
-            const cleanEmail = (user.email || localStorage.getItem('google_auth_email') || '').toLowerCase().trim();
-            const storedName = localStorage.getItem('google_auth_name') || '';
-            const initialUsername = user.displayName || storedName || (cleanEmail ? cleanEmail.split('@')[0] : '') || 'سياف_البحار';
-
-            const initialData = {
-              userId: user.uid,
-              googleUid: user.uid,
-              authProvider: user.providerData?.[0]?.providerId || 'firebase',
-              username: initialUsername,
-              email: cleanEmail,
-              avatar: '⚓',
-              server: 'سيرفر الأسطورة 1',
-              pirateClass: 'صياد البحار',
-              gold: DEFAULT_GOLD,
-              gems: DEFAULT_GEMS,
-              exp: DEFAULT_EXP,
-              redGems: DEFAULT_RED_GEMS,
-              fishStorageLevel: DEFAULT_FISH_STORAGE_LEVEL,
-              shipTowerLevel: DEFAULT_SHIP_TOWER_LEVEL,
-              ships: DEFAULT_SHIPS,
-              crew: DEFAULT_CREW,
-              quests: DEFAULT_QUESTS,
-              battleReports: [],
-              fishInventory: DEFAULT_FISH_INVENTORY,
-              weapons: DEFAULT_WEAPONS,
-              crewServices: DEFAULT_CREW_SERVICES,
-              crewInventory: {
-                guide: 1,
-                luck: 1,
-                sailor: 0,
-                thief: 1,
-                cop: 1,
-                merchant: 0,
-                fixer_sm: 5,
-                fixer_md: 3,
-                fixer_lg: 1,
-                fixer_epic: 0,
-                market_expert: 1,
-                gold_fisher: 1,
-              },
-              shieldInventory: {
-                shield_4h: 1,
-                shield_1d: 0,
-                shield_2d: 0,
-                anti_nuke: 0,
-                anti_emp: 0,
-                disable_anti_range: 0,
-                disable_anti_core: 0,
-              },
-              friends: [],
-              friendRequests: [],
-              tribeId: '',
-              tribeName: '',
-              portDestroyed: false,
-              updatedAt: new Date().toISOString()
-            };
-
-            // Set React state to isolated initial defaults
-            setUsername(initialData.username);
-            setAvatar(initialData.avatar);
-            setServer(initialData.server);
-            setPirateClass(initialData.pirateClass);
-            setGold(initialData.gold);
-            setGems(initialData.gems);
-            setExp(initialData.exp);
-            setRedGems(initialData.redGems);
-            setFishStorageLevel(initialData.fishStorageLevel);
-            setShipTowerLevel(initialData.shipTowerLevel);
-            setShips(initialData.ships);
-            setCrew(initialData.crew);
-            setQuests(initialData.quests);
-            setBattleReports([]);
-            setFishInventory(initialData.fishInventory);
-            setWeapons(initialData.weapons);
-            setCrewServices(initialData.crewServices);
-            setCrewInventory(initialData.crewInventory);
-            setShieldInventory(initialData.shieldInventory);
-            setFriends([]);
-            setFriendRequests([]);
-            setTribeId('');
-            setTribeName('');
-            setPortDestroyed(false);
-
-            await setDoc(userDocRef, initialData).catch((err) => {
-              console.error("Error creating initial user document:", err);
-            });
-            lastDbData.current = initialData;
-            isLoadedFromFirebase.current = true;
-          }
-
-          // 2. Set up real-time listener for current user updates from other tabs/clients
-          unsubSnapshot = onSnapshot(userDocRef, (docSnap) => {
-            clearTimeout(quickTimer);
-            if (isDeletingAccount.current || docSnap.metadata.hasPendingWrites) {
-              return;
-            }
-            if (docSnap.exists()) {
-              const data = docSnap.data();
-
-              // Concurrency check: if another device or browser logs in, terminate this session immediately
-              const serverDeviceId = data.currentDeviceId;
-              const localDeviceId = getOrCreateDeviceId();
-              const serverSessionId = data.currentSessionId;
-              const localSessionId = getLocalSessionId();
-              const serverStatus = data.sessionStatus;
-
-              if ((serverDeviceId && localDeviceId && serverDeviceId !== localDeviceId) || serverStatus === 'EXPIRED') {
-                handleTerminateOldSession({
-                  newDevice: data.lastLoginDevice || 'جهاز أو متصفح آخر',
-                  lastLoginAt: data.lastLoginAt
-                });
-                return;
-              }
-
-              // Synchronize localSessionId for same device
-              if (serverDeviceId === localDeviceId && serverSessionId && localSessionId !== serverSessionId) {
-                setLocalSessionId(serverSessionId);
-              }
-
-              lastDbData.current = data;
-              justLoadedFromFirestore.current = true;
-
-              if (data.username) setUsername(data.username);
-              if (data.avatar) setAvatar(data.avatar);
-              if (data.server) setServer(data.server);
-              if (data.pirateClass) setPirateClass(data.pirateClass);
-              
-              setGold(prev => typeof data.gold === 'number' && data.gold !== prev ? data.gold : prev);
-              setGems(prev => typeof data.gems === 'number' && data.gems !== prev ? data.gems : prev);
-              setExp(prev => typeof data.exp === 'number' && data.exp !== prev ? data.exp : prev);
-              setRedGems(prev => typeof data.redGems === 'number' && data.redGems !== prev ? data.redGems : prev);
-              setFishStorageLevel(prev => typeof data.fishStorageLevel === 'number' && data.fishStorageLevel !== prev ? data.fishStorageLevel : prev);
-              setShipTowerLevel(prev => typeof data.shipTowerLevel === 'number' && data.shipTowerLevel !== prev ? data.shipTowerLevel : prev);
-              
-              if (data.ships && Array.isArray(data.ships) && data.ships.length > 0) {
-                const synced = data.ships.map((s: any) => syncShipMetadata({ ...s, moving: false }));
-                setShips(synced);
-                localStorage.setItem('pirate_ships', JSON.stringify(synced));
-              }
-              if (data.crew) setCrew(data.crew);
-              if (data.quests) setQuests(data.quests);
-              if (data.battleReports) setBattleReports(data.battleReports);
-              if (data.fishInventory) setFishInventory(data.fishInventory);
-              if (data.weapons) setWeapons(data.weapons);
-              if (data.crewServices) setCrewServices(data.crewServices);
-              if (data.crewInventory) setCrewInventory(data.crewInventory);
-              if (data.shieldInventory) setShieldInventory(data.shieldInventory);
-              if (Array.isArray(data.friends)) setFriends(data.friends);
-              if (Array.isArray(data.friendRequests)) setFriendRequests(data.friendRequests);
-              if (data.tribeId) setTribeId(data.tribeId);
-              if (data.tribeName) setTribeName(data.tribeName);
-              if (typeof data.portDestroyed === 'boolean') {
-                setPortDestroyed(data.portDestroyed);
-                localStorage.setItem('pirate_port_destroyed', data.portDestroyed.toString());
-              }
-            }
-            // Note: If !docSnap.exists(), we do NOT recreate it, respecting account deletion!
-            setLoadingFirebase(false);
-          }, (err) => {
-            console.error("Error in real-time user document listener:", err);
-            clearTimeout(quickTimer);
-            setLoadingFirebase(false);
-          });
-          unsubUserSnapshot.current = unsubSnapshot;
-
-          setIsLoggedIn(true);
-          setLoadingFirebase(false);
-        } catch (error) {
-          console.error("Error loading user profile from Firestore:", error);
-          try {
-            handleFirestoreError(error, OperationType.GET, `users/${user.uid}`);
-          } catch (e) {}
-          clearTimeout(quickTimer);
-          setLoadingFirebase(false);
-        }
+        await loadAndSubscribeUserDocRef.current?.(user);
       } else {
-        // User not logged into Firebase: do NOT wipe localStorage so local progress is preserved!
         setCurrentUser(null);
         setIsLoggedIn(false);
         isLoadedFromFirebase.current = false;
-        clearTimeout(quickTimer);
+        activeAuthUidRef.current = null;
+        setUserDocReadyUid(null);
         setLoadingFirebase(false);
-        if (unsubSnapshot) {
-          unsubSnapshot();
-          unsubSnapshot = null;
+        if (unsubUserSnapshot.current) {
+          unsubUserSnapshot.current();
+          unsubUserSnapshot.current = null;
         }
       }
     });
@@ -3668,8 +3989,9 @@ export default function App() {
     return () => {
       clearTimeout(quickTimer);
       unsubscribeAuth();
-      if (unsubSnapshot) {
-        unsubSnapshot();
+      if (unsubUserSnapshot.current) {
+        unsubUserSnapshot.current();
+        unsubUserSnapshot.current = null;
       }
     };
   }, []);
@@ -3679,29 +4001,30 @@ export default function App() {
     const handleBeforeUnload = () => {
       const user = auth.currentUser;
       if (!user || !isLoadedFromFirebase.current || isDeletingAccount.current || isSessionTerminated.current) return;
-      const cleanUserEmail = user.email?.toLowerCase().trim() || (localStorage.getItem('google_auth_email') || '').toLowerCase().trim();
-      const currentData = {
-        username, email: cleanUserEmail, avatar, server, pirateClass, gold, gems, exp, redGems,
-        fishStorageLevel, shipTowerLevel, ships, crew, quests, battleReports,
-        fishInventory, weapons, crewServices, crewInventory, shieldInventory, portDestroyed, friends, friendRequests, tribeId, tribeName,
-        updatedAt: new Date().toISOString()
-      };
+      const currentData = buildCurrentUserPayload();
       const userDocRef = doc(db, 'users', user.uid);
-      setDoc(userDocRef, { userId: user.uid, ...currentData }, { merge: true }).catch(() => {});
+      setDoc(userDocRef, { userId: user.uid, ...currentData, updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [
     username, avatar, server, pirateClass, gold, gems, exp, redGems,
     fishStorageLevel, shipTowerLevel, ships, crew, quests, battleReports,
-    fishInventory, weapons, crewServices, crewInventory, shieldInventory, portDestroyed
+    attackLogs, supportGifts, fishInventory, weapons, crewServices,
+    crewInventory, shieldInventory, portDestroyed, activeAd, friends, friendRequests,
+    tribeId, tribeName, tribes, bgTheme, profileTheme,
+    language, showDeathBanners, showAttackNotifications, showChestNotifications,
+    showPopupAlerts, disableAnimatedBackground, powerSaver, showSoundTones,
+    customizeIconFunctions, showRelatedAlerts, disableQuickChat, powerSaverLogin,
+    stopRogueAlliances, heatingEnergyIndex, isMusicMuted, isSfxMuted, lowGraphics
   ]);
 
   // --- Active Session Continuous Validation (Interval + Tab Focus + Event) ---
   useEffect(() => {
     const checkSessionActivity = async () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       const user = auth.currentUser;
-      if (!user || isSessionTerminated.current) return;
+      if (!user || isSessionTerminated.current || localStorage.getItem('pirate_login_in_progress') === 'true') return;
       const res = await verifyActiveSession(user.uid);
       if (!res.isValid) {
         handleTerminateOldSession({
@@ -3727,7 +4050,7 @@ export default function App() {
     document.addEventListener('visibilitychange', handleFocusOrVisibility);
     window.addEventListener('session-terminated-by-other-device', handleSessionTerminatedEvent);
 
-    const interval = setInterval(checkSessionActivity, 15000);
+    const interval = setInterval(checkSessionActivity, 30000);
 
     return () => {
       window.removeEventListener('focus', handleFocusOrVisibility);
@@ -3745,43 +4068,16 @@ export default function App() {
     }
 
     const user = auth.currentUser;
-    if (!user || !isLoadedFromFirebase.current || isDeletingAccount.current) return;
+    if (!user || !isLoadedFromFirebase.current || isDeletingAccount.current || isSessionTerminated.current) return;
 
     if (justLoadedFromFirestore.current) {
       justLoadedFromFirestore.current = false;
       return;
     }
 
-    const cleanUserEmail = user.email?.toLowerCase().trim() || (localStorage.getItem('google_auth_email') || '').toLowerCase().trim();
-
-    const currentData = {
-      username,
-      email: cleanUserEmail,
-      avatar,
-      server,
-      pirateClass,
-      gold,
-      gems,
-      exp,
-      redGems,
-      fishStorageLevel,
-      shipTowerLevel,
-      ships,
-      crew,
-      quests,
-      battleReports,
-      fishInventory,
-      weapons,
-      crewServices,
-      portDestroyed,
-      friends,
-      friendRequests,
-      tribeId,
-      tribeName
-    };
+    const currentData = buildCurrentUserPayload();
 
     if (lastDbData.current && areFieldsEqual(lastDbData.current, currentData)) {
-      // Data is exactly the same as in DB, skip saving
       return;
     }
 
@@ -3815,7 +4111,13 @@ export default function App() {
   }, [
     username, avatar, server, pirateClass, gold, gems, exp, redGems,
     fishStorageLevel, shipTowerLevel, ships, crew, quests, battleReports,
-    fishInventory, weapons, crewServices, portDestroyed, friends, friendRequests, tribeId, tribeName
+    attackLogs, supportGifts, fishInventory, weapons, crewServices,
+    crewInventory, shieldInventory, portDestroyed, activeAd, friends, friendRequests,
+    tribeId, tribeName, tribes, bgTheme, profileTheme,
+    language, showDeathBanners, showAttackNotifications, showChestNotifications,
+    showPopupAlerts, disableAnimatedBackground, powerSaver, showSoundTones,
+    customizeIconFunctions, showRelatedAlerts, disableQuickChat, powerSaverLogin,
+    stopRogueAlliances, heatingEnergyIndex, isMusicMuted, isSfxMuted, lowGraphics
   ]);
 
   // --- Active Account & Email Cloud Synchronization ---
@@ -3831,7 +4133,7 @@ export default function App() {
     showToast('🔄 جاري مزامنة بيانات الحساب والبريد الإلكتروني مع السحابة...', 'success');
 
     try {
-      let targetUid = user?.uid;
+      const targetUid = user?.uid;
       let userDocRef = targetUid ? doc(db, 'users', targetUid) : null;
       let docSnap = userDocRef ? await getDoc(userDocRef) : null;
 
@@ -3839,41 +4141,45 @@ export default function App() {
 
       // If docSnap doesn't exist by UID, search by email in Firestore
       if ((!docSnap || !docSnap.exists()) && cleanUserEmail) {
-        const q = query(collection(db, 'users'), where('email', '==', cleanUserEmail));
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          docSnap = snap.docs[0];
-          userDocRef = docSnap.ref;
+        const legacyMatch = await findBestLegacyAccountByEmail(cleanUserEmail, targetUid);
+        if (legacyMatch && targetUid) {
+          const targetRef = doc(db, 'users', targetUid);
+          const migrated = {
+            ...legacyMatch.data,
+            userId: targetUid,
+            email: cleanUserEmail,
+            migratedFromUid: legacyMatch.id,
+            updatedAt: new Date().toISOString()
+          };
+          await setDoc(targetRef, migrated, { merge: true });
+          applyFirestoreUserData(migrated, { isInitialLoad: true });
+          showToast('✅ تم استرجاع ومزامنة حسابك بالكامل من السحابة!', 'success');
+          return;
         }
       }
 
       if (docSnap && docSnap.exists()) {
         const data = docSnap.data();
-        if (data.username) setUsername(data.username);
-        if (data.avatar) setAvatar(data.avatar);
-        if (data.server) setServer(data.server);
-        if (data.pirateClass) setPirateClass(data.pirateClass);
-        if (typeof data.gold === 'number') setGold(data.gold);
-        if (typeof data.gems === 'number') setGems(data.gems);
-        if (typeof data.exp === 'number') setExp(data.exp);
-        if (typeof data.redGems === 'number') setRedGems(data.redGems);
-        if (typeof data.fishStorageLevel === 'number') setFishStorageLevel(data.fishStorageLevel);
-        if (typeof data.shipTowerLevel === 'number') setShipTowerLevel(data.shipTowerLevel);
-        if (data.ships && Array.isArray(data.ships)) setShips(data.ships.map((s: any) => syncShipMetadata({ ...s, moving: false })));
-        if (data.crew) setCrew(data.crew);
-        if (data.quests) setQuests(data.quests);
-        if (data.battleReports) setBattleReports(data.battleReports);
-        if (data.fishInventory) setFishInventory(data.fishInventory);
-        if (data.weapons) setWeapons(data.weapons);
-        if (data.crewServices) setCrewServices(data.crewServices);
-        if (data.crewInventory) setCrewInventory(data.crewInventory);
-        if (data.shieldInventory) setShieldInventory(data.shieldInventory);
-        if (Array.isArray(data.friends)) setFriends(data.friends);
-        if (Array.isArray(data.friendRequests)) setFriendRequests(data.friendRequests);
-        if (data.tribeId) setTribeId(data.tribeId);
-        if (data.tribeName) setTribeName(data.tribeName);
+        // Check if a richer legacy doc exists for this same email when current doc is empty
+        if (cleanUserEmail && scoreAccountDocProgress(data) <= 600) {
+          const legacyMatch = await findBestLegacyAccountByEmail(cleanUserEmail, targetUid);
+          if (legacyMatch && legacyMatch.score > scoreAccountDocProgress(data) + 600 && targetUid) {
+            const migrated = {
+              ...legacyMatch.data,
+              userId: targetUid,
+              email: cleanUserEmail,
+              migratedFromUid: legacyMatch.id,
+              updatedAt: new Date().toISOString()
+            };
+            await setDoc(doc(db, 'users', targetUid), migrated, { merge: true });
+            applyFirestoreUserData(migrated, { isInitialLoad: true });
+            showToast('✅ تم استرجاع كامل تقدمك وإنجازاتك المرتبطة بهذا البريد!', 'success');
+            return;
+          }
+        }
 
-        // Always sync email & userId onto the document
+        applyFirestoreUserData(data, { isInitialLoad: false });
+
         if (userDocRef) {
           await setDoc(userDocRef, {
             userId: user?.uid || data.userId,
@@ -3889,17 +4195,14 @@ export default function App() {
 
         showToast('✅ تم مزامنة بيانات الحساب والبريد الإلكتروني بنجاح مع السحابة!', 'success');
       } else if (targetUid) {
-        // Save current game state to cloud
         const currentData = {
           userId: targetUid,
-          username,
-          email: cleanUserEmail,
-          avatar, server, pirateClass, gold, gems, exp, redGems,
-          fishStorageLevel, shipTowerLevel, ships, crew, quests, battleReports,
-          fishInventory, weapons, crewServices, portDestroyed, friends, friendRequests, tribeId, tribeName,
+          ...buildCurrentUserPayload(cleanUserEmail),
           updatedAt: new Date().toISOString()
         };
         await setDoc(doc(db, 'users', targetUid), currentData, { merge: true });
+        lastDbData.current = currentData;
+        isLoadedFromFirebase.current = true;
         showToast('✅ تم إنشاء وحفظ وثيقة الحساب السحابي بنجاح!', 'success');
       }
     } catch (err: any) {
@@ -3956,10 +4259,9 @@ export default function App() {
     }
   }, [chatMessages.length, activeTab]);
 
-  // --- Live Tribes Subscription ---
+  // --- Live Tribes Subscription (with user-doc snapshot fallback if /tribes rules restrict access) ---
   useEffect(() => {
     if (!isLoggedIn || !currentUser) return;
-    // Querying with limit and sorting in-memory avoids missing-field exclusion and index requirements
     const q = query(collection(db, 'tribes'), limit(50));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const list: any[] = [];
@@ -3980,11 +4282,12 @@ export default function App() {
           createdAt: data.createdAt || new Date().toISOString()
         });
       });
-      // Sort in-memory by power descending
       list.sort((a, b) => (b.power || 0) - (a.power || 0));
       setTribes(list);
     }, (err) => {
-      console.warn("Could not fetch tribes from Firestore:", err.message || err);
+      if (err?.code !== 'permission-denied') {
+        console.warn("Could not fetch tribes from Firestore:", err.message || err);
+      }
       try {
         const local = JSON.parse(localStorage.getItem('pirate_local_tribes') || '[]');
         if (Array.isArray(local) && local.length > 0) {
@@ -3995,70 +4298,106 @@ export default function App() {
     return () => unsubscribe();
   }, [isLoggedIn, currentUser]);
 
-  // --- Live Players & Leaderboard Subscription ---
+  // --- Live Players & Leaderboard Subscription (Debounced to prevent full-app re-render storms) ---
   useEffect(() => {
     if (!isLoggedIn || !currentUser) return;
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     const q = query(collection(db, 'users'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const playerList: any[] = [];
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const playerList: any[] = [];
+        const fallbackTribesMap = new Map<string, any>();
 
-      snapshot.forEach((docSnap) => {
-        if (!docSnap.exists()) return;
-        const data = docSnap.data();
-        const docUserId = data.userId || docSnap.id;
-        const docEmail = (data.email || '').toLowerCase().trim();
-        const rawUsername = (data.username || '').trim();
-        const isPlaceholder = rawUsername === 'قبطان_البحار' || rawUsername === 'قبطان_الأعماق' || rawUsername === 'قبطان_مجهول';
-        const docUsername = !isPlaceholder && rawUsername !== ''
-          ? rawUsername
-          : (docEmail ? docEmail.split('@')[0] : (data.displayName || 'لاعب'));
+        snapshot.forEach((docSnap) => {
+          if (!docSnap.exists()) return;
+          const data = docSnap.data();
+          const docUserId = data.userId || docSnap.id;
+          const docEmail = (data.email || '').toLowerCase().trim();
+          const rawUsername = (data.username || '').trim();
+          const isPlaceholder = rawUsername === 'قبطان_البحار' || rawUsername === 'قبطان_الأعماق' || rawUsername === 'قبطان_مجهول';
+          const docUsername = !isPlaceholder && rawUsername !== ''
+            ? rawUsername
+            : (docEmail ? docEmail.split('@')[0] : (data.displayName || 'لاعب'));
 
-        playerList.push({
-          id: docSnap.id,
-          userId: docUserId,
-          username: docUsername,
-          email: docEmail,
-          avatar: data.avatar || '⚓',
-          gold: typeof data.gold === 'number' ? data.gold : 0,
-          gems: typeof data.gems === 'number' ? data.gems : 0,
-          redGems: typeof data.redGems === 'number' ? data.redGems : 0,
-          exp: typeof data.exp === 'number' ? data.exp : 0,
-          ships: data.ships || [],
-          crew: data.crew || [],
-          weapons: data.weapons || {},
-          battleReports: data.battleReports || [],
-          fishInventory: data.fishInventory || {},
-          shipTowerLevel: typeof data.shipTowerLevel === 'number' ? data.shipTowerLevel : 1,
-          fishStorageLevel: typeof data.fishStorageLevel === 'number' ? data.fishStorageLevel : 1,
-          portDestroyed: !!data.portDestroyed,
-          crewServices: data.crewServices || {},
-          pirateClass: data.pirateClass || 'صياد البحار',
-          server: data.server || 'سيرفر الأسطورة 1',
-          tribeId: data.tribeId || '',
-          tribeName: data.tribeName || '',
-          friends: data.friends || [],
-          friendRequests: data.friendRequests || [],
-          updatedAt: data.updatedAt || new Date().toISOString()
+          if (data.tribeSnapshot && typeof data.tribeSnapshot === 'object' && data.tribeSnapshot.id) {
+            const existingT = fallbackTribesMap.get(data.tribeSnapshot.id);
+            if (!existingT || (data.tribeSnapshot.power || 0) >= (existingT.power || 0)) {
+              fallbackTribesMap.set(data.tribeSnapshot.id, data.tribeSnapshot);
+            }
+          }
+
+          playerList.push({
+            id: docSnap.id,
+            userId: docUserId,
+            username: docUsername,
+            email: docEmail,
+            avatar: data.avatar || '⚓',
+            gold: typeof data.gold === 'number' ? data.gold : 0,
+            gems: typeof data.gems === 'number' ? data.gems : 0,
+            redGems: typeof data.redGems === 'number' ? data.redGems : 0,
+            exp: typeof data.exp === 'number' ? data.exp : 0,
+            boomPoints: typeof data.boomPoints === 'number' ? data.boomPoints : undefined,
+            country: data.country || undefined,
+            ships: data.ships || [],
+            crew: data.crew || [],
+            weapons: data.weapons || {},
+            battleReports: data.battleReports || [],
+            fishInventory: data.fishInventory || {},
+            shipTowerLevel: typeof data.shipTowerLevel === 'number' ? data.shipTowerLevel : 1,
+            fishStorageLevel: typeof data.fishStorageLevel === 'number' ? data.fishStorageLevel : 1,
+            portDestroyed: !!data.portDestroyed,
+            activeAd: data.activeAd || null,
+            crewServices: data.crewServices || {},
+            pirateClass: data.pirateClass || 'صياد البحار',
+            server: data.server || 'سيرفر الأسطورة 1',
+            tribeId: data.tribeId || '',
+            tribeName: data.tribeName || '',
+            tribeSnapshot: data.tribeSnapshot || null,
+            friends: data.friends || [],
+            friendRequests: data.friendRequests || [],
+            updatedAt: data.updatedAt || new Date().toISOString()
+          });
         });
-      });
 
-      // Map deduplication by document UID so every active account in Firestore appears cleanly
-      const uniquePlayersMap = new Map<string, any>();
-      for (const p of playerList) {
-        const key = p.userId || p.id;
-        if (!uniquePlayersMap.has(key) || ((p.gold || 0) > (uniquePlayersMap.get(key)?.gold || 0))) {
-          uniquePlayersMap.set(key, p);
+        // Only update tribes if fallbackTribesMap introduces missing or stronger tribe data
+        if (fallbackTribesMap.size > 0) {
+          setTribes(prev => {
+            const map = new Map<string, any>();
+            prev.forEach(t => map.set(t.id, t));
+            let changed = false;
+            fallbackTribesMap.forEach((snapT, tid) => {
+              const cur = map.get(tid);
+              if (!cur || (snapT.power || 0) > (cur.power || 0)) {
+                map.set(tid, snapT);
+                changed = true;
+              }
+            });
+            return changed ? Array.from(map.values()) : prev;
+          });
         }
-      }
 
-      const deduplicatedList = Array.from(uniquePlayersMap.values());
-      deduplicatedList.sort((a, b) => (b.gold || 0) - (a.gold || 0));
+        // Map deduplication by document UID so every active account in Firestore appears cleanly
+        const uniquePlayersMap = new Map<string, any>();
+        for (const p of playerList) {
+          const key = p.id || p.userId;
+          if (!uniquePlayersMap.has(key)) {
+            uniquePlayersMap.set(key, p);
+          }
+        }
 
-      setRealPlayers(deduplicatedList);
+        const deduplicatedList = Array.from(uniquePlayersMap.values());
+        deduplicatedList.sort((a, b) => (b.gold || 0) - (a.gold || 0));
+
+        setRealPlayers(deduplicatedList);
+      }, 1500);
     }, (err) => {
       console.warn("Could not listen to user profiles for leaderboard:", err.message || err);
     });
-    return () => unsubscribe();
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      unsubscribe();
+    };
   }, [isLoggedIn, currentUser]);
 
   // --- Live Firestore Global Notifications Listener ---
@@ -4076,7 +4415,6 @@ export default function App() {
         if (change.type === 'added') {
           const data = change.doc.data() as GlobalNotification;
           const createdAtTime = new Date(data.createdAt).getTime();
-          // Only pop toast if created within this active session window
           if (createdAtTime >= mountTime) {
             queueNotification({
               ...data,
@@ -4086,7 +4424,9 @@ export default function App() {
         }
       });
     }, (err) => {
-      handleFirestoreError(err, OperationType.GET, 'globalNotifications');
+      if (err?.code !== 'permission-denied') {
+        handleFirestoreError(err, OperationType.GET, 'globalNotifications');
+      }
     });
 
     return () => unsubscribe();
@@ -4136,259 +4476,471 @@ export default function App() {
     prevShipTowerLevel.current = shipTowerLevel;
   }, [shipTowerLevel, username]);
 
-  // --- Live Firestore Harbor Events & Defender Defense Engine ---
+  latestUserStateRef.current = {
+    battleReports,
+    attackLogs,
+    ships,
+    gold,
+    gems,
+    redGems,
+    activeAd,
+    portDestroyed,
+    username,
+    avatar,
+  };
+
+  // --- Live Firestore Harbor Events & Defender Defense Engine (No composite index needed) ---
   useEffect(() => {
-    if (!isLoggedIn || !currentUser) return;
+    if (!isLoggedIn || !currentUser || userDocReadyUid !== currentUser.uid) return;
 
     const qEvents = query(
       collection(db, 'harborEvents'),
-      where('defenderId', '==', currentUser.uid),
-      where('status', '==', 'PENDING')
+      where('defenderId', '==', currentUser.uid)
     );
 
     const unsubscribe = onSnapshot(qEvents, async (snapshot) => {
       for (const change of snapshot.docChanges()) {
-        if (change.type === 'added') {
-          const evDoc = change.doc;
-          const ev = evDoc.data();
-          const evId = evDoc.id;
+        if (change.type !== 'added' && change.type !== 'modified') continue;
 
-          try {
-            const userDocRef = doc(db, 'users', currentUser.uid);
+        const evDoc = change.doc;
+        const ev = evDoc.data();
+        const evId = evDoc.id;
 
-            if (ev.type === 'ROCKET_SMALL' || ev.type === 'ROCKET_MEDIUM' || ev.type === 'ROCKET_LARGE' || ev.type === 'ATOMIC_BOMB' || ev.type === 'AD_BOMB') {
-              const fallbackDamageMap: Record<string, number> = {
-                ROCKET_SMALL: 1000,
-                ROCKET_MEDIUM: 5000,
-                ROCKET_LARGE: 10000,
-                AD_BOMB: 20000,
-                ATOMIC_BOMB: 70000,
+        if ((ev.status && ev.status !== 'PENDING') || processedHarborEventIdsRef.current.has(evId)) {
+          continue;
+        }
+        processedHarborEventIdsRef.current.add(evId);
+
+        // Immediately mark event PROCESSED so duplicate snapshots never re-fire it
+        updateDoc(doc(db, 'harborEvents', evId), {
+          status: 'PROCESSED',
+          processedAt: new Date().toISOString(),
+        }).catch(() => {});
+
+        try {
+          const userDocRef = doc(db, 'users', currentUser.uid);
+          const nowTime = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+          const curState = latestUserStateRef.current || {};
+          const prevReports = Array.isArray(curState.battleReports) ? curState.battleReports : [];
+          const prevAttackLogs = Array.isArray(curState.attackLogs) ? curState.attackLogs : [];
+
+          if (
+            ev.type === 'ROCKET_SMALL' ||
+            ev.type === 'ROCKET_MEDIUM' ||
+            ev.type === 'ROCKET_LARGE' ||
+            ev.type === 'ATOMIC_BOMB' ||
+            ev.type === 'AD_BOMB'
+          ) {
+            const fallbackDamageMap: Record<string, number> = {
+              ROCKET_SMALL: 1000,
+              ROCKET_MEDIUM: 5000,
+              ROCKET_LARGE: 10000,
+              AD_BOMB: 20000,
+              ATOMIC_BOMB: 70000,
+            };
+            const dmg = typeof ev.payload?.damage === 'number' && ev.payload.damage > 0
+              ? ev.payload.damage
+              : (fallbackDamageMap[ev.type] ?? 1000);
+            const targetShipId = ev.payload?.targetShipId;
+            const targetShipIdx = typeof ev.payload?.targetShipIndex === 'number' ? ev.payload.targetShipIndex : 0;
+            const attackerName = ev.attackerName || 'قبطان معادٍ';
+            const attackerAvatar = ev.attackerAvatar || '☠️';
+            const isAreaAttack = ev.type === 'ATOMIC_BOMB' || ev.type === 'AD_BOMB';
+
+            const baseShips = Array.isArray(curState.ships) && curState.ships.length > 0 ? curState.ships : shipsRef.current;
+            const activeTargetCandidate =
+              baseShips.find((s: any) => targetShipId && s.id === targetShipId) ||
+              baseShips[targetShipIdx] ||
+              baseShips.find((s: any) => s.exists !== false) ||
+              baseShips[0];
+            const resolvedTargetShipId = activeTargetCandidate?.id;
+            const fallbackPos = (resolvedTargetShipId && docks[resolvedTargetShipId]) || { l: '45%', t: '49%' };
+            const impactX = activeTargetCandidate?.left || fallbackPos.l;
+            const impactY = activeTargetCandidate?.top || fallbackPos.t;
+
+            const updatedShips = baseShips.map((s: any) => {
+              const normalized = normalizeShipEnergyToCargo(s);
+              const isHit = isAreaAttack || (resolvedTargetShipId ? normalized.id === resolvedTargetShipId : false);
+              if (!isHit) return normalized;
+
+              const maxH = getShipMaxHeart(normalized);
+              const curH = typeof normalized.heart === 'number' ? Math.min(normalized.heart, maxH) : maxH;
+              const newH = Math.max(0, curH - dmg);
+              return {
+                ...normalized,
+                maxHeart: maxH,
+                heart: newH,
+                energySyncedToCargo: true,
+                ...(newH <= 0 ? { moving: false, status: 'docked' as const } : {}),
               };
-              const dmg = typeof ev.payload?.damage === 'number' && ev.payload.damage > 0
-                ? ev.payload.damage
-                : (fallbackDamageMap[ev.type] ?? 1000);
-              const targetShipId = ev.payload?.targetShipId;
-              const attackerName = ev.attackerName || 'قبطان معادٍ';
+            });
 
-              setShips(prevShips => {
-                const isAreaAttack = ev.type === 'ATOMIC_BOMB' || ev.type === 'AD_BOMB';
-                const resolvedTargetShipId = targetShipId || prevShips.find(s => s.exists !== false)?.id || prevShips[0]?.id;
-                const updated = prevShips.map(s => {
-                  const normalized = normalizeShipEnergyToCargo(s);
-                  const isHit = isAreaAttack || (resolvedTargetShipId ? normalized.id === resolvedTargetShipId : false);
-                  if (!isHit) return normalized;
+            const activeUpdated = updatedShips.filter((s: any) => s.exists !== false);
+            const isAllDestroyed = activeUpdated.length > 0 && activeUpdated.every((s: any) => typeof s.heart === 'number' && s.heart <= 0);
 
-                  const maxH = getShipMaxHeart(normalized);
-                  const curH = typeof normalized.heart === 'number' ? Math.min(normalized.heart, maxH) : maxH;
+            const weaponMetaMap: Record<string, { title: string; icon: string }> = {
+              ROCKET_SMALL: { title: 'قصف بصاروخ صغير', icon: '🚀' },
+              ROCKET_MEDIUM: { title: 'قصف بصاروخ متوسط', icon: '🚀' },
+              ROCKET_LARGE: { title: 'قصف بصاروخ كبير فتاك', icon: '🚀' },
+              ATOMIC_BOMB: { title: 'ضربة قنبلة الموت الأسود', icon: '☢️' },
+              AD_BOMB: { title: `هجوم رسالة التفجير${ev.payload?.adTitle ? ` (${ev.payload.adTitle})` : ''}`, icon: '📡' },
+            };
+            const wMeta = weaponMetaMap[ev.type] || { title: 'هجوم معادٍ', icon: '💥' };
 
-                  const newH = Math.max(0, curH - dmg);
-                  return {
-                    ...normalized,
-                    maxHeart: maxH,
-                    heart: newH,
-                    energySyncedToCargo: true,
-                    ...(newH <= 0 ? { moving: false, status: 'docked' as const } : {})
-                  };
-                });
+            const rawReport = ev.payload?.newReport || {
+              id: `report_${evId}`,
+              opponent: attackerName,
+              opponentName: attackerName,
+              opponentAvatar: attackerAvatar,
+              type: 'defense',
+              result: 'defeat',
+              isVictory: false,
+              goldChange: 0,
+              time: nowTime,
+              date: new Date().toISOString(),
+              title: isAllDestroyed ? '🚨 تم تدمير أسطولك ومينائك بالكامل!' : `🚨 ${wMeta.title} على مينائك!`,
+              log: [`${wMeta.icon} قام القبطان @${attackerName} بمهاجمة مينائك (${wMeta.title}) ملحقاً ضرر ${dmg.toLocaleString()} من الطاقة!`]
+            };
+            const normalizedReport = {
+              ...rawReport,
+              opponent: rawReport.opponent || attackerName,
+              opponentName: rawReport.opponentName || rawReport.opponent || attackerName,
+              opponentAvatar: rawReport.opponentAvatar || attackerAvatar,
+              isVictory: false,
+              time: rawReport.time || nowTime,
+            };
 
-                const activeUpdated = updated.filter(s => s.exists);
-                const isAllDestroyed = activeUpdated.length > 0 && activeUpdated.every(s => typeof s.heart === 'number' && s.heart <= 0);
-                setPortDestroyed(isAllDestroyed);
-                try {
-                  localStorage.setItem('pirate_port_destroyed', isAllDestroyed ? 'true' : 'false');
-                  localStorage.setItem('pirate_ships_v2', JSON.stringify(updated));
-                  localStorage.setItem('pirate_ships', JSON.stringify(updated));
-                } catch {}
+            const nextReports = [normalizedReport, ...prevReports.filter((r: any) => r.id !== normalizedReport.id).slice(0, 29)];
+            const newAttackLog: AttackLogItem = {
+              id: 'atk_' + evId,
+              attackerName,
+              attackerAvatar,
+              attackerLevel: ev.payload?.attackerLevel || 28,
+              time: nowTime,
+              title: `${wMeta.title} ${wMeta.icon}`,
+              description: isAreaAttack
+                ? `شن القبطان @${attackerName} ${wMeta.title} على جميع سفن أسطولك بضرر ${dmg.toLocaleString()} طاقة لكل سفينة!`
+                : `استهدف القبطان @${attackerName} سفينتك (${activeTargetCandidate?.name || 'سفينة الأسطول'}) بـ ${wMeta.title} وألحق ضرر ${dmg.toLocaleString()} طاقة!`,
+              goldLooted: 0,
+              shipsDamaged: isAreaAttack ? activeUpdated.length : 1,
+              isAvenged: false,
+              date: new Date().toISOString(),
+            };
+            const nextAttackLogs = [newAttackLog, ...prevAttackLogs.filter((a: any) => a.id !== newAttackLog.id).slice(0, 29)];
+            const nextActiveAd = ev.type === 'AD_BOMB' ? (ev.payload?.adKey || 'luffy_king') : (curState.activeAd ?? null);
 
-                const newReport = ev.payload?.newReport || {
-                  id: `report_${Date.now()}`,
-                  opponent: attackerName,
-                  opponentAvatar: ev.attackerAvatar || '☠️',
-                  type: 'defense',
-                  result: 'defeat',
-                  goldChange: 0,
-                  date: new Date().toISOString(),
-                  title: '🚨 هجوم معادٍ على مينائك!',
-                  log: [`قام القبطان @${attackerName} بمهاجمة أسطولك ومينائك!`]
-                };
-
-                setBattleReports(prev => [newReport, ...prev.slice(0, 19)]);
-
-                updateDoc(userDocRef, {
-                  ships: updated,
-                  portDestroyed: isAllDestroyed,
-                  ...(ev.payload?.adKey ? { activeAd: ev.payload.adKey } : {}),
-                  battleReports: [newReport, ...battleReports.slice(0, 19)],
-                  updatedAt: new Date().toISOString()
-                }).catch(console.error);
-
-                return updated;
-              });
-
-              const newAttackLog: AttackLogItem = {
-                id: 'atk_' + evId,
-                attackerName: attackerName,
-                attackerAvatar: ev.attackerAvatar || '/assets/chat_avatar_2.png',
-                attackerLevel: ev.payload?.attackerLevel || 28,
-                time: 'الآن',
-                title: 'قصف الميناء وتفجير السفن 💥',
-                description: `تعرض ميناؤك لقصف مباشر وتفجير من القبطان @${attackerName}!`,
-                goldLooted: 0,
-                shipsDamaged: 1,
-                isAvenged: false,
-                date: new Date().toISOString(),
-              };
-              setAttackLogs(prev => {
-                const updated = [newAttackLog, ...prev.slice(0, 25)];
-                try { localStorage.setItem('pirate_attack_logs', JSON.stringify(updated)); } catch {}
-                return updated;
-              });
-
-              queueNotification({
-                id: 'hb_' + evId,
-                type: 'ATTACK',
-                title: '🚨 هجوم معادٍ مباشر!',
-                message: `تعرض ميناؤك لقصف مباشر من القبطان @${attackerName}! هل تريد رد الهجوم؟`,
-                icon: '💥',
-                authorName: attackerName,
-                senderName: attackerName,
-                createdAt: new Date().toISOString()
-              });
-              showToast(`🚨 قصف معادٍ! هاجم القبطان @${attackerName} ميناءك وسفنك!`, 'error');
-
-              if (ev.type === 'AD_BOMB') {
-                playMediaBombExplosionSound();
-                setTimeout(() => {
-                  playDetonationWarningVoiceAndSound();
-                }, 1800);
-              }
-            } else if (ev.type === 'STEAL') {
-              const stolenAmount = ev.payload?.amount || 0;
-              const attackerName = ev.attackerName || 'لص';
-              setGold(prev => {
-                const newGold = Math.max(0, prev - stolenAmount);
-                updateDoc(userDocRef, { gold: newGold, updatedAt: new Date().toISOString() }).catch(console.error);
-                return newGold;
-              });
-              const newStealLog: AttackLogItem = {
-                id: 'steal_' + evId,
-                attackerName: attackerName,
-                attackerAvatar: ev.attackerAvatar || '/assets/chat_avatar_2.png',
-                attackerLevel: ev.payload?.attackerLevel || 25,
-                time: 'الآن',
-                title: 'تسلل وسرقة ذهب 🏴‍☠️',
-                description: `تسلل القبطان @${attackerName} وسرق 🪙 ${stolenAmount.toLocaleString()} ذهبة من مينائك!`,
-                goldLooted: stolenAmount,
-                shipsDamaged: 0,
-                isAvenged: false,
-                date: new Date().toISOString(),
-              };
-              setAttackLogs(prev => {
-                const updated = [newStealLog, ...prev.slice(0, 25)];
-                try { localStorage.setItem('pirate_attack_logs', JSON.stringify(updated)); } catch {}
-                return updated;
-              });
-
-              queueNotification({
-                id: 'hb_' + evId,
-                type: 'ATTACK',
-                title: '🏴‍☠️ تسلل ولصوص!',
-                message: `تسلل القبطان @${attackerName} وسرق 🪙 ${stolenAmount.toLocaleString()} ذهبة من مينائك! هل تريد رد الهجوم؟`,
-                icon: '🥷',
-                authorName: attackerName,
-                senderName: attackerName,
-                createdAt: new Date().toISOString()
-              });
-              showToast(`🏴‍☠️ تسلل ولصوص! تسلل القبطان @${attackerName} وسرق 🪙 ${stolenAmount.toLocaleString()} ذهبة من مينائك!`, 'error');
-            } else if (ev.type === 'REPAIR') {
-              const healAmount = ev.payload?.healAmount || 500;
-              const healPercent = typeof ev.payload?.healPercent === 'number' ? ev.payload.healPercent : null;
-              const targetShipId = ev.payload?.targetShipId;
-              const helperName = ev.attackerName || 'صديق';
-              setShips(prevShips => {
-                const updated = prevShips.map(s => {
-                  const normalized = normalizeShipEnergyToCargo(s);
-                  if (targetShipId && normalized.id !== targetShipId) return normalized;
-                  const maxH = getShipMaxHeart(normalized);
-                  const curH = typeof normalized.heart === 'number' ? Math.min(normalized.heart, maxH) : maxH;
-                  const delta = healPercent !== null ? calculateWeaponShipDamage(maxH, healPercent) : healAmount;
-                  const newH = Math.min(maxH, curH + delta);
-                  return { ...normalized, maxHeart: maxH, heart: newH, energySyncedToCargo: true };
-                });
-                const activeUpdated = updated.filter(s => s.exists);
-                const stillAllDestroyed = activeUpdated.length > 0 && activeUpdated.every(s => typeof s.heart === 'number' && s.heart <= 0);
-                setPortDestroyed(stillAllDestroyed);
-                updateDoc(userDocRef, { ships: updated, portDestroyed: stillAllDestroyed, updatedAt: new Date().toISOString() }).catch(console.error);
-                return updated;
-              });
-              queueNotification({
-                id: 'hb_' + evId,
-                type: 'SUPPORT',
-                title: '🛡️ دعم وصيانة حليفة!',
-                message: `أرسل القبطان الشهم @${helperName} طاقم صيانة وقام بترميم سفنك! ✨`,
-                icon: '🔧',
-                createdAt: new Date().toISOString()
-              });
-              showToast(`🤝 صيانة صديقة! قام القبطان @${helperName} بإصلاح وترميم سفنك! ✨`, 'success');
-            } else if (ev.type === 'DONATION' || ev.type === 'GIFT') {
-              const giftAmount = ev.payload?.amount || 500;
-              const senderName = ev.attackerName || ev.payload?.senderName || 'صديق';
-              setGold(prev => {
-                const newGold = prev + giftAmount;
-                updateDoc(userDocRef, { gold: newGold, updatedAt: new Date().toISOString() }).catch(console.error);
-                return newGold;
-              });
-              queueNotification({
-                id: 'hb_' + evId,
-                type: 'SUPPORT',
-                title: '🎁 وصول دعم مالي!',
-                message: `أرسل لك القبطان @${senderName} هدية مالية بقيمة 🪙 ${giftAmount.toLocaleString()} ذهبة! 🎉`,
-                icon: '🤝',
-                createdAt: new Date().toISOString()
-              });
-              showToast(`🎁 هدية ذهب! أرسل لك القبطان @${senderName} مبلغ 🪙 ${giftAmount.toLocaleString()} ذهبة! 🎉`, 'success');
-            } else if (ev.type === 'DETONATION_MESSAGE') {
-              const sender = ev.attackerName || 'قبطان معادٍ';
-              const customMsg = ev.payload?.message || '';
-              queueNotification({
-                id: 'det_msg_' + evId,
-                type: 'ATTACK',
-                title: `📡 رسالة تفجير من القبطان @${sender}!`,
-                message: `"${customMsg}"`,
-                icon: '✉️',
-                createdAt: new Date().toISOString()
-              });
-              showToast(`✉️ وصلتك رسالة تفجير من القبطان @${sender}: "${customMsg}"`, 'info');
-              await updateDoc(evDoc.ref, { status: 'RESOLVED' }).catch(() => {});
-            } else if (ev.type === 'LOOT') {
-              const lootType = ev.payload?.lootType || 'gold';
-              const lootAmt = ev.payload?.amount || 1000;
-              if (lootType === 'gold') {
-                setGold(prev => {
-                  const newGold = Math.max(0, prev - lootAmt);
-                  updateDoc(userDocRef, { gold: newGold, updatedAt: new Date().toISOString() }).catch(console.error);
-                  return newGold;
-                });
-              } else if (lootType === 'gems') {
-                setGems(prev => {
-                  const newGems = Math.max(0, prev - lootAmt);
-                  updateDoc(userDocRef, { gems: newGems, updatedAt: new Date().toISOString() }).catch(console.error);
-                  return newGems;
-                });
-              } else if (lootType === 'redGems') {
-                setRedGems(prev => {
-                  const newRedGems = Math.max(0, prev - lootAmt);
-                  updateDoc(userDocRef, { redGems: newRedGems, updatedAt: new Date().toISOString() }).catch(console.error);
-                  return newRedGems;
-                });
-              }
+            // Sync local React state & localStorage immediately
+            setShips(updatedShips);
+            setPortDestroyed(isAllDestroyed);
+            setBattleReports(nextReports);
+            setAttackLogs(nextAttackLogs);
+            if (ev.type === 'AD_BOMB' && nextActiveAd) {
+              setActiveAd(nextActiveAd);
+              try { localStorage.setItem('pirate_active_ad', nextActiveAd); } catch {}
             }
 
-            // Mark event as PROCESSED in /harborEvents
-            await updateDoc(doc(db, 'harborEvents', evId), { status: 'PROCESSED' });
-          } catch (procErr) {
-            console.error("Error processing harbor event:", procErr);
+            try {
+              localStorage.setItem('pirate_port_destroyed', isAllDestroyed ? 'true' : 'false');
+              localStorage.setItem('pirate_ships_v2', JSON.stringify(updatedShips));
+              localStorage.setItem('pirate_ships', JSON.stringify(updatedShips));
+              localStorage.setItem('pirate_battle_reports', JSON.stringify(nextReports));
+              localStorage.setItem('pirate_attack_logs', JSON.stringify(nextAttackLogs));
+            } catch {}
+
+            // Sync lastDbData so Auto-Save never overwrites the incoming damage/logs
+            if (lastDbData.current) {
+              lastDbData.current = {
+                ...lastDbData.current,
+                ships: updatedShips.map((s: any) => ({ ...s, moving: false })),
+                portDestroyed: isAllDestroyed,
+                battleReports: nextReports,
+                attackLogs: nextAttackLogs,
+                ...(ev.type === 'AD_BOMB' ? { activeAd: nextActiveAd } : {}),
+              };
+            }
+
+            updateDoc(userDocRef, {
+              ships: updatedShips,
+              portDestroyed: isAllDestroyed,
+              battleReports: nextReports,
+              attackLogs: nextAttackLogs,
+              ...(ev.type === 'AD_BOMB' && nextActiveAd ? { activeAd: nextActiveAd } : {}),
+              updatedAt: new Date().toISOString()
+            }).catch(console.error);
+
+            // Trigger visual & audio combat sequence directly on defender's own harbor
+            if (ev.type === 'ROCKET_SMALL' || ev.type === 'ROCKET_MEDIUM' || ev.type === 'ROCKET_LARGE') {
+              const flightMs = ev.type === 'ROCKET_SMALL' ? 700 : ev.type === 'ROCKET_MEDIUM' ? 850 : 1150;
+              if (ev.type === 'ROCKET_SMALL') playSmallRocketIncomingSound();
+              else if (ev.type === 'ROCKET_MEDIUM') playMediumRocketIncomingSound();
+              else playLargeRocketIncomingSound();
+
+              setOwnAttackEffect({ type: ev.type, targetX: impactX, targetY: impactY, damage: dmg, phase: 'flying' });
+
+              setTimeout(() => {
+                setOwnAttackEffect({ type: ev.type, targetX: impactX, targetY: impactY, damage: dmg, phase: 'impact' });
+                setIsOwnHarborShaking(true);
+                if (ev.type === 'ROCKET_SMALL') playSmallRocketExplosionSound();
+                else if (ev.type === 'ROCKET_MEDIUM') playMediumRocketExplosionSound();
+                else playLargeRocketExplosionSound();
+
+                setTimeout(() => setIsOwnHarborShaking(false), 600);
+                setTimeout(() => setOwnAttackEffect(null), 1600);
+              }, flightMs);
+            } else if (ev.type === 'ATOMIC_BOMB') {
+              playAtomicBombDropSound();
+              setOwnAttackEffect({ type: 'ATOMIC_BOMB', targetX: '45%', targetY: '48%', damage: dmg, phase: 'impact' });
+              setTimeout(() => {
+                setIsOwnHarborShaking(true);
+                playAtomicBombExplosionSound();
+                setTimeout(() => setIsOwnHarborShaking(false), 950);
+              }, 1300);
+              setTimeout(() => setOwnAttackEffect(null), 4600);
+            } else if (ev.type === 'AD_BOMB') {
+              setOwnAttackEffect({ type: 'AD_BOMB', targetX: '50%', targetY: '50%', damage: dmg, phase: 'impact' });
+              setIsOwnHarborShaking(true);
+              playMediaBombExplosionSound();
+              setTimeout(() => setIsOwnHarborShaking(false), 750);
+              setTimeout(() => setOwnAttackEffect(null), 1850);
+              setTimeout(() => {
+                playDetonationWarningVoiceAndSound();
+              }, 1500);
+            }
+
+            // Persistent interactive attack alert card visible across all tabs
+            setIncomingAttackAlert({
+              id: evId,
+              attackerName,
+              attackerAvatar,
+              weaponTitle: wMeta.title,
+              weaponIcon: wMeta.icon,
+              summary: isAreaAttack
+                ? `ضرر -${dmg.toLocaleString()} طاقة لجميع سفن الأسطول`
+                : `استهداف (${activeTargetCandidate?.name || 'سفينة'}) بضرر -${dmg.toLocaleString()} طاقة`,
+              damage: dmg,
+              time: nowTime,
+            });
+
+            queueNotification({
+              id: 'hb_' + evId,
+              type: 'ATTACK',
+              title: `🚨 ${wMeta.title}!`,
+              message: `تعرض ميناؤك لهجوم مباشر من القبطان @${attackerName}!`,
+              icon: wMeta.icon,
+              authorName: attackerName,
+              senderName: attackerName,
+              createdAt: new Date().toISOString()
+            });
+            showToast(`🚨 هجوم معادٍ! هاجم القبطان @${attackerName} ميناءك بـ ${wMeta.title}!`, 'error');
+          } else if (ev.type === 'DISABLE_DEFENSE') {
+            const attackerName = ev.attackerName || 'قبطان معادٍ';
+            const attackerAvatar = ev.attackerAvatar || '🛡️';
+            const weaponLabel = ev.payload?.weaponLabel || 'سلاح تعطيل الدفاعات';
+
+            const newDisableLog: AttackLogItem = {
+              id: 'dis_' + evId,
+              attackerName,
+              attackerAvatar,
+              attackerLevel: 25,
+              time: nowTime,
+              title: `تعطيل الدفاعات ⚡`,
+              description: `استخدم القبطان @${attackerName} [${weaponLabel}] لتعطيل منظومة دفاعك لمدة 10 دقائق!`,
+              goldLooted: 0,
+              shipsDamaged: 0,
+              isAvenged: false,
+              date: new Date().toISOString(),
+            };
+            const nextAttackLogs = [newDisableLog, ...prevAttackLogs.slice(0, 29)];
+            setAttackLogs(nextAttackLogs);
+            try { localStorage.setItem('pirate_attack_logs', JSON.stringify(nextAttackLogs)); } catch {}
+            updateDoc(userDocRef, { attackLogs: nextAttackLogs, updatedAt: new Date().toISOString() }).catch(() => {});
+
+            setIncomingAttackAlert({
+              id: evId,
+              attackerName,
+              attackerAvatar,
+              weaponTitle: weaponLabel,
+              weaponIcon: '⚡',
+              summary: 'تم تعطيل مضاد الصواريخ/القنابل في مينائك لمدة 10 دقائق!',
+              time: nowTime,
+            });
+
+            queueNotification({
+              id: 'hb_' + evId,
+              type: 'ATTACK',
+              title: `⚡ ${weaponLabel}!`,
+              message: `قام القبطان @${attackerName} بتعطيل دفاعات مينائك لمدة 10 دقائق!`,
+              icon: '⚡',
+              authorName: attackerName,
+              senderName: attackerName,
+              createdAt: new Date().toISOString()
+            });
+            showToast(`⚡ تحذير! القبطان @${attackerName} استخدم [${weaponLabel}] على مينائك!`, 'error');
+          } else if (ev.type === 'STEAL') {
+            const stolenAmount = ev.payload?.amount || 0;
+            const attackerName = ev.attackerName || 'لص';
+            const attackerAvatar = ev.attackerAvatar || '🥷';
+            const curGold = typeof curState.gold === 'number' ? curState.gold : gold;
+            const newGold = Math.max(0, curGold - stolenAmount);
+
+            const newStealLog: AttackLogItem = {
+              id: 'steal_' + evId,
+              attackerName,
+              attackerAvatar,
+              attackerLevel: ev.payload?.attackerLevel || 25,
+              time: nowTime,
+              title: 'تسلل وسرقة ذهب 🏴‍☠️',
+              description: `تسلل القبطان @${attackerName} وسرق 🪙 ${stolenAmount.toLocaleString()} ذهبة من مينائك!`,
+              goldLooted: stolenAmount,
+              shipsDamaged: 0,
+              isAvenged: false,
+              date: new Date().toISOString(),
+            };
+            const nextAttackLogs = [newStealLog, ...prevAttackLogs.slice(0, 29)];
+
+            setGold(newGold);
+            setAttackLogs(nextAttackLogs);
+            try {
+              localStorage.setItem('gold', String(newGold));
+              localStorage.setItem('pirate_attack_logs', JSON.stringify(nextAttackLogs));
+            } catch {}
+
+            if (lastDbData.current) {
+              lastDbData.current = { ...lastDbData.current, gold: newGold, attackLogs: nextAttackLogs };
+            }
+            updateDoc(userDocRef, { gold: newGold, attackLogs: nextAttackLogs, updatedAt: new Date().toISOString() }).catch(console.error);
+
+            setIncomingAttackAlert({
+              id: evId,
+              attackerName,
+              attackerAvatar,
+              weaponTitle: 'تسلل وسرقة ذهب',
+              weaponIcon: '🥷',
+              summary: `تمت سرقة 🪙 ${stolenAmount.toLocaleString()} ذهبة من خزينتك!`,
+              goldLost: stolenAmount,
+              time: nowTime,
+            });
+
+            queueNotification({
+              id: 'hb_' + evId,
+              type: 'ATTACK',
+              title: '🏴‍☠️ تسلل ولصوص!',
+              message: `تسلل القبطان @${attackerName} وسرق 🪙 ${stolenAmount.toLocaleString()} ذهبة من مينائك! هل تريد رد الهجوم؟`,
+              icon: '🥷',
+              authorName: attackerName,
+              senderName: attackerName,
+              createdAt: new Date().toISOString()
+            });
+            showToast(`🏴‍☠️ تسلل ولصوص! تسلل القبطان @${attackerName} وسرق 🪙 ${stolenAmount.toLocaleString()} ذهبة من مينائك!`, 'error');
+          } else if (ev.type === 'REPAIR') {
+            const healAmount = ev.payload?.healAmount || 500;
+            const healPercent = typeof ev.payload?.healPercent === 'number' ? ev.payload.healPercent : null;
+            const targetShipId = ev.payload?.targetShipId;
+            const helperName = ev.attackerName || 'صديق';
+            const baseShips = Array.isArray(curState.ships) && curState.ships.length > 0 ? curState.ships : shipsRef.current;
+            const updatedShips = baseShips.map((s: any) => {
+              const normalized = normalizeShipEnergyToCargo(s);
+              if (targetShipId && normalized.id !== targetShipId) return normalized;
+              const maxH = getShipMaxHeart(normalized);
+              const curH = typeof normalized.heart === 'number' ? Math.min(normalized.heart, maxH) : maxH;
+              const delta = healPercent !== null ? calculateWeaponShipDamage(maxH, healPercent) : healAmount;
+              const newH = Math.min(maxH, curH + delta);
+              return { ...normalized, maxHeart: maxH, heart: newH, energySyncedToCargo: true };
+            });
+            const activeUpdated = updatedShips.filter((s: any) => s.exists !== false);
+            const stillAllDestroyed = activeUpdated.length > 0 && activeUpdated.every((s: any) => typeof s.heart === 'number' && s.heart <= 0);
+            setShips(updatedShips);
+            setPortDestroyed(stillAllDestroyed);
+            if (lastDbData.current) {
+              lastDbData.current = { ...lastDbData.current, ships: updatedShips, portDestroyed: stillAllDestroyed };
+            }
+            updateDoc(userDocRef, { ships: updatedShips, portDestroyed: stillAllDestroyed, updatedAt: new Date().toISOString() }).catch(console.error);
+            queueNotification({
+              id: 'hb_' + evId,
+              type: 'SUPPORT',
+              title: '🛡️ دعم وصيانة حليفة!',
+              message: `أرسل القبطان الشهم @${helperName} طاقم صيانة وقام بترميم سفنك! ✨`,
+              icon: '🔧',
+              createdAt: new Date().toISOString()
+            });
+            showToast(`🤝 صيانة صديقة! قام القبطان @${helperName} بإصلاح وترميم سفنك! ✨`, 'success');
+          } else if (ev.type === 'DONATION' || ev.type === 'GIFT') {
+            const giftAmount = ev.payload?.amount || 500;
+            const senderName = ev.attackerName || ev.payload?.senderName || 'صديق';
+            const curGold = typeof curState.gold === 'number' ? curState.gold : gold;
+            const newGold = curGold + giftAmount;
+            setGold(newGold);
+            if (lastDbData.current) {
+              lastDbData.current = { ...lastDbData.current, gold: newGold };
+            }
+            updateDoc(userDocRef, { gold: newGold, updatedAt: new Date().toISOString() }).catch(console.error);
+            queueNotification({
+              id: 'hb_' + evId,
+              type: 'SUPPORT',
+              title: '🎁 وصول دعم مالي!',
+              message: `أرسل لك القبطان @${senderName} هدية مالية بقيمة 🪙 ${giftAmount.toLocaleString()} ذهبة! 🎉`,
+              icon: '🤝',
+              createdAt: new Date().toISOString()
+            });
+            showToast(`🎁 هدية ذهب! أرسل لك القبطان @${senderName} مبلغ 🪙 ${giftAmount.toLocaleString()} ذهبة! 🎉`, 'success');
+          } else if (ev.type === 'DETONATION_MESSAGE') {
+            const sender = ev.attackerName || 'قبطان معادٍ';
+            const customMsg = ev.payload?.message || '';
+            setIncomingAttackAlert(prev => prev ? {
+              ...prev,
+              customMessage: customMsg,
+            } : {
+              id: 'det_msg_' + evId,
+              attackerName: sender,
+              attackerAvatar: ev.attackerAvatar || '📡',
+              weaponTitle: 'رسالة تفجير مباشرة',
+              weaponIcon: '✉️',
+              summary: 'تلقيت رسالة تهديد مباشرة بعد القصف!',
+              customMessage: customMsg,
+              time: nowTime,
+            });
+            queueNotification({
+              id: 'det_msg_' + evId,
+              type: 'ATTACK',
+              title: `📡 رسالة تفجير من القبطان @${sender}!`,
+              message: `"${customMsg}"`,
+              icon: '✉️',
+              authorName: sender,
+              senderName: sender,
+              createdAt: new Date().toISOString()
+            });
+            showToast(`✉️ وصلتك رسالة تفجير من القبطان @${sender}: "${customMsg}"`, 'info');
+          } else if (ev.type === 'LOOT') {
+            const lootType = ev.payload?.lootType || 'gold';
+            const lootAmt = ev.payload?.amount || 1000;
+            const attackerName = ev.attackerName || 'قبطان معادٍ';
+            if (lootType === 'gold') {
+              const newGold = Math.max(0, (typeof curState.gold === 'number' ? curState.gold : gold) - lootAmt);
+              setGold(newGold);
+              updateDoc(userDocRef, { gold: newGold, updatedAt: new Date().toISOString() }).catch(console.error);
+            } else if (lootType === 'gems') {
+              const newGems = Math.max(0, (typeof curState.gems === 'number' ? curState.gems : gems) - lootAmt);
+              setGems(newGems);
+              updateDoc(userDocRef, { gems: newGems, updatedAt: new Date().toISOString() }).catch(console.error);
+            } else if (lootType === 'redGems') {
+              const newRedGems = Math.max(0, (typeof curState.redGems === 'number' ? curState.redGems : redGems) - lootAmt);
+              setRedGems(newRedGems);
+              updateDoc(userDocRef, { redGems: newRedGems, updatedAt: new Date().toISOString() }).catch(console.error);
+            }
+            const lootLabel = lootType === 'gold' ? `🪙 ${lootAmt.toLocaleString()} ذهبة` : lootType === 'gems' ? `💎 ${lootAmt} جوهرة` : `🔴 ${lootAmt} جوهرة حمراء`;
+            setIncomingAttackAlert({
+              id: evId,
+              attackerName,
+              attackerAvatar: ev.attackerAvatar || '💰',
+              weaponTitle: 'غنائم قرصنة',
+              weaponIcon: '🏴‍☠️',
+              summary: `غنم القبطان @${attackerName} من مينائك ${lootLabel}!`,
+              time: nowTime,
+            });
+            showToast(`🏴‍☠️ غنم القبطان @${attackerName} ${lootLabel} من مينائك!`, 'error');
           }
+        } catch (procErr) {
+          console.error("Error processing harbor event:", procErr);
         }
       }
     }, (err) => {
@@ -4396,7 +4948,7 @@ export default function App() {
     });
 
     return () => unsubscribe();
-  }, [isLoggedIn, currentUser, battleReports]);
+  }, [isLoggedIn, currentUser, userDocReadyUid]);
 
   // --- Live Firestore Friend Requests Subscription ---
   useEffect(() => {
@@ -4474,14 +5026,22 @@ export default function App() {
   const handleLoginSuccess = async (user: string, av: string, serv: string, pCl: string) => {
     isSessionTerminated.current = false;
     setSessionTerminationNotice(null);
-    setUsername(user);
-    setAvatar(av);
-    setServer(serv);
-    setPirateClass(pCl);
+    localStorage.removeItem('pirate_login_in_progress');
+
+    const authUser = auth.currentUser;
+    if (!isLoadedFromFirebase.current || (authUser && activeAuthUidRef.current !== authUser.uid)) {
+      setUsername(user);
+      setAvatar(av);
+      setServer(serv);
+      setPirateClass(pCl);
+    }
     setIsLoggedIn(true);
 
-    if (auth.currentUser) {
-      await registerNewUserSession(auth.currentUser.uid);
+    if (authUser) {
+      await registerNewUserSession(authUser.uid);
+      if (!isLoadedFromFirebase.current || activeAuthUidRef.current !== authUser.uid) {
+        await loadAndSubscribeUserDocRef.current?.(authUser, { forceTakeoverSession: true });
+      }
     }
   };
 
@@ -4511,35 +5071,13 @@ export default function App() {
     const token = localStorage.getItem('google_auth_token') || '';
     const cleanEmail = (user?.email || localStorage.getItem('google_auth_email') || '').toLowerCase().trim();
 
-    // 1. Ensure latest player progress is securely preserved in Firestore database
+    // 1. Ensure latest player progress & achievements are securely preserved in Firestore database
     if (user) {
       try {
         const userDocRef = doc(db, 'users', user.uid);
         const currentData = {
           userId: user.uid,
-          username,
-          email: cleanEmail,
-          avatar,
-          server,
-          pirateClass,
-          gold,
-          gems,
-          exp,
-          redGems,
-          fishStorageLevel,
-          shipTowerLevel,
-          ships,
-          crew,
-          quests,
-          battleReports,
-          fishInventory,
-          weapons,
-          crewServices,
-          portDestroyed,
-          friends,
-          friendRequests,
-          tribeId,
-          tribeName,
+          ...buildCurrentUserPayload(cleanEmail),
           isOnline: false,
           lastActive: new Date().toISOString(),
           updatedAt: new Date().toISOString()
@@ -5278,13 +5816,15 @@ export default function App() {
     shipsRef.current = ships;
   }, [ships]);
 
-  // Live 1-second fishing countdown ticker (only active when at least one ship is fishing)
+  // Live 1-second fishing countdown ticker (only ticks UI when harbor is visible; uses single timeout when off-harbor)
   const hasAnyFishingShip = ships.some(s => s.exists && s.status === 'fishing');
+  const shouldTickHarborTimer = hasAnyFishingShip && activeTab === 'harbor' && !inspectedPlayerShipVisit && !isPageHidden;
+
   useEffect(() => {
     if (!hasAnyFishingShip) return;
-    const tick = () => {
+
+    const checkFinishedToasts = () => {
       const now = Date.now();
-      setTimerNow(now);
       for (const ship of shipsRef.current) {
         if (
           ship.exists &&
@@ -5303,20 +5843,51 @@ export default function App() {
           }
         }
       }
+      return now;
     };
-    tick();
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
-  }, [hasAnyFishingShip, showToast]);
+
+    if (shouldTickHarborTimer) {
+      const tick = () => {
+        if (document.hidden) return;
+        const now = checkFinishedToasts();
+        setTimerNow(now);
+      };
+      tick();
+      const interval = setInterval(tick, 1000);
+      return () => clearInterval(interval);
+    } else {
+      // Schedule one-shot toast check for nearest completion without 1Hz full-app re-renders
+      const now = checkFinishedToasts();
+      const pendingEnds = shipsRef.current
+        .filter(s => s.exists && s.status === 'fishing' && typeof s.fishingEndTime === 'number' && s.fishingEndTime > now)
+        .map(s => (s.fishingEndTime as number) - now);
+      if (pendingEnds.length === 0) return;
+      const nextDelay = Math.min(...pendingEnds) + 100;
+      const timer = setTimeout(() => {
+        checkFinishedToasts();
+      }, nextDelay);
+      return () => clearTimeout(timer);
+    }
+  }, [hasAnyFishingShip, shouldTickHarborTimer, showToast]);
 
   const portDestroyedRef = useRef(portDestroyed);
   useEffect(() => {
     portDestroyedRef.current = portDestroyed;
   }, [portDestroyed]);
 
+  const hasEligibleAutoShips = ships.some(
+    s =>
+      s.exists &&
+      !s.autoFishingPaused &&
+      !portDestroyed &&
+      (typeof s.heart !== 'number' || s.heart > 0) &&
+      (s.assignedCrew?.includes('golden_hunter') || s.assignedCrew?.includes('gold_fisher'))
+  );
+
   const fleetCycleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    if (!hasEligibleAutoShips) return;
     let isCancelled = false;
 
     const runSynchronizedFleetCycle = () => {
@@ -5331,7 +5902,6 @@ export default function App() {
       );
 
       if (activeAutoShips.length === 0) {
-        fleetCycleTimeoutRef.current = setTimeout(runSynchronizedFleetCycle, 400);
         return;
       }
 
@@ -5527,7 +6097,7 @@ export default function App() {
         clearTimeout(fleetCycleTimeoutRef.current);
       }
     };
-  }, [calculateShipCatch]);
+  }, [calculateShipCatch, hasEligibleAutoShips]);
 
   // --- Ship Repair Handler (Manual & Kit Repairs) ---
   const handleRepairShip = async (
@@ -6515,34 +7085,49 @@ export default function App() {
     const currentUser = auth.currentUser;
     if (!currentUser) return;
 
+    const nowIso = new Date().toISOString();
+    const localTribeId = 'tribe_' + Date.now();
+    const baseTribeData = {
+      name: newTribeName.trim(),
+      description: newTribeDesc.trim() || 'تحالف أبطال البحار والأعماق',
+      emblem: newTribeEmblem || '🏴‍☠️',
+      leaderId: currentUser.uid,
+      leaderName: username,
+      level: 1,
+      power: exp || 100,
+      donations: 0,
+      membersCount: 1,
+      members: [currentUser.uid],
+      lastUpdated: nowIso,
+      createdAt: nowIso
+    };
+
     try {
-      const tribeData = {
-        name: newTribeName.trim(),
-        description: newTribeDesc.trim() || 'تحالف أبطال البحار والأعماق',
-        emblem: newTribeEmblem || '🏴‍☠️',
-        leaderId: currentUser.uid,
-        leaderName: username,
-        level: 1,
-        power: exp || 100,
-        donations: 0,
-        membersCount: 1,
-        members: [currentUser.uid],
-        createdAt: new Date().toISOString()
-      };
-      const docRef = await addDoc(collection(db, 'tribes'), tribeData);
-      setTribeId(docRef.id);
-      setTribeName(newTribeName.trim());
-      
+      let resolvedId = localTribeId;
+      try {
+        const docRef = await addDoc(collection(db, 'tribes'), baseTribeData);
+        if (docRef?.id) resolvedId = docRef.id;
+      } catch {
+        // Fallback if /tribes collection rules restrict direct writes
+      }
+
+      const tribeObj = { id: resolvedId, ...baseTribeData };
+      setTribes(prev => [tribeObj, ...prev.filter(t => t.id !== resolvedId)]);
+      setTribeId(resolvedId);
+      setTribeName(baseTribeData.name);
+
       const userDocRef = doc(db, 'users', currentUser.uid);
-      await updateDoc(userDocRef, {
-        tribeId: docRef.id,
-        tribeName: newTribeName.trim()
-      });
+      await setDoc(userDocRef, {
+        tribeId: resolvedId,
+        tribeName: baseTribeData.name,
+        tribeSnapshot: tribeObj,
+        updatedAt: nowIso
+      }, { merge: true });
 
       sendSecureChatMessage(
         'إشعار التحالفات 🛡️',
         '🛡️',
-        `🎉 قام القبطان @${username} بتأسيس تحالف جديد باسم [${newTribeName.trim()}] ${newTribeEmblem}! انضموا الآن!`
+        `🎉 قام القبطان @${username} بتأسيس تحالف جديد باسم [${baseTribeData.name}] ${newTribeEmblem}! انضموا الآن!`
       );
 
       setShowCreateTribeModal(false);
@@ -6557,45 +7142,55 @@ export default function App() {
 
   const joinTribe = async (targetTribe: any) => {
     const currentUser = auth.currentUser;
-    if (!currentUser) return;
+    if (!currentUser || !targetTribe) return;
 
-    const isMember = targetTribe.members?.includes(currentUser.uid);
+    const isMember = targetTribe.members?.includes(currentUser.uid) || targetTribe.id === tribeId;
 
     try {
       const tribeRef = doc(db, 'tribes', targetTribe.id);
       const userDocRef = doc(db, 'users', currentUser.uid);
+      const nowIso = new Date().toISOString();
 
       if (isMember) {
-        if (targetTribe.leaderId === currentUser.uid && (targetTribe.membersCount || 1) > 1) {
-          alert("أنت قائد التحالف! لا يمكنك مغادرة التحالف إلا إذا قمت بنقل القيادة أو كان التحالف خالياً.");
-          return;
-        }
         const updatedMembers = (targetTribe.members || []).filter((m: string) => m !== currentUser.uid);
-        await updateDoc(tribeRef, {
+        const updatedTribe = {
+          ...targetTribe,
+          members: updatedMembers,
+          membersCount: Math.max(0, updatedMembers.length),
+          lastUpdated: nowIso
+        };
+        updateDoc(tribeRef, {
           members: updatedMembers,
           membersCount: Math.max(0, updatedMembers.length)
-        });
-        await updateDoc(userDocRef, {
+        }).catch(() => {});
+        await setDoc(userDocRef, {
           tribeId: '',
-          tribeName: ''
-        });
+          tribeName: '',
+          tribeSnapshot: null,
+          updatedAt: nowIso
+        }, { merge: true });
+        setTribes(prev => prev.map(t => t.id === targetTribe.id ? updatedTribe : t));
         setTribeId('');
         setTribeName('');
-        alert(`تمت مغادرة التحالف [${targetTribe.name}].`);
       } else {
-        if (tribeId) {
-          alert("أنت بالفعل في تحالف آخر! يرجى مغادرة تحالفك الحالي أولاً للانضمام إلى هذا التحالف.");
-          return;
-        }
-        const updatedMembers = [...(targetTribe.members || []), currentUser.uid];
-        await updateDoc(tribeRef, {
+        const updatedMembers = Array.from(new Set([...(targetTribe.members || []), currentUser.uid]));
+        const updatedTribe = {
+          ...targetTribe,
+          members: updatedMembers,
+          membersCount: updatedMembers.length,
+          lastUpdated: nowIso
+        };
+        updateDoc(tribeRef, {
           members: updatedMembers,
           membersCount: updatedMembers.length
-        });
-        await updateDoc(userDocRef, {
+        }).catch(() => {});
+        await setDoc(userDocRef, {
           tribeId: targetTribe.id,
-          tribeName: targetTribe.name
-        });
+          tribeName: targetTribe.name,
+          tribeSnapshot: updatedTribe,
+          updatedAt: nowIso
+        }, { merge: true });
+        setTribes(prev => prev.map(t => t.id === targetTribe.id ? updatedTribe : t));
         setTribeId(targetTribe.id);
         setTribeName(targetTribe.name);
 
@@ -6604,12 +7199,9 @@ export default function App() {
           '🛡️',
           `⚔️ انضم القبطان @${username} إلى التحالف [${targetTribe.name}]! مرحباً به!`
         );
-
-        alert(`🎉 تهانينا! انضممت بنجاح إلى التحالف [${targetTribe.name}].`);
       }
     } catch (err) {
-      console.error("Error joining/leaving tribe:", err);
-      alert("حدث خطأ أثناء معالجة الطلب!");
+      console.warn("Tribe membership sync notice:", err);
     }
   };
 
@@ -6622,17 +7214,32 @@ export default function App() {
     if (!currentUser) return;
 
     try {
+      const nowIso = new Date().toISOString();
       setGold(prev => Math.max(0, prev - 100));
       const tribeRef = doc(db, 'tribes', targetTribe.id);
       const nextDonations = (targetTribe.donations || 0) + 100;
       const nextPower = (targetTribe.power || 0) + 2000;
       const nextLevel = Math.floor(nextDonations / 3000) + 1;
 
-      await updateDoc(tribeRef, {
+      const updatedTribe = {
+        ...targetTribe,
+        donations: nextDonations,
+        power: nextPower,
+        level: nextLevel,
+        lastUpdated: nowIso
+      };
+      setTribes(prev => prev.map(t => t.id === targetTribe.id ? updatedTribe : t));
+
+      updateDoc(tribeRef, {
         donations: nextDonations,
         power: nextPower,
         level: nextLevel
-      });
+      }).catch(() => {});
+
+      await setDoc(doc(db, 'users', currentUser.uid), {
+        tribeSnapshot: updatedTribe,
+        updatedAt: nowIso
+      }, { merge: true });
 
       updateQuestProgress('q3', 100);
       alert(`🪙 شكرًا لتبرعك بـ 100 ذهب! ارتفعت قوة تحالف [${targetTribe.name}] إلى 🛡️ ${nextPower.toLocaleString()}.`);
@@ -7068,9 +7675,31 @@ export default function App() {
     }
   }
 
+  const isHarborIdlePaused = isPageHidden || activeTab !== 'harbor' || inspectedPlayerShipVisit || disableAnimatedBackground || powerSaver;
+
   return (
     <div style={{ margin: 0, background: '#080604', overflow: 'hidden', width: '100vw', minWidth: '1024px', height: '100dvh', position: 'relative' }}>
       <style>{`
+        .harbor-paused, .harbor-paused * {
+          animation-play-state: paused !important;
+        }
+        @keyframes shake-viewport-extreme {
+          0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+          10% { transform: translate(-12px, -8px) scale(1.03) rotate(-1.8deg); }
+          20% { transform: translate(12px, 10px) scale(0.98) rotate(1.8deg); }
+          30% { transform: translate(-10px, 8px) scale(1.02) rotate(-1.2deg); }
+          40% { transform: translate(8px, -10px) scale(1.01) rotate(1.2deg); }
+          50% { transform: translate(-6px, 6px) scale(1.0) rotate(-0.6deg); }
+          60% { transform: translate(5px, -5px) scale(1.01) rotate(0.5deg); }
+          80% { transform: translate(-2px, 2px) scale(1.0) rotate(-0.2deg); }
+          100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+        }
+        @keyframes zoom-in-out {
+          0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+          25% { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
+          75% { transform: translate(-50%, -50%) scale(1.0); opacity: 0.95; }
+          100% { transform: translate(-50%, -50%) scale(1.25); opacity: 0; }
+        }
         :root {
             --ship-render-width: 290px;
             --bottom-nav-height: 162px;
@@ -7249,7 +7878,6 @@ export default function App() {
             background-repeat: no-repeat;
             pointer-events: none;
             z-index: 1;
-            filter: url(#water-filter);
             animation: sea-waves-shake 14s infinite alternate ease-in-out;
             will-change: transform;
         }
@@ -7321,7 +7949,6 @@ export default function App() {
             pointer-events: none;
             z-index: 15;
             background: rgba(224, 242, 254, 0.12);
-            backdrop-filter: blur(0.6px);
             mix-blend-mode: overlay;
             animation: fog-pulse 10s ease-in-out infinite alternate;
         }
@@ -7333,10 +7960,9 @@ export default function App() {
 
         .fog-cloud {
             position: absolute;
-            background: radial-gradient(circle, rgba(241, 245, 249, 0.38) 0%, rgba(241, 245, 249, 0.12) 50%, transparent 75%);
+            background: radial-gradient(circle, rgba(241, 245, 249, 0.34) 0%, rgba(241, 245, 249, 0.1) 50%, transparent 75%);
             width: 650px;
             height: 450px;
-            filter: blur(30px);
             pointer-events: none;
             z-index: 16;
             opacity: 0.7;
@@ -7431,7 +8057,6 @@ export default function App() {
             border-top: 1.5px solid rgba(255, 255, 255, 0.7);
             border-radius: 50%;
             height: 12px;
-            filter: blur(1px);
             pointer-events: none;
             z-index: 2;
             opacity: 0;
@@ -7584,7 +8209,7 @@ export default function App() {
             position: absolute;
             pointer-events: none;
             z-index: 2;
-            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.15)) blur(0.5px);
+            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.15));
             mix-blend-mode: color-dodge;
             will-change: transform;
             transform: translate3d(0, 0, 0);
@@ -8319,19 +8944,21 @@ export default function App() {
 
 
       {/* ----------------- GAME BACKGROUND AND HARBOR VIEW ----------------- */}
-      <div id="harbor-viewport">
+      <div id="harbor-viewport" className={isHarborIdlePaused ? 'harbor-paused' : ''}>
         <div 
           id="map-canvas" 
           style={(() => {
+            const shakeStyle = isOwnHarborShaking ? { animation: 'shake-viewport-extreme 0.65s ease-out infinite' } : {};
             if (portDestroyed || bgTheme === 'destroyed') {
               return { 
+                ...shakeStyle,
                 backgroundImage: `url('/backgrounds/destroyed_port.webp')`,
                 backgroundSize: '100% 100%',
                 backgroundPosition: 'center',
                 backgroundRepeat: 'no-repeat'
               };
             }
-            return { backgroundImage: `url('/backgrounds/harbor_main.webp')`, backgroundSize: '100% 100%' };
+            return { ...shakeStyle, backgroundImage: `url('/backgrounds/harbor_main.webp')`, backgroundSize: '100% 100%' };
           })()}
         >
           {/* Apocalyptic Dark Fire & Smoke Atmosphere for Destroyed Port */}
@@ -8362,54 +8989,31 @@ export default function App() {
             </>
           )}
 
-          {!portDestroyed && !disableAnimatedBackground && !powerSaver && (
-            <>
-              <video
-                ref={videoRefA}
-                src="/background_video.mp4"
-                playsInline
-                muted
-                preload="auto"
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  zIndex: activeVideo === 'A' ? 2 : 1,
-                  pointerEvents: 'none',
-                  opacity: (activeVideo === 'A' && !isTransitioning) ? 1 :
-                           (activeVideo === 'A' && isTransitioning) ? 0 :
-                           (activeVideo === 'B' && isTransitioning) ? 1 : 0,
-                  transition: 'opacity 1.5s ease-in-out',
-                }}
-              />
-              <video
-                ref={videoRefB}
-                src="/background_video.mp4"
-                playsInline
-                muted
-                preload="auto"
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  zIndex: activeVideo === 'B' ? 2 : 1,
-                  pointerEvents: 'none',
-                  opacity: (activeVideo === 'B' && !isTransitioning) ? 1 :
-                           (activeVideo === 'B' && isTransitioning) ? 0 :
-                           (activeVideo === 'A' && isTransitioning) ? 1 : 0,
-                  transition: 'opacity 1.5s ease-in-out',
-                }}
-              />
-            </>
+          {!portDestroyed && bgTheme !== 'destroyed' && !disableAnimatedBackground && !powerSaver && (
+            <video
+              ref={videoRefA}
+              src="/background_video.mp4"
+              playsInline
+              muted
+              loop
+              preload="metadata"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                zIndex: 2,
+                pointerEvents: 'none',
+              }}
+            />
           )}
           {/* Particles Effect System Overlay */}
-          <ParticlesEffect portDestroyed={portDestroyed} />
+          <ParticlesEffect
+            portDestroyed={portDestroyed}
+            active={activeTab === 'harbor' && !inspectedPlayerShipVisit && !isPageHidden}
+          />
 
           {/* Dynamic Weather System Overlays */}
           {!lowGraphics && (
@@ -8458,20 +9062,7 @@ export default function App() {
             </>
           )}
 
-          {/* Clean pure video background has replaced all old cartoon/SVG background overlays */}
-
-          {/* SVG liquid displacement filters for realistic undulating water effect */}
-          <svg style={{ position: 'absolute', width: 0, height: 0, pointerEvents: 'none' }} aria-hidden="true">
-            <filter id="water-filter" colorInterpolationFilters="sRGB">
-              <feTurbulence type="fractalNoise" baseFrequency="0.02 0.04" numOctaves="2" result="noise" />
-              {/* Scroll the noise map horizontally and vertically over time to simulate a continuous water current */}
-              <feOffset in="noise" dx="0" dy="0" result="offsetNoise">
-                <animate attributeName="dx" from="0" to="500" dur="25s" repeatCount="indefinite" />
-                <animate attributeName="dy" from="0" to="250" dur="25s" repeatCount="indefinite" />
-              </feOffset>
-              <feDisplacementMap in="SourceGraphic" in2="offsetNoise" scale="11" xChannelSelector="R" yChannelSelector="G" />
-            </filter>
-          </svg>
+          {/* Lightweight GPU-only sea backdrop overlay (SVG turbulence displacement removed for thermal efficiency) */}
 
           {activeTab === 'harbor' && (
             <>
@@ -8931,6 +9522,174 @@ export default function App() {
             </>
           )}
         </div>
+
+        {/* Live Incoming Enemy Combat Visuals & Ad Bomb Billboard on Defender's Own Harbor */}
+        {activeTab === 'harbor' && !inspectedPlayerShipVisit && ownAttackEffect && (
+          <div style={{ position: 'absolute', inset: 0, zIndex: 998, pointerEvents: 'none' }}>
+            {ownAttackEffect.phase === 'flying' && ownAttackEffect.type === 'ROCKET_SMALL' && (
+              <FlyingNavalMissile tier="small" targetX={ownAttackEffect.targetX} targetY={ownAttackEffect.targetY} />
+            )}
+            {ownAttackEffect.phase === 'flying' && ownAttackEffect.type === 'ROCKET_MEDIUM' && (
+              <FlyingNavalMissile tier="medium" targetX={ownAttackEffect.targetX} targetY={ownAttackEffect.targetY} />
+            )}
+            {ownAttackEffect.phase === 'flying' && ownAttackEffect.type === 'ROCKET_LARGE' && (
+              <FlyingNavalMissile tier="large" targetX={ownAttackEffect.targetX} targetY={ownAttackEffect.targetY} />
+            )}
+            {ownAttackEffect.phase === 'impact' && ownAttackEffect.type === 'ROCKET_SMALL' && (
+              <SmallRocketExplosion
+                x={ownAttackEffect.targetX}
+                y={ownAttackEffect.targetY}
+                damage={ownAttackEffect.damage}
+                onComplete={() => setOwnAttackEffect(null)}
+              />
+            )}
+            {ownAttackEffect.phase === 'impact' && ownAttackEffect.type === 'ROCKET_MEDIUM' && (
+              <MediumRocketExplosion
+                x={ownAttackEffect.targetX}
+                y={ownAttackEffect.targetY}
+                damage={ownAttackEffect.damage}
+                onComplete={() => setOwnAttackEffect(null)}
+              />
+            )}
+            {ownAttackEffect.phase === 'impact' && ownAttackEffect.type === 'ROCKET_LARGE' && (
+              <LargeRocketExplosion
+                x={ownAttackEffect.targetX}
+                y={ownAttackEffect.targetY}
+                damage={ownAttackEffect.damage}
+                onComplete={() => setOwnAttackEffect(null)}
+              />
+            )}
+            {ownAttackEffect.type === 'ATOMIC_BOMB' && (
+              <AtomicBombExplosion
+                x="45%"
+                surfaceY="48%"
+                depthY="64%"
+                onComplete={() => setOwnAttackEffect(null)}
+              />
+            )}
+            {ownAttackEffect.type === 'AD_BOMB' && (
+              <div style={{
+                position: 'absolute',
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '320px',
+                height: '320px',
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(161, 161, 170, 0.85) 0%, rgba(63, 63, 70, 0.6) 60%, rgba(0,0,0,0) 80%)',
+                boxShadow: '0 0 50px rgba(161,161,170,0.65)',
+                animation: 'zoom-in-out 1.8s ease-out forwards',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '96px',
+              }}>
+                💨📺💨
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'harbor' && !inspectedPlayerShipVisit && activeAd && (
+          <div style={{
+            position: 'absolute',
+            top: '105px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 990,
+            background: 'rgba(9, 9, 11, 0.95)',
+            border: '3px solid #22c55e',
+            borderRadius: '18px',
+            padding: '14px 20px',
+            width: '92%',
+            maxWidth: '380px',
+            boxShadow: '0 0 28px rgba(34, 197, 94, 0.7)',
+            textAlign: 'center',
+            direction: 'rtl',
+            fontFamily: 'Cairo, sans-serif',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '12px', background: '#14532d', color: '#4ade80', padding: '3px 8px', borderRadius: '6px', fontWeight: 'bold' }}>📺 قنبلة إعلانية نشطة</span>
+              <span style={{ fontSize: '12px', color: '#f87171', fontWeight: 'bold' }}>بث مباشر 🔴</span>
+            </div>
+
+            <div style={{ padding: '10px', background: '#18181b', borderRadius: '10px', border: '1px solid #27272a', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+              {activeAd === 'luffy_king' && (
+                <>
+                  <div style={{ fontSize: '42px' }}>☠️</div>
+                  <div style={{ fontSize: '16px', fontWeight: '900', color: '#facc15' }}>لوفي ملك القراصنة 🏴‍☠️</div>
+                  <div style={{ fontSize: '12px', color: '#cbd5e1' }}>"سأصبح ملك القراصنة! ههههههاا!"</div>
+                </>
+              )}
+              {(activeAd === 'jack_sabro' || activeAd === 'deep_dragon') && (
+                <>
+                  <div style={{ fontSize: '42px' }}>🦎</div>
+                  <div style={{ fontSize: '16px', fontWeight: '900', color: '#38bdf8' }}>تنين الأعماق</div>
+                  <div style={{ fontSize: '12px', color: '#cbd5e1' }}>مغامرات الزواحف المائية الكبرى!</div>
+                </>
+              )}
+              {activeAd === 'luffy_grandeur' && (
+                <>
+                  <div style={{ fontSize: '42px' }}>🔥</div>
+                  <div style={{ fontSize: '16px', fontWeight: '900', color: '#f97316' }}>فخامة لوفي</div>
+                  <div style={{ fontSize: '12px', color: '#cbd5e1' }}>قوة الجير الخامس اللانهائية الهزلية!</div>
+                </>
+              )}
+              {activeAd === 'anf' && (
+                <>
+                  <div style={{ fontSize: '42px' }}>👑</div>
+                  <div style={{ fontSize: '16px', fontWeight: '900', color: '#a855f7' }}>وإذا سطا خاف الأنام</div>
+                  <div style={{ fontSize: '12px', color: '#cbd5e1' }}>من هيبته وهاب البواسل مبسمه!</div>
+                </>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+              <button
+                onClick={() => playDetonationWarningVoiceAndSound()}
+                style={{
+                  flex: 1,
+                  background: 'linear-gradient(to bottom, #22c55e, #15803d)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '8px',
+                  fontSize: '13px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                🔊 تشغيل الصوت
+              </button>
+              <button
+                onClick={async () => {
+                  setActiveAd(null);
+                  try { localStorage.removeItem('pirate_active_ad'); } catch {}
+                  if (lastDbData.current) {
+                    lastDbData.current = { ...lastDbData.current, activeAd: null };
+                  }
+                  if (auth.currentUser && db) {
+                    try {
+                      await updateDoc(doc(db, 'users', auth.currentUser.uid), { activeAd: null });
+                    } catch (e) { console.error(e); }
+                  }
+                }}
+                style={{
+                  background: '#27272a',
+                  color: '#cbd5e1',
+                  border: '1px solid #3f3f46',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '13px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                إخفاء ❌
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
 
@@ -11293,7 +12052,11 @@ export default function App() {
                 </h4>
                 <p style={{ color: '#e2e8f0', fontSize: '13px', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <span style={{ fontSize: '26px', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.6))' }}>🛡️</span>
-                  <span>مستقل / لا ينتمي لأي حلف حالياً في جزيرة الكاريبي.</span>
+                  <span>
+                    {inspectedPlayer.tribeName
+                      ? `عضو في تحالف [${inspectedPlayer.tribeName}]`
+                      : 'مستقل / لا ينتمي لأي حلف حالياً في جزيرة الكاريبي.'}
+                  </span>
                 </p>
               </div>
 
@@ -11816,13 +12579,14 @@ export default function App() {
             }}
           >
             {/* Real animated water background video - only if port is not destroyed */}
-            {!inspectedPlayer.portDestroyed && (
+            {!inspectedPlayer.portDestroyed && !disableAnimatedBackground && !powerSaver && !isPageHidden && (
               <video
                 src="/background_video.mp4"
                 playsInline
                 muted
                 autoPlay
                 loop
+                preload="metadata"
                 style={{
                   position: 'absolute',
                   top: 0,
@@ -11870,7 +12634,10 @@ export default function App() {
 
             {/* Real-time particles overlay for visited port combat & destruction */}
             <div style={{ position: 'absolute', inset: 0, zIndex: (isAtomicBombActive || showSmallRocketExplosion || showMediumRocketExplosion || showLargeRocketExplosion) ? 9999 : 4, pointerEvents: 'none' }}>
-              <ParticlesEffect portDestroyed={!!inspectedPlayer.portDestroyed} />
+              <ParticlesEffect
+                portDestroyed={!!inspectedPlayer.portDestroyed}
+                active={!isPageHidden && Boolean(inspectedPlayerShipVisit)}
+              />
             </div>
 
             {/* ----------------- REAL HARBOR BUILDINGS OF THE VISITED PLAYER ----------------- */}
@@ -13166,7 +13933,8 @@ export default function App() {
                           return;
                         }
 
-                        const cooldownKey = `last_steal_${inspectedPlayer.userId}`;
+                        const targetUid = getTargetDefenderId(inspectedPlayer);
+                        const cooldownKey = `last_steal_${targetUid}`;
                         const lastSteal = localStorage.getItem(cooldownKey);
                         const now = Date.now();
                         if (lastSteal && now - parseInt(lastSteal) < 60000) {
@@ -13206,8 +13974,9 @@ export default function App() {
                           }
 
                           // Secure collection-based dispatch to /harborEvents
-                          await createHarborEvent(inspectedPlayer.userId, 'STEAL', {
-                            amount
+                          await createHarborEvent(targetUid, 'STEAL', {
+                            amount,
+                            targetName: inspectedPlayer.username || ''
                           });
 
                           sendSecureChatMessage(
@@ -13417,7 +14186,7 @@ export default function App() {
                                             };
                                           });
 
-                                          const targetUid = inspectedPlayer.userId || inspectedPlayer.id;
+                                          const targetUid = getTargetDefenderId(inspectedPlayer);
                                           if (targetUid && db) {
                                             updateDoc(doc(db, 'users', targetUid), {
                                               ships: updatedTargetShips,
@@ -13426,9 +14195,10 @@ export default function App() {
                                             }).catch((err) => console.warn("Friend repair doc update failed:", err));
                                           }
 
-                                          await createHarborEvent(inspectedPlayer.userId, 'REPAIR', {
+                                          await createHarborEvent(targetUid, 'REPAIR', {
                                             healAmount: 999999,
-                                            healPercent: 100
+                                            healPercent: 100,
+                                            targetName: inspectedPlayer.username || ''
                                           });
 
                                           sendSecureChatMessage(
@@ -13471,7 +14241,7 @@ export default function App() {
                                             return normalizedS;
                                           });
 
-                                          const targetUid = inspectedPlayer.userId || inspectedPlayer.id;
+                                          const targetUid = getTargetDefenderId(inspectedPlayer);
                                           const anyShipAlive = updatedTargetShips.some((s: any) => typeof s.heart === 'number' && s.heart > 0);
                                           if (targetUid && db) {
                                             updateDoc(doc(db, 'users', targetUid), {
@@ -13481,10 +14251,11 @@ export default function App() {
                                             }).catch((err) => console.warn("Friend ship repair doc update failed:", err));
                                           }
 
-                                          await createHarborEvent(inspectedPlayer.userId, 'REPAIR', {
+                                          await createHarborEvent(targetUid, 'REPAIR', {
                                             healAmount,
                                             healPercent,
-                                            targetShipId: selectedVisitedShip.id
+                                            targetShipId: selectedVisitedShip.id,
+                                            targetName: inspectedPlayer.username || ''
                                           });
 
                                           sendSecureChatMessage(
@@ -14475,6 +15246,7 @@ export default function App() {
                           let result = '';
                           let amt = 0;
                           
+                          const targetUid = getTargetDefenderId(inspectedPlayer);
                           if (rand < 0.7) {
                             // Gold
                             amt = Math.floor(2500 + Math.random() * 12500);
@@ -14487,9 +15259,10 @@ export default function App() {
                                   gold: gold + amt
                                 });
                               }
-                              await createHarborEvent(inspectedPlayer.userId, 'LOOT', {
+                              await createHarborEvent(targetUid, 'LOOT', {
                                 lootType: 'gold',
-                                amount: amt
+                                amount: amt,
+                                targetName: inspectedPlayer.username || ''
                               });
                             } catch (e) { console.error(e); }
                           } else if (rand < 0.9) {
@@ -14504,9 +15277,10 @@ export default function App() {
                                   gems: gems + amt
                                 });
                               }
-                              await createHarborEvent(inspectedPlayer.userId, 'LOOT', {
+                              await createHarborEvent(targetUid, 'LOOT', {
                                 lootType: 'gems',
-                                amount: amt
+                                amount: amt,
+                                targetName: inspectedPlayer.username || ''
                               });
                             } catch (e) { console.error(e); }
                           } else {
@@ -14521,21 +15295,21 @@ export default function App() {
                                   redGems: redGems + amt
                                 });
                               }
-                              await createHarborEvent(inspectedPlayer.userId, 'LOOT', {
+                              await createHarborEvent(targetUid, 'LOOT', {
                                 lootType: 'redGems',
-                                amount: amt
+                                amount: amt,
+                                targetName: inspectedPlayer.username || ''
                               });
                             } catch (e) { console.error(e); }
                           }
 
                           setLootResultText(result);
 
-                          // Play sound effect
+                          // Play sound effect using shared AudioContext
                           try {
-                            const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-                            if (AudioContext) {
-                              const ctx = new AudioContext();
-                              // Synthesize positive coin sound
+                            const ctx = getAudioContext();
+                            if (ctx) {
+                              if (ctx.state === 'suspended') { ctx.resume().catch(() => {}); }
                               const osc = ctx.createOscillator();
                               const gain = ctx.createGain();
                               osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
@@ -15276,7 +16050,7 @@ export default function App() {
               }}
             >
               <img
-                src="/assets/aistudio/IMG-20261122-WA0011_5b6da652.jpg"
+                src="/assets/ship_menu_card.jpg"
                 alt="خيارات السفينة"
                 className="w-full h-full object-fill block pointer-events-none"
               />
@@ -15550,7 +16324,7 @@ export default function App() {
         >
           <img 
             className="res-icon" 
-            src="/assets/aistudio/IMG_20261105_161911_af22379c.jpg" 
+            src="/assets/alerts_skull_icon.jpg" 
             alt="الجمجمة" 
             style={{ borderRadius: '16px', objectFit: 'contain' }}
           />
@@ -16072,6 +16846,114 @@ export default function App() {
               }}
             >
               إلغاء العملية
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Persistent Interactive Defender Incoming Attack Alert Card */}
+      {incomingAttackAlert && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '175px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9998,
+            width: '92%',
+            maxWidth: '520px',
+            background: 'linear-gradient(135deg, rgba(69, 10, 10, 0.97) 0%, rgba(24, 24, 27, 0.98) 100%)',
+            border: '3px solid #ef4444',
+            borderRadius: '18px',
+            padding: '14px 16px',
+            boxShadow: '0 10px 35px rgba(239, 68, 68, 0.55), 0 0 0 2px rgba(250, 204, 21, 0.35)',
+            direction: 'rtl',
+            fontFamily: 'Cairo, sans-serif',
+            color: '#fff',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '30px' }}>{incomingAttackAlert.weaponIcon}</span>
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: '900', color: '#fca5a5' }}>
+                  🚨 {incomingAttackAlert.weaponTitle}
+                </div>
+                <div style={{ fontSize: '12px', color: '#fef08a', fontWeight: 'bold' }}>
+                  المهاجم: @{incomingAttackAlert.attackerName} • {incomingAttackAlert.time}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => setIncomingAttackAlert(null)}
+              style={{
+                background: 'rgba(255,255,255,0.1)',
+                border: '1px solid #52525b',
+                color: '#e4e4e7',
+                borderRadius: '8px',
+                padding: '4px 10px',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              إغلاق ✖
+            </button>
+          </div>
+
+          <div style={{ fontSize: '14px', color: '#f4f4f5', fontWeight: 'bold', marginBottom: incomingAttackAlert.customMessage ? '6px' : '12px' }}>
+            {incomingAttackAlert.summary}
+          </div>
+
+          {incomingAttackAlert.customMessage && (
+            <div style={{
+              background: 'rgba(0,0,0,0.45)',
+              border: '1px solid #eab308',
+              borderRadius: '10px',
+              padding: '8px 10px',
+              fontSize: '13px',
+              color: '#fde047',
+              marginBottom: '12px'
+            }}>
+              💬 "{incomingAttackAlert.customMessage}"
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => handleRevenge(incomingAttackAlert.attackerName, 'atk_' + incomingAttackAlert.id)}
+              style={{
+                flex: 1,
+                background: 'linear-gradient(to bottom, #dc2626, #991b1b)',
+                border: '1.5px solid #fca5a5',
+                color: '#fff',
+                borderRadius: '10px',
+                padding: '8px 12px',
+                fontSize: '13px',
+                fontWeight: '900',
+                cursor: 'pointer'
+              }}
+            >
+              ⚡ رد الهجوم فوراً
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('harbor');
+                setInspectedPlayerShipVisit(false);
+                setIncomingAttackAlert(null);
+              }}
+              style={{
+                background: 'linear-gradient(to bottom, #0284c7, #0369a1)',
+                border: '1.5px solid #7dd3fc',
+                color: '#fff',
+                borderRadius: '10px',
+                padding: '8px 14px',
+                fontSize: '13px',
+                fontWeight: '900',
+                cursor: 'pointer'
+              }}
+            >
+              👁️ الميناء
             </button>
           </div>
         </div>

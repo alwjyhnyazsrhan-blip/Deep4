@@ -72,10 +72,11 @@ export const WarLogModal: React.FC<WarLogModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'attacks' | 'supports' | 'all'>('attacks');
 
-  // Filter out any mock/placeholder reports
-  const realReports = (battleReports || []).filter(
-    (r) => r && r.opponentName && r.opponentName !== 'قبطان معادٍ' && !r.id?.startsWith('mock_')
-  );
+  // Filter out any mock/placeholder reports while supporting both opponentName and opponent fields
+  const realReports = (battleReports || []).filter((r: any) => {
+    const opp = r?.opponentName || r?.opponent;
+    return Boolean(r && opp && opp !== 'قبطان معادٍ' && !r.id?.startsWith('mock_'));
+  });
 
   const pendingAttacks = (attackLogs || []).filter((a) => !a.isAvenged);
   const pendingGifts = (supportGifts || []).filter((g) => !g.claimed);
@@ -158,7 +159,7 @@ export const WarLogModal: React.FC<WarLogModalProps> = ({
               }}
             >
               <img
-                src="/assets/aistudio/IMG_20261105_161911_af22379c.jpg"
+                src="/assets/alerts_skull_icon.jpg"
                 alt="Skull War Log"
                 style={{ width: '100%', height: '100%', objectFit: 'contain' }}
               />
@@ -441,11 +442,17 @@ export const WarLogModal: React.FC<WarLogModalProps> = ({
                             justifyContent: 'center',
                           }}
                         >
-                          <img
-                            src={item.attackerAvatar || '/assets/chat_avatar_2.png'}
-                            alt={item.attackerName}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
+                          {item.attackerAvatar && (item.attackerAvatar.startsWith('http') || item.attackerAvatar.startsWith('/') || item.attackerAvatar.startsWith('data:')) ? (
+                            <img
+                              src={item.attackerAvatar}
+                              alt={item.attackerName}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                          ) : (
+                            <span style={{ fontSize: '26px', lineHeight: 1 }}>
+                              {item.attackerAvatar || '☠️'}
+                            </span>
+                          )}
                         </div>
 
                         <div>
@@ -828,7 +835,12 @@ export const WarLogModal: React.FC<WarLogModalProps> = ({
                   </div>
                 </div>
               ) : (
-                realReports.map((report, idx) => (
+                realReports.map((report: any, idx) => {
+                  const oppName = report.opponentName || report.opponent || 'قبطان';
+                  const titleText = report.title || (report.isVictory ? 'انتصار ساحق في المعركة' : 'هجوم وتضرر في الأسطول');
+                  const detailText = Array.isArray(report.log) && report.log.length > 0 ? report.log[0] : '';
+                  const timeText = report.time || (report.date ? new Date(report.date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : 'اليوم');
+                  return (
                   <div
                     key={report.id || idx}
                     style={{
@@ -849,10 +861,10 @@ export const WarLogModal: React.FC<WarLogModalProps> = ({
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ fontSize: '28px' }}>{report.isVictory ? '🏆' : '💀'}</span>
+                      <span style={{ fontSize: '28px' }}>{report.opponentAvatar && !String(report.opponentAvatar).startsWith('http') && !String(report.opponentAvatar).startsWith('/') ? report.opponentAvatar : (report.isVictory ? '🏆' : '💀')}</span>
                       <div>
                         <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#f8fafc' }}>
-                          معركة ضد: {report.opponentName}
+                          معركة ضد: {oppName}
                         </div>
                         <div
                           style={{
@@ -862,21 +874,27 @@ export const WarLogModal: React.FC<WarLogModalProps> = ({
                             marginTop: '2px',
                           }}
                         >
-                          {report.isVictory ? 'انتصار ساحق في المعركة' : 'هزيمة وتضرر في الأسطول'}
+                          {titleText}
                         </div>
+                        {detailText && (
+                          <div style={{ fontSize: '11.5px', color: '#cbd5e1', marginTop: '3px' }}>
+                            {detailText}
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     <div style={{ textAlign: 'left', fontSize: '12px', color: '#94a3b8' }}>
-                      {report.goldChange !== 0 && (
+                      {typeof report.goldChange === 'number' && report.goldChange !== 0 && (
                         <div style={{ color: report.goldChange > 0 ? '#facc15' : '#f87171', fontWeight: 'bold', fontSize: '13px' }}>
                           {report.goldChange > 0 ? `+${report.goldChange.toLocaleString('ar-EG')} 🪙` : `${report.goldChange.toLocaleString('ar-EG')} 🪙`}
                         </div>
                       )}
-                      <div>{report.time || 'اليوم'}</div>
+                      <div>{timeText}</div>
                     </div>
                   </div>
-                ))
+                  );
+                })
               )}
             </>
           )}

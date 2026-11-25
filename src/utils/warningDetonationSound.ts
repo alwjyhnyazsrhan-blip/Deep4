@@ -1,6 +1,8 @@
 // Warning & Detonation Audio Engine (صوت الرجل الحقيقي المصاحب لرسالة التفجير)
 // تشغيل التسجيل الصوتي الحقيقي للرجل فقط ومنع أي صوت اصطناعي أو SpeechSynthesis نهائياً
 
+import { getAudioContext } from './explosionSound';
+
 let activeAudioElement: HTMLAudioElement | null = null;
 
 export function playDetonationWarningVoiceAndSound() {
@@ -40,15 +42,10 @@ export function playDetonationWarningVoiceAndSound() {
       console.warn("Audio element initialization failed:", err);
     }
 
-    // 3. تشغيل مؤثرات سنث درامية تكتيكية عميقة في الخلفية (Sub-bass Tremor)
+    // 3. تشغيل مؤثرات سنث درامية تكتيكية عميقة في الخلفية (Sub-bass Tremor) عبر سياق الصوت المشترك
     try {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-      if (AudioContextClass) {
-        const ctx = new AudioContextClass();
-        if (ctx.state === 'suspended') {
-          ctx.resume().catch(() => {});
-        }
-
+      const ctx = getAudioContext();
+      if (ctx) {
         const now = ctx.currentTime;
 
         // هزّة عملاقة أرضية (Sub-bass Rumble)

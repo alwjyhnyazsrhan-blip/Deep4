@@ -3,8 +3,6 @@ import React, { useEffect, useRef } from 'react';
 export interface ParticlesEffectProps {
   // Option to auto-emit harbor damage if active
   portDestroyed?: boolean;
-  // Pause rendering and particle emission when viewport is hidden/inactive
-  active?: boolean;
 }
 
 interface Particle {
@@ -22,27 +20,10 @@ interface Particle {
   type: 'fire' | 'smoke' | 'spark' | 'water' | 'gold';
 }
 
-const MAX_PARTICLES = 90;
-
-export default function ParticlesEffect({ portDestroyed, active = true }: ParticlesEffectProps) {
+export default function ParticlesEffect({ portDestroyed }: ParticlesEffectProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const particlesRef = useRef<Particle[]>([]);
   const animationRef = useRef<number | null>(null);
-  const activeRef = useRef<boolean>(active);
-  const startLoopRef = useRef<(() => void) | null>(null);
-
-  useEffect(() => {
-    activeRef.current = active;
-    if (active && particlesRef.current.length > 0 && !document.hidden) {
-      startLoopRef.current?.();
-    } else if (!active && animationRef.current !== null) {
-      cancelAnimationFrame(animationRef.current);
-      animationRef.current = null;
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext('2d');
-      if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-  }, [active]);
 
   // Resize handler to keep canvas aligned with its parent
   useEffect(() => {
@@ -67,7 +48,7 @@ export default function ParticlesEffect({ portDestroyed, active = true }: Partic
     };
   }, []);
 
-  // On-demand Animation Loop (sleeps completely with 0 CPU/GPU usage when particles array is empty or tab hidden)
+  // Main Animation Loop
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -75,38 +56,23 @@ export default function ParticlesEffect({ portDestroyed, active = true }: Partic
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let lastFrameTime = 0;
-
-    const render = (now: number) => {
-      if (!activeRef.current || document.hidden) {
-        animationRef.current = null;
-        return;
-      }
-
-      // Cap particle updates to ~30fps to cut mobile GPU fill-rate & CPU load in half
-      if (now - lastFrameTime < 30) {
-        animationRef.current = requestAnimationFrame(render);
-        return;
-      }
-      const stepScale = lastFrameTime ? Math.min(2, (now - lastFrameTime) / 16.67) : 1;
-      lastFrameTime = now;
-
+    const render = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       const particles = particlesRef.current;
 
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
-        p.x += p.vx * stepScale;
-        p.y += p.vy * stepScale;
-        p.vy += p.gravity * stepScale;
-        p.life -= stepScale;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += p.gravity;
+        p.life -= 1;
 
         if (p.type === 'smoke') {
-          p.size += 0.2 * stepScale;
+          p.size += 0.2;
           p.alpha = Math.max(0, p.life / p.maxLife);
         } else if (p.type === 'fire') {
-          p.size = Math.max(0.1, p.size * Math.pow(0.96, stepScale));
+          p.size = Math.max(0.1, p.size * 0.96);
           p.alpha = Math.max(0, p.life / p.maxLife);
         } else {
           p.alpha = Math.max(0, p.life / p.maxLife);
@@ -117,20 +83,17 @@ export default function ParticlesEffect({ portDestroyed, active = true }: Partic
           continue;
         }
 
-        if (p.type === 'fire') {
-          // Lightweight outer halo instead of expensive ctx.shadowBlur
-          ctx.globalAlpha = p.alpha * 0.28;
-          ctx.fillStyle = p.color;
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size * 1.55, 0, Math.PI * 2);
-          ctx.fill();
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
 
-          ctx.globalAlpha = p.alpha;
+        if (p.type === 'fire') {
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = p.color;
+          ctx.fillStyle = p.color;
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
           ctx.fill();
         } else if (p.type === 'spark') {
-          ctx.globalAlpha = p.alpha;
           ctx.strokeStyle = p.color;
           ctx.lineWidth = p.size;
           ctx.beginPath();
@@ -138,73 +101,36 @@ export default function ParticlesEffect({ portDestroyed, active = true }: Partic
           ctx.lineTo(p.x - p.vx * 1.5, p.y - p.vy * 1.5);
           ctx.stroke();
         } else if (p.type === 'gold') {
-          ctx.globalAlpha = p.alpha * 0.35;
-          ctx.fillStyle = '#fbbf24';
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size * 1.45, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.globalAlpha = p.alpha;
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = '#fbbf24';
           ctx.fillStyle = p.color;
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
           ctx.fill();
         } else {
-          ctx.globalAlpha = p.alpha;
           ctx.fillStyle = p.color;
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
           ctx.fill();
         }
-      }
-      ctx.globalAlpha = 1;
 
-      if (particles.length > 0 && activeRef.current && !document.hidden) {
-        animationRef.current = requestAnimationFrame(render);
-      } else {
-        animationRef.current = null;
+        ctx.restore();
       }
+
+      animationRef.current = requestAnimationFrame(render);
     };
 
-    const startLoop = () => {
-      if (animationRef.current === null && particlesRef.current.length > 0 && activeRef.current && !document.hidden) {
-        lastFrameTime = 0;
-        animationRef.current = requestAnimationFrame(render);
-      }
-    };
-
-    startLoopRef.current = startLoop;
-
-    const handleVisibility = () => {
-      if (document.hidden) {
-        if (animationRef.current !== null) {
-          cancelAnimationFrame(animationRef.current);
-          animationRef.current = null;
-        }
-      } else if (activeRef.current && particlesRef.current.length > 0) {
-        startLoop();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibility);
-
-    if (activeRef.current && particlesRef.current.length > 0 && !document.hidden) {
-      startLoop();
-    }
+    animationRef.current = requestAnimationFrame(render);
 
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibility);
-      startLoopRef.current = null;
       if (animationRef.current !== null) {
         cancelAnimationFrame(animationRef.current);
-        animationRef.current = null;
       }
     };
   }, []);
 
   // Function to spawn particles at dynamic coordinates
   const spawnExplosion = (pctX: number, pctY: number, count = 30, type: string = 'explosion') => {
-    if (!activeRef.current || document.hidden) return;
     const canvas = canvasRef.current;
     if (!canvas || canvas.width === 0 || canvas.height === 0) return;
 
@@ -214,7 +140,7 @@ export default function ParticlesEffect({ portDestroyed, active = true }: Partic
     const particles = particlesRef.current;
 
     if (type === 'explosion' || type === 'destroy') {
-      const actualCount = type === 'destroy' ? Math.min(40, count * 1.5) : Math.min(24, count);
+      const actualCount = type === 'destroy' ? count * 1.5 : count;
 
       for (let i = 0; i < actualCount * 0.6; i++) {
         const angle = Math.random() * Math.PI * 2;
@@ -350,11 +276,6 @@ export default function ParticlesEffect({ portDestroyed, active = true }: Partic
         });
       }
     }
-
-    if (particles.length > MAX_PARTICLES) {
-      particles.splice(0, particles.length - MAX_PARTICLES);
-    }
-    startLoopRef.current?.();
   };
 
   // Listen to custom window events for dynamic triggerings across app
@@ -371,12 +292,11 @@ export default function ParticlesEffect({ portDestroyed, active = true }: Partic
     };
   }, []);
 
-  // Continuous effect if the port is destroyed and viewport is active
+  // Continuous effect if the port is destroyed
   useEffect(() => {
-    if (!portDestroyed || !active) return;
+    if (!portDestroyed) return;
 
     const interval = setInterval(() => {
-      if (document.hidden) return;
       const locations = [
         { x: 12, y: 35 },
         { x: 74, y: 22 },
@@ -389,7 +309,7 @@ export default function ParticlesEffect({ portDestroyed, active = true }: Partic
     }, 1200);
 
     return () => clearInterval(interval);
-  }, [portDestroyed, active]);
+  }, [portDestroyed]);
 
   return (
     <canvas

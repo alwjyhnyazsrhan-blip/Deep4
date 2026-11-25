@@ -61,7 +61,7 @@ export default function ShipWarehouse({
     if (!hasAnyFishingShip) return;
     setTimerNow(Date.now());
     const interval = setInterval(() => {
-      if (!document.hidden) setTimerNow(Date.now());
+      setTimerNow(Date.now());
     }, 1000);
     return () => clearInterval(interval);
   }, [hasAnyFishingShip]);

@@ -16,7 +16,7 @@ import { playNotificationSound } from './utils/notificationSound';
 import { LargeRocketExplosion } from './components/LargeRocketExplosion';
 import { MediumRocketExplosion } from './components/MediumRocketExplosion';
 import { SmallRocketExplosion } from './components/SmallRocketExplosion';
-import { FlyingNavalMissile } from './components/NavalRocketEffects';
+import { FlyingNavalMissile, AdBombStrike } from './components/NavalRocketEffects';
 import { AtomicBombExplosion } from './components/AtomicBombExplosion';
 import { 
   playLargeRocketIncomingSound, 
@@ -374,10 +374,8 @@ export default function App() {
   ]);
 
   const handleCreatureIteration = (id: number) => {
-    // Only handle leaders (1, 2, 3) and skip React updates when viewport is hidden or off-harbor
+    // Only handle leaders (1, 2, 3) to keep pairs synchronized at new coordinates
     if (id !== 1 && id !== 2 && id !== 3) return;
-    if (typeof document !== 'undefined' && document.hidden) return;
-    if (activeTab !== 'harbor' || inspectedPlayerShipVisit) return;
 
     // Choose one of 4 zones randomly to distribute creatures widely:
     // Zone 0: Behind/around the docked ships (left/background)
@@ -539,7 +537,15 @@ export default function App() {
     setOwnAttackEffect(null);
     setIsOwnHarborShaking(false);
     setIncomingAttackAlert(null);
+    setIncomingCombatFlash(false);
+    setMyAliasUids([]);
+    attackVisualTokenRef.current += 1;
+    isPlayingAttackVisualRef.current = false;
+    attackTimersRef.current.forEach(t => window.clearTimeout(t));
+    attackTimersRef.current = [];
+    pendingAttackEffectsRef.current = [];
     processedHarborEventIdsRef.current.clear();
+    try { localStorage.removeItem('pirate_processed_harbor_events'); } catch {}
     setBgTheme('classic');
     setProfileTheme('default');
     setUsername('سياف_البحار');
@@ -606,6 +612,7 @@ export default function App() {
   const [isOwnHarborShaking, setIsOwnHarborShaking] = useState<boolean>(false);
   const [incomingAttackAlert, setIncomingAttackAlert] = useState<{
     id: string;
+    attackerId?: string;
     attackerName: string;
     attackerAvatar: string;
     weaponTitle: string;
@@ -616,7 +623,27 @@ export default function App() {
     customMessage?: string;
     time: string;
   } | null>(null);
-  const processedHarborEventIdsRef = useRef<Set<string>>(new Set());
+  const [incomingCombatFlash, setIncomingCombatFlash] = useState<boolean>(false);
+  const [myAliasUids, setMyAliasUids] = useState<string[]>([]);
+  const uidAliasToCanonicalRef = useRef<Record<string, string>>({});
+  const pendingAttackEffectsRef = useRef<Array<{
+    type: 'ROCKET_SMALL' | 'ROCKET_MEDIUM' | 'ROCKET_LARGE' | 'ATOMIC_BOMB' | 'AD_BOMB';
+    targetX: string;
+    targetY: string;
+    damage: number;
+  }>>([]);
+  const attackVisualTokenRef = useRef<number>(0);
+  const isPlayingAttackVisualRef = useRef<boolean>(false);
+  const attackTimersRef = useRef<number[]>([]);
+  const finishOwnAttackVisualRef = useRef<((expectedToken?: number) => void) | null>(null);
+  const processedHarborEventIdsRef = useRef<Set<string>>((() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('pirate_processed_harbor_events') || '[]');
+      return new Set(Array.isArray(saved) ? saved.filter((id: any) => typeof id === 'string') : []);
+    } catch {
+      return new Set<string>();
+    }
+  })());
   const latestUserStateRef = useRef<any>({});
 
   // --- Network Online Connectivity & Anti-Desync State ---
@@ -1314,33 +1341,55 @@ export default function App() {
     }
   };
 
+  const resolveCanonicalUid = (rawUid?: string): string => {
+    if (!rawUid) return '';
+    let cur = String(rawUid).trim();
+    const visited = new Set<string>();
+    while (cur && uidAliasToCanonicalRef.current[cur] && !visited.has(cur)) {
+      visited.add(cur);
+      cur = uidAliasToCanonicalRef.current[cur];
+    }
+    return cur;
+  };
+
   // --- Secure Multiplayer Harbor Event Dispatcher Helper ---
-  const createHarborEvent = async (defenderId: string, type: string, payload: Record<string, any>) => {
+  const createHarborEvent = async (defenderId: string, type: string, payload: Record<string, any>): Promise<boolean> => {
     const currentUser = auth.currentUser;
     if (!currentUser) {
       showToast('يجب تسجيل الدخول للتفاعل مع موانئ القراصنة', 'error');
-      return;
+      return false;
     }
-    if (defenderId === currentUser.uid) {
+    const resolvedDefenderId = resolveCanonicalUid(defenderId);
+    if (!resolvedDefenderId || resolvedDefenderId.startsWith('rival_')) {
+      showToast('⚠️ تعذر تحديد معرف حساب الخصم الحقيقي لإرسال الهجوم!', 'error');
+      return false;
+    }
+    if (resolvedDefenderId === currentUser.uid) {
       showToast('لا يمكنك استهداف مينائك الخاص!', 'error');
-      return;
+      return false;
     }
     try {
+      const targetName = payload?.targetName || payload?.defenderName || inspectedPlayer?.username || inspectedPlayer?.name || 'قبطان آخر';
+      const targetEmail = (payload?.targetEmail || inspectedPlayer?.email || '').toLowerCase().trim();
+      const enrichedPayload = {
+        ...payload,
+        targetName,
+        ...(targetEmail ? { targetEmail } : {}),
+        attackerLevel: payload?.attackerLevel ?? playerLevel,
+      };
+
       await addDoc(collection(db, 'harborEvents'), {
         attackerId: currentUser.uid,
         attackerName: username || 'قبطان_مجهول',
         attackerAvatar: avatar || '☠️',
-        defenderId,
+        defenderId: resolvedDefenderId,
         type,
-        payload,
+        payload: enrichedPayload,
         status: 'PENDING',
         createdAt: new Date().toISOString()
       });
 
-      // Target player identification
-      const targetName = payload?.targetName || payload?.defenderName || inspectedPlayer?.username || inspectedPlayer?.name || 'قبطان آخر';
-
-      // Auto-broadcast in-game event to all players
+      // Auto-broadcast in-game event to all players (non-fatal if restricted by rules)
       let eventType: NotificationEventType = 'ATTACK';
       let eventTitle = '⚔️ اشتباك بحري!';
       let eventMsg = `قام القبطان @${username || 'قبطان'} بعملية بحرية ضد ميناء القبطان @${targetName}!`;
@@ -1394,25 +1443,30 @@ export default function App() {
         eventIcon = '🎁';
       }
 
-      await triggerGlobalNotification({
+      triggerGlobalNotification({
         type: eventType,
         title: eventTitle,
         message: eventMsg,
         icon: eventIcon,
         targetName,
-        targetId: defenderId
-      });
+        targetId: resolvedDefenderId
+      }).catch(() => {});
+
+      return true;
     } catch (err: any) {
       handleFirestoreError(err, OperationType.CREATE, 'harborEvents');
       showToast('⚠️ تعذر إرسال حدث الميناء إلى السيرفر: ' + (err.message || 'خطأ في الاتصال'), 'error');
+      return false;
     }
   };
 
-  // Prefer actual Firestore document ID (auth UID) over stale/legacy userId fields when targeting players
+  // Prefer actual canonical Firestore document ID (active auth UID) when targeting players
   const getTargetDefenderId = (player: any): string => {
     if (!player) return '';
-    if (player.id && !String(player.id).startsWith('rival_')) return String(player.id);
-    return String(player.userId || player.id || '');
+    const rawId = (player.id && !String(player.id).startsWith('rival_'))
+      ? String(player.id)
+      : String(player.userId || player.id || '');
+    return resolveCanonicalUid(rawId);
   };
 
   // --- Attack & Steal Validation Function (دالة التحقق من شروط الهجوم والسرقة) ---
@@ -1468,22 +1522,30 @@ export default function App() {
   const handleLaunchSmallRocket = (targetShipOverride?: any) => {
     if (!inspectedPlayer) return;
 
-    // التحقق من شرط مستوى السفن (مستوى 6 وما فوق)
     const validation = validateAttackOrSteal();
     if (!validation.allowed) {
       alert(validation.message);
       showToast(validation.message, 'error');
       return;
     }
-    
-    // Ensure all menus are closed so the battlefield is completely unobstructed
+
+    const targetSnapshot = inspectedPlayer;
+    const targetDocId = getTargetDefenderId(targetSnapshot);
+    if (!targetDocId || targetDocId.startsWith('rival_')) {
+      showToast('⚠️ تعذر إرسال الهجوم: حساب الهدف غير مرتبط بمعرف فعّال.', 'error');
+      return;
+    }
+    if (auth.currentUser && targetDocId === auth.currentUser.uid) {
+      showToast('لا يمكنك استهداف مينائك الخاص!', 'error');
+      return;
+    }
+
     setSelectedVisitedShip(null);
     setShowWeaponSelector(false);
 
-    // Determine the targeted ship and calculate its exact screen coordinates
-    const baseShips = (inspectedPlayer.ships && Array.isArray(inspectedPlayer.ships) && inspectedPlayer.ships.length > 0)
-      ? inspectedPlayer.ships
-      : getInspectedPlayerShips(inspectedPlayer);
+    const baseShips = (targetSnapshot.ships && Array.isArray(targetSnapshot.ships) && targetSnapshot.ships.length > 0)
+      ? targetSnapshot.ships
+      : getInspectedPlayerShips(targetSnapshot);
     const targetShip = targetShipOverride || selectedVisitedShip || baseShips[0];
 
     let targetLeft = '45%';
@@ -1502,19 +1564,79 @@ export default function App() {
     }
 
     setRocketTargetPos({ l: targetLeft, t: targetTop });
-
-    // Play fast agile incoming Doppler flight sound
     playSmallRocketIncomingSound();
-
     setIsSmallRocketActive(true);
 
     setWeapons(prev => {
-      const updated = { ...prev, smallRocket: Math.max(0, (prev.smallRocket || 320) - 1) };
+      const curQty = prev.smallRocket !== undefined ? prev.smallRocket : (prev.small_missile ?? 0);
+      const nextQty = Math.max(0, curQty - 1);
+      const updated = {
+        ...prev,
+        smallRocket: nextQty,
+        ...(prev.small_missile !== undefined ? { small_missile: nextQty } : {})
+      };
       localStorage.setItem('pirate_weapons', JSON.stringify(updated));
       return updated;
     });
 
-    // Fly small rocket (lasts 0.75s matching user video)
+    const flatDamage = 1000;
+    let smallUpdatedShips: any[] | null = null;
+    let smallAllDestroyed = false;
+    let smallDealtDamage = 0;
+
+    if (targetShip && targetDocId) {
+      const targetIdx = targetShip.id ? baseShips.findIndex((s: any) => s.id === targetShip.id) : 0;
+      const resolvedTargetIdx = targetIdx >= 0 ? targetIdx : 0;
+      const resolvedTargetShipId = baseShips[resolvedTargetIdx]?.id || targetShip.id;
+      const computedShips = baseShips.map((s: any, idx: number) => {
+        const normalized = normalizeShipEnergyToCargo(s, targetSnapshot.portDestroyed);
+        if (idx === resolvedTargetIdx) {
+          const maxH = getShipMaxHeart(normalized);
+          const dmg = flatDamage;
+          smallDealtDamage = dmg;
+          const currentHeart = typeof normalized.heart === 'number' ? Math.min(normalized.heart, maxH) : maxH;
+          const newHeart = Math.max(0, currentHeart - dmg);
+          return { ...normalized, maxHeart: maxH, heart: newHeart, energySyncedToCargo: true, ...(newHeart <= 0 ? { moving: false, status: 'docked' } : {}) };
+        }
+        return normalized;
+      });
+      smallUpdatedShips = computedShips;
+
+      const activeUpdatedShips = computedShips.filter((s: any) => s.exists !== false);
+      smallAllDestroyed = activeUpdatedShips.length > 0 && activeUpdatedShips.every((s: any) => typeof s.heart === 'number' && s.heart <= 0);
+
+      const nowTime = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+      const newReport = {
+        id: `rocket_small_${Date.now()}`,
+        opponent: username,
+        opponentName: username,
+        opponentAvatar: avatar || '☠️',
+        type: 'defense',
+        result: 'defeat',
+        isVictory: false,
+        goldChange: 0,
+        time: nowTime,
+        date: new Date().toISOString(),
+        title: smallAllDestroyed ? '🚨 تم تدمير أسطولك ومينائك بالكامل!' : '🚀 استهداف سفينتك بصاروخ صغير!',
+        log: [
+          `🚀 قام القبطان @${username} باستهداف سفينتك (${targetShip.name || 'سفينة الأسطول'}) بصاروخ صغير ملحقاً ضرر ${smallDealtDamage.toLocaleString()} من الطاقة!`,
+          smallAllDestroyed ? `🔥 دُمرت جميع سفن أسطولك وأصبح الميناء محترقاً ومدمراً بالكامل!` : `⚠️ قم بصيانة وإصلاح أضرار هيكل السفينة فوراً.`
+        ]
+      };
+
+      void createHarborEvent(targetDocId, 'ROCKET_SMALL', {
+        damage: smallDealtDamage,
+        targetShipId: resolvedTargetShipId,
+        targetShipIndex: resolvedTargetIdx,
+        targetX: targetLeft,
+        targetY: targetTop,
+        targetName: targetSnapshot.username || '',
+        targetEmail: targetSnapshot.email || '',
+        allDestroyed: smallAllDestroyed,
+        newReport
+      });
+    }
+
     setTimeout(() => {
       setIsSmallRocketActive(false);
       setShowSmallRocketExplosion(true);
@@ -1522,105 +1644,39 @@ export default function App() {
       setRocketXpText('XP +100');
       setShowRocketXp(true);
 
-      // Play authentic small rocket explosion sound
       playSmallRocketExplosionSound();
 
-      const targetDocId = getTargetDefenderId(inspectedPlayer);
-      const flatDamage = 1000;
-      let dealtDamage = 0;
+      if (smallUpdatedShips && targetDocId) {
+        setLastRocketDamage(smallDealtDamage || 1000);
+        const finalShips = smallUpdatedShips;
+        const finalDestroyed = smallAllDestroyed;
 
-      if (targetShip && targetDocId) {
-        let allDestroyed = false;
-        const targetIdx = targetShip.id ? baseShips.findIndex((s: any) => s.id === targetShip.id) : 0;
-        const resolvedTargetIdx = targetIdx >= 0 ? targetIdx : 0;
-        const resolvedTargetShipId = baseShips[resolvedTargetIdx]?.id || targetShip.id;
-        const updatedShips = baseShips.map((s: any, idx: number) => {
-          const normalized = normalizeShipEnergyToCargo(s, inspectedPlayer.portDestroyed);
-          if (idx === resolvedTargetIdx) {
-            const maxH = getShipMaxHeart(normalized);
-            const dmg = flatDamage;
-            dealtDamage = dmg;
-            const currentHeart = typeof normalized.heart === 'number' ? Math.min(normalized.heart, maxH) : maxH;
-            const newHeart = Math.max(0, currentHeart - dmg);
-            return { ...normalized, maxHeart: maxH, heart: newHeart, energySyncedToCargo: true, ...(newHeart <= 0 ? { moving: false, status: 'docked' } : {}) };
-          }
-          return normalized;
-        });
-
-        setLastRocketDamage(dealtDamage || 1000);
-        const activeUpdatedShips = updatedShips.filter((s: any) => s.exists !== false);
-        allDestroyed = activeUpdatedShips.length > 0 && activeUpdatedShips.every((s: any) => typeof s.heart === 'number' && s.heart <= 0);
-
-        const nowTime = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-        const newReport = {
-          id: `rocket_small_${Date.now()}`,
-          opponent: username,
-          opponentName: username,
-          opponentAvatar: avatar || '☠️',
-          type: 'defense',
-          result: 'defeat',
-          isVictory: false,
-          goldChange: 0,
-          time: nowTime,
-          date: new Date().toISOString(),
-          title: allDestroyed ? '🚨 تم تدمير أسطولك ومينائك بالكامل!' : '🚀 استهداف سفينتك بصاروخ صغير!',
-          log: [
-            `🚀 قام القبطان @${username} باستهداف سفينتك (${targetShip.name || 'سفينة الأسطول'}) بصاروخ صغير ملحقاً ضرر ${dealtDamage.toLocaleString()} من الطاقة!`,
-            allDestroyed ? `🔥 دُمرت جميع سفن أسطولك وأصبح الميناء محترقاً ومدمراً بالكامل!` : `⚠️ قم بصيانة وإصلاح أضرار هيكل السفينة فوراً.`
-          ]
-        };
-
-        // Secure collection-based dispatch to /harborEvents
-        createHarborEvent(targetDocId, 'ROCKET_SMALL', {
-          damage: dealtDamage,
-          targetShipId: resolvedTargetShipId,
-          targetShipIndex: resolvedTargetIdx,
-          targetName: inspectedPlayer.username || '',
-          allDestroyed,
-          newReport
-        });
-
-        // Direct persistent update to target user profile document in Firestore
-        if (targetDocId && db) {
-          updateDoc(doc(db, 'users', targetDocId), {
-            portDestroyed: allDestroyed,
-            ships: updatedShips,
-            battleReports: [newReport, ...(Array.isArray(inspectedPlayer.battleReports) ? inspectedPlayer.battleReports.slice(0, 19) : [])],
-            updatedAt: new Date().toISOString()
-          }).catch((err) => {
-            console.warn("Direct update to target user doc failed, harborEvent will handle it:", err);
-          });
-        }
-
-        // Synchronize inspected player locally for immediate visual feedback
-        setInspectedPlayer((prev: any) => prev ? {
+        setInspectedPlayer((prev: any) => prev && getTargetDefenderId(prev) === targetDocId ? {
           ...prev,
-          portDestroyed: allDestroyed,
-          ships: updatedShips
+          portDestroyed: finalDestroyed,
+          ships: finalShips
         } : prev);
 
         setRealPlayers(prev => prev.map(p => {
-          if (p.id === targetDocId || p.userId === targetDocId) {
-            return { ...p, portDestroyed: allDestroyed, ships: updatedShips };
+          if (getTargetDefenderId(p) === targetDocId || p.id === targetDocId || p.userId === targetDocId) {
+            return { ...p, portDestroyed: finalDestroyed, ships: finalShips };
           }
           return p;
         }));
       }
-      
+
       sendSecureChatMessage(
         'القوات الصاروخية 🚀',
         '🚀',
-        `🚀 صاروخ صغير! قصف القبطان @${username} سفينة القبطان @${inspectedPlayer.username} وألحق بها ضرر ${(dealtDamage || flatDamage).toLocaleString()} من الطاقة!`
+        `🚀 صاروخ صغير! قصف القبطان @${username} سفينة القبطان @${targetSnapshot.username} وألحق بها ضرر ${(smallDealtDamage || flatDamage).toLocaleString()} من الطاقة!`
       );
 
-      showToast(`💥 تم إطلاق الصاروخ الصغير وإصابة السفينة بضرر ${(dealtDamage || flatDamage).toLocaleString()} من الطاقة!`, "success");
+      showToast(`💥 تم إطلاق الصاروخ الصغير وإصابة السفينة بضرر ${(smallDealtDamage || flatDamage).toLocaleString()} من الطاقة!`, "success");
 
-      // Reset screen shake after short punch
       setTimeout(() => {
         setIsShaking(false);
       }, 450);
 
-      // Hide XP badge after 2.8s
       setTimeout(() => {
         setShowRocketXp(false);
       }, 2800);
@@ -1630,22 +1686,30 @@ export default function App() {
   const handleLaunchMediumRocket = (targetShipOverride?: any) => {
     if (!inspectedPlayer) return;
 
-    // التحقق من شرط مستوى السفن (مستوى 6 وما فوق)
     const validation = validateAttackOrSteal();
     if (!validation.allowed) {
       alert(validation.message);
       showToast(validation.message, 'error');
       return;
     }
-    
-    // Ensure all menus are closed so the battlefield is completely unobstructed
+
+    const targetSnapshot = inspectedPlayer;
+    const targetDocId = getTargetDefenderId(targetSnapshot);
+    if (!targetDocId || targetDocId.startsWith('rival_')) {
+      showToast('⚠️ تعذر إرسال الهجوم: حساب الهدف غير مرتبط بمعرف فعّال.', 'error');
+      return;
+    }
+    if (auth.currentUser && targetDocId === auth.currentUser.uid) {
+      showToast('لا يمكنك استهداف مينائك الخاص!', 'error');
+      return;
+    }
+
     setSelectedVisitedShip(null);
     setShowWeaponSelector(false);
 
-    // Determine the targeted ship and calculate its exact screen coordinates
-    const baseShips = (inspectedPlayer.ships && Array.isArray(inspectedPlayer.ships) && inspectedPlayer.ships.length > 0)
-      ? inspectedPlayer.ships
-      : getInspectedPlayerShips(inspectedPlayer);
+    const baseShips = (targetSnapshot.ships && Array.isArray(targetSnapshot.ships) && targetSnapshot.ships.length > 0)
+      ? targetSnapshot.ships
+      : getInspectedPlayerShips(targetSnapshot);
     const targetShip = targetShipOverride || selectedVisitedShip || baseShips[0];
 
     let targetLeft = '45%';
@@ -1664,19 +1728,79 @@ export default function App() {
     }
 
     setRocketTargetPos({ l: targetLeft, t: targetTop });
-
-    // Play medium rocket incoming sound
     playMediumRocketIncomingSound();
-
     setIsMediumRocketActive(true);
 
     setWeapons(prev => {
-      const updated = { ...prev, mediumRocket: Math.max(0, (prev.mediumRocket || 902) - 1) };
+      const curQty = prev.mediumRocket !== undefined ? prev.mediumRocket : (prev.medium_missile ?? 0);
+      const nextQty = Math.max(0, curQty - 1);
+      const updated = {
+        ...prev,
+        mediumRocket: nextQty,
+        ...(prev.medium_missile !== undefined ? { medium_missile: nextQty } : {})
+      };
       localStorage.setItem('pirate_weapons', JSON.stringify(updated));
       return updated;
     });
 
-    // Fly medium rocket (lasts 0.9s matching user video)
+    const flatDamage = 5000;
+    let medUpdatedShips: any[] | null = null;
+    let medAllDestroyed = false;
+    let medDealtDamage = 0;
+
+    if (targetShip && targetDocId) {
+      const targetIdx = targetShip.id ? baseShips.findIndex((s: any) => s.id === targetShip.id) : 0;
+      const resolvedTargetIdx = targetIdx >= 0 ? targetIdx : 0;
+      const resolvedTargetShipId = baseShips[resolvedTargetIdx]?.id || targetShip.id;
+      const computedShips = baseShips.map((s: any, idx: number) => {
+        const normalized = normalizeShipEnergyToCargo(s, targetSnapshot.portDestroyed);
+        if (idx === resolvedTargetIdx) {
+          const maxH = getShipMaxHeart(normalized);
+          const dmg = flatDamage;
+          medDealtDamage = dmg;
+          const currentHeart = typeof normalized.heart === 'number' ? Math.min(normalized.heart, maxH) : maxH;
+          const newHeart = Math.max(0, currentHeart - dmg);
+          return { ...normalized, maxHeart: maxH, heart: newHeart, energySyncedToCargo: true, ...(newHeart <= 0 ? { moving: false, status: 'docked' } : {}) };
+        }
+        return normalized;
+      });
+      medUpdatedShips = computedShips;
+
+      const activeUpdatedShips = computedShips.filter((s: any) => s.exists !== false);
+      medAllDestroyed = activeUpdatedShips.length > 0 && activeUpdatedShips.every((s: any) => typeof s.heart === 'number' && s.heart <= 0);
+
+      const nowTime = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+      const newReport = {
+        id: `rocket_med_${Date.now()}`,
+        opponent: username,
+        opponentName: username,
+        opponentAvatar: avatar || '☠️',
+        type: 'defense',
+        result: 'defeat',
+        isVictory: false,
+        goldChange: 0,
+        time: nowTime,
+        date: new Date().toISOString(),
+        title: medAllDestroyed ? '🚨 تم تدمير أسطولك ومينائك بالكامل!' : '🚀 استهداف سفينتك بصاروخ متوسط!',
+        log: [
+          `🚀 قام القبطان @${username} باستهداف سفينتك (${targetShip.name || 'سفينة الأسطول'}) بصاروخ متوسط ملحقاً ضرر ${medDealtDamage.toLocaleString()} من الطاقة!`,
+          medAllDestroyed ? `🔥 دُمرت جميع سفن أسطولك وأصبح الميناء محترقاً ومدمراً بالكامل!` : `⚠️ قم بصيانة وإصلاح أضرار هيكل السفينة فوراً.`
+        ]
+      };
+
+      void createHarborEvent(targetDocId, 'ROCKET_MEDIUM', {
+        damage: medDealtDamage,
+        targetShipId: resolvedTargetShipId,
+        targetShipIndex: resolvedTargetIdx,
+        targetX: targetLeft,
+        targetY: targetTop,
+        targetName: targetSnapshot.username || '',
+        targetEmail: targetSnapshot.email || '',
+        allDestroyed: medAllDestroyed,
+        newReport
+      });
+    }
+
     setTimeout(() => {
       setIsMediumRocketActive(false);
       setShowMediumRocketExplosion(true);
@@ -1684,105 +1808,39 @@ export default function App() {
       setRocketXpText('XP +1,000');
       setShowRocketXp(true);
 
-      // Play authentic medium rocket explosion sound
       playMediumRocketExplosionSound();
 
-      const targetDocId = getTargetDefenderId(inspectedPlayer);
-      const flatDamage = 5000;
-      let dealtDamage = 0;
+      if (medUpdatedShips && targetDocId) {
+        setLastRocketDamage(medDealtDamage || 5000);
+        const finalShips = medUpdatedShips;
+        const finalDestroyed = medAllDestroyed;
 
-      if (targetShip && targetDocId) {
-        let allDestroyed = false;
-        const targetIdx = targetShip.id ? baseShips.findIndex((s: any) => s.id === targetShip.id) : 0;
-        const resolvedTargetIdx = targetIdx >= 0 ? targetIdx : 0;
-        const resolvedTargetShipId = baseShips[resolvedTargetIdx]?.id || targetShip.id;
-        const updatedShips = baseShips.map((s: any, idx: number) => {
-          const normalized = normalizeShipEnergyToCargo(s, inspectedPlayer.portDestroyed);
-          if (idx === resolvedTargetIdx) {
-            const maxH = getShipMaxHeart(normalized);
-            const dmg = flatDamage;
-            dealtDamage = dmg;
-            const currentHeart = typeof normalized.heart === 'number' ? Math.min(normalized.heart, maxH) : maxH;
-            const newHeart = Math.max(0, currentHeart - dmg);
-            return { ...normalized, maxHeart: maxH, heart: newHeart, energySyncedToCargo: true, ...(newHeart <= 0 ? { moving: false, status: 'docked' } : {}) };
-          }
-          return normalized;
-        });
-
-        setLastRocketDamage(dealtDamage || 5000);
-        const activeUpdatedShips = updatedShips.filter((s: any) => s.exists !== false);
-        allDestroyed = activeUpdatedShips.length > 0 && activeUpdatedShips.every((s: any) => typeof s.heart === 'number' && s.heart <= 0);
-
-        const nowTime = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-        const newReport = {
-          id: `rocket_med_${Date.now()}`,
-          opponent: username,
-          opponentName: username,
-          opponentAvatar: avatar || '☠️',
-          type: 'defense',
-          result: 'defeat',
-          isVictory: false,
-          goldChange: 0,
-          time: nowTime,
-          date: new Date().toISOString(),
-          title: allDestroyed ? '🚨 تم تدمير أسطولك ومينائك بالكامل!' : '🚀 استهداف سفينتك بصاروخ متوسط!',
-          log: [
-            `🚀 قام القبطان @${username} باستهداف سفينتك (${targetShip.name || 'سفينة الأسطول'}) بصاروخ متوسط ملحقاً ضرر ${dealtDamage.toLocaleString()} من الطاقة!`,
-            allDestroyed ? `🔥 دُمرت جميع سفن أسطولك وأصبح الميناء محترقاً ومدمراً بالكامل!` : `⚠️ قم بصيانة وإصلاح أضرار هيكل السفينة فوراً.`
-          ]
-        };
-
-        // Secure collection-based dispatch to /harborEvents
-        createHarborEvent(targetDocId, 'ROCKET_MEDIUM', {
-          damage: dealtDamage,
-          targetShipId: resolvedTargetShipId,
-          targetShipIndex: resolvedTargetIdx,
-          targetName: inspectedPlayer.username || '',
-          allDestroyed,
-          newReport
-        });
-
-        // Direct persistent update to target user profile document in Firestore
-        if (targetDocId && db) {
-          updateDoc(doc(db, 'users', targetDocId), {
-            portDestroyed: allDestroyed,
-            ships: updatedShips,
-            battleReports: [newReport, ...(Array.isArray(inspectedPlayer.battleReports) ? inspectedPlayer.battleReports.slice(0, 19) : [])],
-            updatedAt: new Date().toISOString()
-          }).catch((err) => {
-            console.warn("Direct update to target user doc failed, harborEvent will handle it:", err);
-          });
-        }
-
-        // Synchronize inspected player locally
-        setInspectedPlayer((prev: any) => prev ? {
+        setInspectedPlayer((prev: any) => prev && getTargetDefenderId(prev) === targetDocId ? {
           ...prev,
-          portDestroyed: allDestroyed,
-          ships: updatedShips
+          portDestroyed: finalDestroyed,
+          ships: finalShips
         } : prev);
 
         setRealPlayers(prev => prev.map(p => {
-          if (p.id === targetDocId || p.userId === targetDocId) {
-            return { ...p, portDestroyed: allDestroyed, ships: updatedShips };
+          if (getTargetDefenderId(p) === targetDocId || p.id === targetDocId || p.userId === targetDocId) {
+            return { ...p, portDestroyed: finalDestroyed, ships: finalShips };
           }
           return p;
         }));
       }
-      
+
       sendSecureChatMessage(
         'القوات الصاروخية 🚀',
         '🚀',
-        `🚀 صاروخ متوسط! قصف القبطان @${username} سفينة القبطان @${inspectedPlayer.username} وألحق بها ضرر ${(dealtDamage || flatDamage).toLocaleString()} من الطاقة!`
+        `🚀 صاروخ متوسط! قصف القبطان @${username} سفينة القبطان @${targetSnapshot.username} وألحق بها ضرر ${(medDealtDamage || flatDamage).toLocaleString()} من الطاقة!`
       );
 
-      showToast(`💥 تم إطلاق الصاروخ المتوسط وإصابة السفينة بضرر ${(dealtDamage || flatDamage).toLocaleString()} من الطاقة!`, "success");
+      showToast(`💥 تم إطلاق الصاروخ المتوسط وإصابة السفينة بضرر ${(medDealtDamage || flatDamage).toLocaleString()} من الطاقة!`, "success");
 
-      // Reset screen shake after explosion punch
       setTimeout(() => {
         setIsShaking(false);
       }, 500);
 
-      // Hide XP badge after 2.8s
       setTimeout(() => {
         setShowRocketXp(false);
       }, 2800);
@@ -1792,22 +1850,30 @@ export default function App() {
   const handleLaunchLargeRocket = (targetShipOverride?: any) => {
     if (!inspectedPlayer) return;
 
-    // التحقق من شرط مستوى السفن (مستوى 6 وما فوق)
     const validation = validateAttackOrSteal();
     if (!validation.allowed) {
       alert(validation.message);
       showToast(validation.message, 'error');
       return;
     }
-    
-    // Ensure all menus are closed immediately so nothing obstructs rocket trajectory or explosion
+
+    const targetSnapshot = inspectedPlayer;
+    const targetDocId = getTargetDefenderId(targetSnapshot);
+    if (!targetDocId || targetDocId.startsWith('rival_')) {
+      showToast('⚠️ تعذر إرسال الهجوم: حساب الهدف غير مرتبط بمعرف فعّال.', 'error');
+      return;
+    }
+    if (auth.currentUser && targetDocId === auth.currentUser.uid) {
+      showToast('لا يمكنك استهداف مينائك الخاص!', 'error');
+      return;
+    }
+
     setSelectedVisitedShip(null);
     setShowWeaponSelector(false);
 
-    // Determine the targeted ship and calculate its exact screen coordinates
-    const baseShips = (inspectedPlayer.ships && Array.isArray(inspectedPlayer.ships) && inspectedPlayer.ships.length > 0)
-      ? inspectedPlayer.ships
-      : getInspectedPlayerShips(inspectedPlayer);
+    const baseShips = (targetSnapshot.ships && Array.isArray(targetSnapshot.ships) && targetSnapshot.ships.length > 0)
+      ? targetSnapshot.ships
+      : getInspectedPlayerShips(targetSnapshot);
     const targetShip = targetShipOverride || selectedVisitedShip || baseShips[0];
 
     let targetLeft = '45%';
@@ -1826,246 +1892,36 @@ export default function App() {
     }
 
     setRocketTargetPos({ l: targetLeft, t: targetTop });
-
-    // Play authentic rocket launch & incoming Doppler flight sound
     playLargeRocketIncomingSound();
-
     setIsLargeRocketActive(true);
-    
+
     setWeapons(prev => {
+      const curQty = prev.largeRocket !== undefined ? prev.largeRocket : (prev.large_missile ?? 0);
+      const nextQty = Math.max(0, curQty - 1);
       const updated = {
         ...prev,
-        largeRocket: Math.max(0, (prev.largeRocket || 6435) - 1)
+        largeRocket: nextQty,
+        ...(prev.large_missile !== undefined ? { large_missile: nextQty } : {})
       };
       localStorage.setItem('pirate_weapons', JSON.stringify(updated));
       return updated;
     });
 
-    // Fly rocket (lasts 1.25 seconds)
-    setTimeout(() => {
-      setIsLargeRocketActive(false);
-      setShowLargeRocketExplosion(true);
-      setIsShaking(true);
-      setRocketXpText('XP +1,200');
-      setShowRocketXp(true);
-      
-      // Play heavy cinematic explosion sound matching user reference
-      playLargeRocketExplosionSound();
+    const flatDamage = 10000;
+    let largeUpdatedShips: any[] | null = null;
+    let largeAllDestroyed = false;
+    let primaryDealtDamage = 0;
 
-      // Deal 10,000 damage ONLY to the selected target ship
-      const targetDocId = getTargetDefenderId(inspectedPlayer);
-      const flatDamage = 10000;
-      let primaryDealtDamage = 0;
-
-      if (targetShip && targetDocId) {
-        let allDestroyed = false;
-        const targetIdx = targetShip.id ? baseShips.findIndex((s: any) => s.id === targetShip.id) : 0;
-        const resolvedTargetIdx = targetIdx >= 0 ? targetIdx : 0;
-        const resolvedTargetShipId = baseShips[resolvedTargetIdx]?.id || targetShip.id;
-        const updatedShips = baseShips.map((s: any, idx: number) => {
-          const normalized = normalizeShipEnergyToCargo(s, inspectedPlayer.portDestroyed);
-          if (idx === resolvedTargetIdx) {
-            const maxH = getShipMaxHeart(normalized);
-            const dmg = flatDamage;
-            primaryDealtDamage = dmg;
-            const currentHeart = typeof normalized.heart === 'number' ? Math.min(normalized.heart, maxH) : maxH;
-            const newHeart = Math.max(0, currentHeart - dmg);
-            return {
-              ...normalized,
-              maxHeart: maxH,
-              heart: newHeart,
-              energySyncedToCargo: true,
-              ...(newHeart <= 0 ? { moving: false, status: 'docked' } : {})
-            };
-          }
-          return normalized;
-        });
-
-        setLastRocketDamage(primaryDealtDamage || 10000);
-        const activeUpdatedShips = updatedShips.filter((s: any) => s.exists !== false);
-        allDestroyed = activeUpdatedShips.length > 0 && activeUpdatedShips.every((s: any) => typeof s.heart === 'number' && s.heart <= 0);
-
-        const nowTime = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-        const newReport = {
-          id: `rocket_large_${Date.now()}`,
-          opponent: username,
-          opponentName: username,
-          opponentAvatar: avatar || '☠️',
-          type: 'defense',
-          result: 'defeat',
-          isVictory: false,
-          goldChange: 0,
-          time: nowTime,
-          date: new Date().toISOString(),
-          title: allDestroyed ? '🚨 تم تدمير أسطولك ومينائك بالكامل!' : '🚀 قصف صاروخي فتاك على سفينتك!',
-          log: [
-            `🚀 قصف القبطان @${username} سفينتك (${targetShip.name || 'سفينة الأسطول'}) بصاروخ كبير مدمّر ملحقاً ضرر ${primaryDealtDamage.toLocaleString()} من الطاقة!`,
-            allDestroyed ? `🔥 دُمرت جميع سفن أسطولك بالكامل وأصبح الميناء محترقاً ومدمراً!` : `⚠️ تعرضت السفينة المستهدفة لأضرار جسيمة، توجه للصيانة والإصلاح فوراً.`
-          ]
-        };
-
-        // Secure collection-based dispatch to /harborEvents
-        createHarborEvent(targetDocId, 'ROCKET_LARGE', {
-          damage: primaryDealtDamage,
-          targetShipId: resolvedTargetShipId,
-          targetShipIndex: resolvedTargetIdx,
-          targetName: inspectedPlayer.username || '',
-          allDestroyed,
-          newReport
-        });
-
-        // Direct persistent update to target user profile document in Firestore
-        if (targetDocId && db) {
-          updateDoc(doc(db, 'users', targetDocId), {
-            portDestroyed: allDestroyed,
-            ships: updatedShips,
-            battleReports: [newReport, ...(Array.isArray(inspectedPlayer.battleReports) ? inspectedPlayer.battleReports.slice(0, 19) : [])],
-            updatedAt: new Date().toISOString()
-          }).catch((err) => {
-            console.warn("Direct update to target user doc failed, harborEvent will handle it:", err);
-          });
-        }
-
-        // Synchronize inspected player locally
-        setInspectedPlayer((prev: any) => prev ? {
-          ...prev,
-          portDestroyed: allDestroyed,
-          ships: updatedShips
-        } : prev);
-
-        setRealPlayers(prev => prev.map(p => {
-          if (p.id === targetDocId || p.userId === targetDocId) {
-            return { ...p, portDestroyed: allDestroyed, ships: updatedShips };
-          }
-          return p;
-        }));
-      }
-
-      sendSecureChatMessage(
-        'القوات الصاروخية 🚀',
-        '🚀',
-        `🚀 صاروخ كبير فتاك! قصف القبطان @${username} سفينة القبطان @${inspectedPlayer.username} وألحق بها ضرر ${(primaryDealtDamage || flatDamage).toLocaleString()} من الطاقة!`
-      );
-
-      showToast(`💥 تم إطلاق الصاروخ الكبير وإصابة السفينة المحددة بضرر ${(primaryDealtDamage || flatDamage).toLocaleString()} من الطاقة!`, "success");
-
-      // Impact camera shake lasts 650ms for realistic punch
-      setTimeout(() => {
-        setIsShaking(false);
-      }, 650);
-
-      // Hide XP pill after 2.8 seconds
-      setTimeout(() => {
-        setShowRocketXp(false);
-      }, 2800);
-
-    }, 1250);
-
-    setTimeout(() => {
-      setShowLargeRocketExplosion(false);
-    }, 2050);
-  };
-
-  const handleDisableDefense = (type: 'rocket' | 'nuke' | 'ad') => {
-    if (!inspectedPlayer) return;
-
-    let weaponKey = '';
-    let message = '';
-    let weaponLabel = '';
-    
-    if (type === 'rocket') {
-      weaponKey = 'antiRocketDisabler';
-      weaponLabel = 'معطل مضاد الصواريخ';
-      message = `⚠️ مضاد الصواريخ معطل\nعطلت مضاد الصواريخ لدى القبطان @${inspectedPlayer.username} لمدة 10 دقائق.`;
-    } else if (type === 'nuke') {
-      weaponKey = 'antiNukeDisabler';
-      weaponLabel = 'معطل مضاد القنبلة الذرية';
-      message = `⚠️ مضاد القنبلة الذرية معطل\nعطلت مضاد القنبلة الذرية لدى القبطان @${inspectedPlayer.username} لمدة 10 دقائق.`;
-    } else if (type === 'ad') {
-      weaponKey = 'antiAdDisabler';
-      weaponLabel = 'معطل مضاد القنبلة الإعلانية';
-      message = `⚠️ مضاد القنبلة الإعلانية معطل\nعطلت مضاد القنبلة الإعلانية لدى القبطان @${inspectedPlayer.username} لمدة 10 دقائق.`;
-    }
-
-    setWeapons(prev => {
-      const updated = {
-        ...prev,
-        [weaponKey]: Math.max(0, (prev[weaponKey] || 6) - 1)
-      };
-      localStorage.setItem('pirate_weapons', JSON.stringify(updated));
-      return updated;
-    });
-
-    const targetDocId = getTargetDefenderId(inspectedPlayer);
-    if (targetDocId) {
-      createHarborEvent(targetDocId, 'DISABLE_DEFENSE', {
-        defenseType: type,
-        weaponLabel,
-        targetName: inspectedPlayer.username || ''
-      });
-    }
-
-    showToast(message.replace('\n', ' - '), 'success');
-  };
-
-  const handleLaunchAdBomb = async (selectedAdKey: string) => {
-    if (!inspectedPlayer) return;
-
-    // التحقق من شرط مستوى السفن (مستوى 6 وما فوق)
-    const validation = validateAttackOrSteal();
-    if (!validation.allowed) {
-      alert(validation.message);
-      showToast(validation.message, 'error');
-      return;
-    }
-
-    // Ensure all menus are closed immediately
-    setSelectedVisitedShip(null);
-    setShowWeaponSelector(false);
-    setShowAdSelectorModal(false);
-
-    // Deduct Ad Bomb
-    setWeapons(prev => {
-      const updated = {
-        ...prev,
-        adBomb: Math.max(0, (prev.adBomb || 101) - 1)
-      };
-      localStorage.setItem('pirate_weapons', JSON.stringify(updated));
-      return updated;
-    });
-
-    // Trigger smoke explosion animation
-    setShowSmokeExplosion(true);
-    setIsShaking(true);
-    playMediaBombExplosionSound();
-
-    // Get Ad Title Arabic
-    let adTitle = '';
-    if (selectedAdKey === 'luffy_king') adTitle = '☠️ لوفي ملك القراصنة';
-    else if (selectedAdKey === 'jack_sabro' || selectedAdKey === 'deep_dragon') adTitle = '🦎 تنين الأعماق';
-    else if (selectedAdKey === 'luffy_grandeur') adTitle = '🔥 فخامة لوفي';
-    else if (selectedAdKey === 'anf') adTitle = '👑 وإذا سطا خاف الأنام';
-
-    setTimeout(async () => {
-      setShowSmokeExplosion(false);
-      setIsShaking(false);
-
-      // تشغيل الصوت الملحمي المطلوب بعد ما يتم التفجير برسالة التفجير مباشرة
-      playDetonationWarningVoiceAndSound();
-
-      let allDestroyed = false;
-      const flatDamage = 20000;
-      const targetDocId = getTargetDefenderId(inspectedPlayer);
-      if (targetDocId && db) {
-        const baseShips = (inspectedPlayer.ships && Array.isArray(inspectedPlayer.ships) && inspectedPlayer.ships.length > 0)
-          ? inspectedPlayer.ships
-          : getInspectedPlayerShips(inspectedPlayer);
-
-        // Deal 20,000 damage to all ships
-        const updatedShips = baseShips.map((s: any) => {
-          const normalized = normalizeShipEnergyToCargo(s, inspectedPlayer.portDestroyed);
+    if (targetShip && targetDocId) {
+      const targetIdx = targetShip.id ? baseShips.findIndex((s: any) => s.id === targetShip.id) : 0;
+      const resolvedTargetIdx = targetIdx >= 0 ? targetIdx : 0;
+      const resolvedTargetShipId = baseShips[resolvedTargetIdx]?.id || targetShip.id;
+      const computedShips = baseShips.map((s: any, idx: number) => {
+        const normalized = normalizeShipEnergyToCargo(s, targetSnapshot.portDestroyed);
+        if (idx === resolvedTargetIdx) {
           const maxH = getShipMaxHeart(normalized);
           const dmg = flatDamage;
+          primaryDealtDamage = dmg;
           const currentHeart = typeof normalized.heart === 'number' ? Math.min(normalized.heart, maxH) : maxH;
           const newHeart = Math.max(0, currentHeart - dmg);
           return {
@@ -2075,91 +1931,290 @@ export default function App() {
             energySyncedToCargo: true,
             ...(newHeart <= 0 ? { moving: false, status: 'docked' } : {})
           };
-        });
-
-        allDestroyed = updatedShips.length > 0 && updatedShips.every((s: any) => typeof s.heart === 'number' && s.heart <= 0);
-
-        const nowTime = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-        const newReport = {
-          id: `ad_bomb_${Date.now()}`,
-          opponent: username,
-          opponentName: username,
-          opponentAvatar: avatar || '📡',
-          type: 'defense',
-          result: 'defeat',
-          isVictory: false,
-          goldChange: 0,
-          time: nowTime,
-          date: new Date().toISOString(),
-          title: allDestroyed ? '🚨 رسالة التفجير: تم تدمير أسطولك ومينائك بالكامل!' : '📡 هجوم رسالة التفجير!',
-          log: [
-            `📡 قام القبطان @${username} بإطلاق رسالة التفجير [${adTitle}] على مينائك ملحقاً ضرر ${flatDamage.toLocaleString()} من طاقة كل سفينة!`,
-            allDestroyed ? `🔥 دُمرت جميع سفن أسطولك بالكامل ودُمر الميناء وأصبح محترقاً ومشتعلاً!` : `⚠️ أصيبت سفن أسطولك بأضرار جسيمة، توجه للصيانة والترميم فوراً.`,
-            `⚠️ توجه فوراً إلى الميناء واضغط على [إعادة إعمار الميناء وترميم الأسطول].`
-          ]
-        };
-
-        // Secure collection-based dispatch to /harborEvents
-        createHarborEvent(targetDocId, 'AD_BOMB', {
-          damage: flatDamage,
-          allDestroyed,
-          adKey: selectedAdKey,
-          adTitle,
-          targetName: inspectedPlayer.username || '',
-          newReport
-        });
-
-        // Direct persistent update to target user profile document in Firestore
-        if (targetDocId && db) {
-          updateDoc(doc(db, 'users', targetDocId), {
-            portDestroyed: allDestroyed,
-            activeAd: selectedAdKey,
-            ships: updatedShips,
-            battleReports: [newReport, ...(Array.isArray(inspectedPlayer.battleReports) ? inspectedPlayer.battleReports.slice(0, 19) : [])],
-            updatedAt: new Date().toISOString()
-          }).catch((err) => {
-            console.warn("Direct update to target user doc failed, harborEvent will handle it:", err);
-          });
         }
+        return normalized;
+      });
+      largeUpdatedShips = computedShips;
 
-        // Synchronize local inspectedPlayer
-        setInspectedPlayer((prev: any) => prev ? {
+      const activeUpdatedShips = computedShips.filter((s: any) => s.exists !== false);
+      largeAllDestroyed = activeUpdatedShips.length > 0 && activeUpdatedShips.every((s: any) => typeof s.heart === 'number' && s.heart <= 0);
+
+      const nowTime = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+      const newReport = {
+        id: `rocket_large_${Date.now()}`,
+        opponent: username,
+        opponentName: username,
+        opponentAvatar: avatar || '☠️',
+        type: 'defense',
+        result: 'defeat',
+        isVictory: false,
+        goldChange: 0,
+        time: nowTime,
+        date: new Date().toISOString(),
+        title: largeAllDestroyed ? '🚨 تم تدمير أسطولك ومينائك بالكامل!' : '🚀 قصف صاروخي فتاك على سفينتك!',
+        log: [
+          `🚀 قصف القبطان @${username} سفينتك (${targetShip.name || 'سفينة الأسطول'}) بصاروخ كبير مدمّر ملحقاً ضرر ${primaryDealtDamage.toLocaleString()} من الطاقة!`,
+          largeAllDestroyed ? `🔥 دُمرت جميع سفن أسطولك بالكامل وأصبح الميناء محترقاً ومدمراً!` : `⚠️ تعرضت السفينة المستهدفة لأضرار جسيمة، توجه للصيانة والإصلاح فوراً.`
+        ]
+      };
+
+      void createHarborEvent(targetDocId, 'ROCKET_LARGE', {
+        damage: primaryDealtDamage,
+        targetShipId: resolvedTargetShipId,
+        targetShipIndex: resolvedTargetIdx,
+        targetX: targetLeft,
+        targetY: targetTop,
+        targetName: targetSnapshot.username || '',
+        targetEmail: targetSnapshot.email || '',
+        allDestroyed: largeAllDestroyed,
+        newReport
+      });
+    }
+
+    setTimeout(() => {
+      setIsLargeRocketActive(false);
+      setShowLargeRocketExplosion(true);
+      setIsShaking(true);
+      setRocketXpText('XP +1,200');
+      setShowRocketXp(true);
+
+      playLargeRocketExplosionSound();
+
+      if (largeUpdatedShips && targetDocId) {
+        setLastRocketDamage(primaryDealtDamage || 10000);
+        const finalShips = largeUpdatedShips;
+        const finalDestroyed = largeAllDestroyed;
+
+        setInspectedPlayer((prev: any) => prev && getTargetDefenderId(prev) === targetDocId ? {
+          ...prev,
+          portDestroyed: finalDestroyed,
+          ships: finalShips
+        } : prev);
+
+        setRealPlayers(prev => prev.map(p => {
+          if (getTargetDefenderId(p) === targetDocId || p.id === targetDocId || p.userId === targetDocId) {
+            return { ...p, portDestroyed: finalDestroyed, ships: finalShips };
+          }
+          return p;
+        }));
+      }
+
+      sendSecureChatMessage(
+        'القوات الصاروخية 🚀',
+        '🚀',
+        `🚀 صاروخ كبير فتاك! قصف القبطان @${username} سفينة القبطان @${targetSnapshot.username} وألحق بها ضرر ${(primaryDealtDamage || flatDamage).toLocaleString()} من الطاقة!`
+      );
+
+      showToast(`💥 تم إطلاق الصاروخ الكبير وإصابة السفينة المحددة بضرر ${(primaryDealtDamage || flatDamage).toLocaleString()} من الطاقة!`, "success");
+
+      setTimeout(() => {
+        setIsShaking(false);
+      }, 650);
+
+      setTimeout(() => {
+        setShowRocketXp(false);
+      }, 2800);
+    }, 1200);
+
+    setTimeout(() => {
+      setShowLargeRocketExplosion(false);
+    }, 2800);
+  };
+
+  const handleDisableDefense = async (type: 'rocket' | 'nuke' | 'ad') => {
+    if (!inspectedPlayer) return;
+
+    const targetSnapshot = inspectedPlayer;
+    const targetDocId = getTargetDefenderId(targetSnapshot);
+    if (!targetDocId || targetDocId.startsWith('rival_')) {
+      showToast('⚠️ تعذر إرسال السلاح: حساب الهدف غير مرتبط بمعرف فعّال.', 'error');
+      return;
+    }
+
+    let weaponKey = '';
+    let message = '';
+    let weaponLabel = '';
+
+    if (type === 'rocket') {
+      weaponKey = 'antiRocketDisabler';
+      weaponLabel = 'معطل مضاد الصواريخ';
+      message = `⚠️ مضاد الصواريخ معطل\nعطلت مضاد الصواريخ لدى القبطان @${targetSnapshot.username} لمدة 10 دقائق.`;
+    } else if (type === 'nuke') {
+      weaponKey = 'antiNukeDisabler';
+      weaponLabel = 'معطل مضاد القنبلة الذرية';
+      message = `⚠️ مضاد القنبلة الذرية معطل\nعطلت مضاد القنبلة الذرية لدى القبطان @${targetSnapshot.username} لمدة 10 دقائق.`;
+    } else if (type === 'ad') {
+      weaponKey = 'antiAdDisabler';
+      weaponLabel = 'معطل مضاد القنبلة الإعلانية';
+      message = `⚠️ مضاد القنبلة الإعلانية معطل\nعطلت مضاد القنبلة الإعلانية لدى القبطان @${targetSnapshot.username} لمدة 10 دقائق.`;
+    }
+
+    setWeapons(prev => {
+      const updated = {
+        ...prev,
+        [weaponKey]: Math.max(0, (prev[weaponKey] ?? 0) - 1)
+      };
+      localStorage.setItem('pirate_weapons', JSON.stringify(updated));
+      return updated;
+    });
+
+    await createHarborEvent(targetDocId, 'DISABLE_DEFENSE', {
+      defenseType: type,
+      weaponLabel,
+      targetName: targetSnapshot.username || '',
+      targetEmail: targetSnapshot.email || ''
+    });
+
+    showToast(message.replace('\n', ' - '), 'success');
+  };
+
+  const handleLaunchAdBomb = async (selectedAdKey: string) => {
+    if (!inspectedPlayer) return;
+
+    const validation = validateAttackOrSteal();
+    if (!validation.allowed) {
+      alert(validation.message);
+      showToast(validation.message, 'error');
+      return;
+    }
+
+    const targetSnapshot = inspectedPlayer;
+    const targetDocId = getTargetDefenderId(targetSnapshot);
+    if (!targetDocId || targetDocId.startsWith('rival_')) {
+      showToast('⚠️ تعذر إرسال الهجوم: حساب الهدف غير مرتبط بمعرف فعّال.', 'error');
+      return;
+    }
+    if (auth.currentUser && targetDocId === auth.currentUser.uid) {
+      showToast('لا يمكنك استهداف مينائك الخاص!', 'error');
+      return;
+    }
+
+    setSelectedVisitedShip(null);
+    setShowWeaponSelector(false);
+    setShowAdSelectorModal(false);
+
+    setWeapons(prev => {
+      const curQty = prev.adBomb !== undefined ? prev.adBomb : (prev.emp_bomb ?? 0);
+      const nextQty = Math.max(0, curQty - 1);
+      const updated = {
+        ...prev,
+        adBomb: nextQty,
+        ...(prev.emp_bomb !== undefined ? { emp_bomb: nextQty } : {})
+      };
+      localStorage.setItem('pirate_weapons', JSON.stringify(updated));
+      return updated;
+    });
+
+    playAtomicBombDropSound();
+    setShowSmokeExplosion(true);
+
+    let adTitle = '';
+    if (selectedAdKey === 'luffy_king') adTitle = '☠️ لوفي ملك القراصنة';
+    else if (selectedAdKey === 'jack_sabro' || selectedAdKey === 'deep_dragon') adTitle = '🦎 تنين الأعماق';
+    else if (selectedAdKey === 'luffy_grandeur') adTitle = '🔥 فخامة لوفي';
+    else if (selectedAdKey === 'anf') adTitle = '👑 وإذا سطا خاف الأنام';
+
+    const flatDamage = 20000;
+    const baseShips = (targetSnapshot.ships && Array.isArray(targetSnapshot.ships) && targetSnapshot.ships.length > 0)
+      ? targetSnapshot.ships
+      : getInspectedPlayerShips(targetSnapshot);
+
+    const updatedShips = baseShips.map((s: any) => {
+      const normalized = normalizeShipEnergyToCargo(s, targetSnapshot.portDestroyed);
+      const maxH = getShipMaxHeart(normalized);
+      const dmg = flatDamage;
+      const currentHeart = typeof normalized.heart === 'number' ? Math.min(normalized.heart, maxH) : maxH;
+      const newHeart = Math.max(0, currentHeart - dmg);
+      return {
+        ...normalized,
+        maxHeart: maxH,
+        heart: newHeart,
+        energySyncedToCargo: true,
+        ...(newHeart <= 0 ? { moving: false, status: 'docked' } : {})
+      };
+    });
+
+    const allDestroyed = updatedShips.length > 0 && updatedShips.every((s: any) => typeof s.heart === 'number' && s.heart <= 0);
+
+    const nowTime = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+    const newReport = {
+      id: `ad_bomb_${Date.now()}`,
+      opponent: username,
+      opponentName: username,
+      opponentAvatar: avatar || '📡',
+      type: 'defense',
+      result: 'defeat',
+      isVictory: false,
+      goldChange: 0,
+      time: nowTime,
+      date: new Date().toISOString(),
+      title: allDestroyed ? '🚨 رسالة التفجير: تم تدمير أسطولك ومينائك بالكامل!' : '📡 هجوم رسالة التفجير!',
+      log: [
+        `📡 قام القبطان @${username} بإطلاق رسالة التفجير [${adTitle}] على مينائك ملحقاً ضرر ${flatDamage.toLocaleString()} من طاقة كل سفينة!`,
+        allDestroyed ? `🔥 دُمرت جميع سفن أسطولك بالكامل ودُمر الميناء وأصبح محترقاً ومشتعلاً!` : `⚠️ أصيبت سفن أسطولك بأضرار جسيمة، توجه للصيانة والترميم فوراً.`,
+        `⚠️ توجه فوراً إلى الميناء واضغط على [إعادة إعمار الميناء وترميم الأسطول].`
+      ]
+    };
+
+    if (targetDocId && db) {
+      void createHarborEvent(targetDocId, 'AD_BOMB', {
+        damage: flatDamage,
+        allDestroyed,
+        adKey: selectedAdKey,
+        adTitle,
+        targetName: targetSnapshot.username || '',
+        targetEmail: targetSnapshot.email || '',
+        newReport
+      });
+    }
+
+    setTimeout(() => {
+      setIsShaking(true);
+      playMediaBombExplosionSound();
+
+      if (targetDocId) {
+        setInspectedPlayer((prev: any) => prev && getTargetDefenderId(prev) === targetDocId ? {
           ...prev,
           portDestroyed: allDestroyed,
           activeAd: selectedAdKey,
           ships: updatedShips
         } : prev);
 
-        // Synchronize realPlayers
         setRealPlayers(prev => prev.map(p => {
-          if (p.id === targetDocId || p.userId === targetDocId) {
+          if (getTargetDefenderId(p) === targetDocId || p.id === targetDocId || p.userId === targetDocId) {
             return { ...p, portDestroyed: allDestroyed, ships: updatedShips };
           }
           return p;
         }));
       }
+    }, 850);
 
-      // Secure Chat Announcement in Firestore
+    setTimeout(() => {
+      setIsShaking(false);
+    }, 1800);
+
+    setTimeout(() => {
+      setShowSmokeExplosion(false);
+      playDetonationWarningVoiceAndSound();
+
       sendSecureChatMessage(
         'رسالة التفجير 📡',
         '📡',
-        `📡 رسالة التفجير! أطلق القبطان @${username} رسالة التفجير [${adTitle}] على أسطول القبطان @${inspectedPlayer.username} وأنقص ${flatDamage.toLocaleString()} من طاقة السفن!`
+        `📡 رسالة التفجير! أطلق القبطان @${username} رسالة التفجير [${adTitle}] على أسطول القبطان @${targetSnapshot.username} وأنقص ${flatDamage.toLocaleString()} من طاقة السفن!`
       );
 
       showToast(`💥 تم إطلاق رسالة التفجير وإنقاص ${flatDamage.toLocaleString()} من طاقة أسطول الخصم!`, "success");
 
-      // فتح خانة كتابة رسالة التفجير وإرسالها مباشرة للشخص الذي فجرت سفنه أو ميناءه
       setPostDetonationModal({
         isOpen: true,
         targetDocId: targetDocId || '',
-        targetPlayerName: inspectedPlayer?.username || 'القبطان',
-        targetPlayerAvatar: inspectedPlayer?.avatar || '⚓',
+        targetPlayerName: targetSnapshot?.username || 'القبطان',
+        targetPlayerAvatar: targetSnapshot?.avatar || '⚓',
         adTitle,
         allDestroyed
       });
       setDetonationCustomMessage('');
-
-    }, 1800);
+    }, 2150);
   };
 
   const handleSendDetonationMessage = async () => {
@@ -2170,7 +2225,6 @@ export default function App() {
     try {
       const { targetDocId, targetPlayerName, adTitle } = postDetonationModal;
 
-      // 1. Dispatch event to harborEvents so target gets real-time notification
       await createHarborEvent(targetDocId, 'DETONATION_MESSAGE', {
         senderName: username || 'القبطان',
         senderAvatar: avatar || '📡',
@@ -2179,25 +2233,11 @@ export default function App() {
         adTitle
       });
 
-      // 2. Broadcast message in Island Chat
       await sendSecureChatMessage(
         username || 'القبطان',
         avatar || '📡',
         `📡 [رسالة تفجير موجهة إلى @${targetPlayerName}]: "${msgText}"`
       );
-
-      // 3. Update target user doc with notification in Firestore
-      if (targetDocId && db) {
-        await updateDoc(doc(db, 'users', targetDocId), {
-          lastDetonationMessage: {
-            from: username || 'القبطان',
-            fromAvatar: avatar || '📡',
-            message: msgText,
-            time: new Date().toISOString()
-          },
-          updatedAt: new Date().toISOString()
-        }).catch(err => console.warn("Failed updating lastDetonationMessage:", err));
-      }
 
       showToast(`✉️ تم إرسال رسالتك للقبطان @${targetPlayerName} بنجاح!`, 'success');
       setDetonationCustomMessage('');
@@ -2213,157 +2253,141 @@ export default function App() {
   const handleLaunchAtomicBomb = async () => {
     if (!inspectedPlayer) return;
 
-    // التحقق من شرط مستوى السفن (مستوى 6 وما فوق)
     const validation = validateAttackOrSteal();
     if (!validation.allowed) {
       alert(validation.message);
       showToast(validation.message, 'error');
       return;
     }
-    
-    // Ensure all menus are closed immediately so nothing obstructs falling bomb or nuclear explosion
+
+    const targetSnapshot = inspectedPlayer;
+    const targetDocId = getTargetDefenderId(targetSnapshot);
+    if (!targetDocId || targetDocId.startsWith('rival_')) {
+      showToast('⚠️ تعذر إرسال الهجوم: حساب الهدف غير مرتبط بمعرف فعّال.', 'error');
+      return;
+    }
+    if (auth.currentUser && targetDocId === auth.currentUser.uid) {
+      showToast('لا يمكنك استهداف مينائك الخاص!', 'error');
+      return;
+    }
+
     setSelectedVisitedShip(null);
     setShowWeaponSelector(false);
 
-    // Play falling bomb whistle sound matching video reference
     playAtomicBombDropSound();
     setIsAtomicBombActive(true);
     setShowAtomicBombXp(true);
 
-    // Deduct bomb
     setWeapons(prev => {
+      const curQty = prev.atomicBomb !== undefined ? prev.atomicBomb : (prev.nuke_bomb ?? 0);
+      const nextQty = Math.max(0, curQty - 1);
       const updated = {
         ...prev,
-        atomicBomb: Math.max(0, (prev.atomicBomb || 795) - 1)
+        atomicBomb: nextQty,
+        ...(prev.nuke_bomb !== undefined ? { nuke_bomb: nextQty } : {})
       };
       localStorage.setItem('pirate_weapons', JSON.stringify(updated));
       return updated;
     });
 
-    // Stage 1: Fall down & plunge inside sea depths before detonating (1.35s)
+    const flatDamage = 70000;
+    const baseShips = (targetSnapshot.ships && Array.isArray(targetSnapshot.ships) && targetSnapshot.ships.length > 0)
+      ? targetSnapshot.ships
+      : getInspectedPlayerShips(targetSnapshot);
+
+    const updatedShips = baseShips.map((s: any) => {
+      const normalized = normalizeShipEnergyToCargo(s, targetSnapshot.portDestroyed);
+      const maxH = getShipMaxHeart(normalized);
+      const dmg = flatDamage;
+      const currentHeart = typeof normalized.heart === 'number' ? Math.min(normalized.heart, maxH) : maxH;
+      const newHeart = Math.max(0, currentHeart - dmg);
+      return {
+        ...normalized,
+        maxHeart: maxH,
+        heart: newHeart,
+        energySyncedToCargo: true,
+        ...(newHeart <= 0 ? { moving: false, status: 'docked' } : {})
+      };
+    });
+
+    const allDestroyed = updatedShips.length > 0 && updatedShips.every((s: any) => typeof s.heart === 'number' && s.heart <= 0);
+
+    const nowTime = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+    const newReport = {
+      id: `atomic_${Date.now()}`,
+      opponent: username,
+      opponentName: username,
+      opponentAvatar: avatar || '💣',
+      type: 'defense',
+      result: 'defeat',
+      isVictory: false,
+      goldChange: 0,
+      time: nowTime,
+      date: new Date().toISOString(),
+      title: allDestroyed ? '🚨 كارثة الموت الأسود: تم تدمير أسطولك ومينائك بالكامل!' : '💣 قصف بقنبلة الموت الأسود!',
+      log: [
+        `💣 شن القبطان @${username} هجوماً فتاكاً بقنبلة الموت الأسود على مينائك ملحقاً ضرر ${flatDamage.toLocaleString()} من طاقة كل سفينة!`,
+        allDestroyed ? `🔥 دُمرت جميع سفن أسطولك بالكامل وغرقت في المياه وأصبح الميناء محترقاً ومدمراً!` : `⚠️ تعرضت سفن الأسطول لأضرار جسيمة للغاية، توجه للصيانة وترميم الهيكل فوراً.`,
+        `⚠️ اضغط على زر [إعادة إعمار الميناء وترميم الأسطول] لإصلاح الأضرار واستعادة أسطولك.`
+      ]
+    };
+
+    if (targetDocId && db) {
+      void createHarborEvent(targetDocId, 'ATOMIC_BOMB', {
+        damage: flatDamage,
+        allDestroyed,
+        targetName: targetSnapshot.username || '',
+        targetEmail: targetSnapshot.email || '',
+        newReport
+      });
+    }
+
     setTimeout(() => {
       setIsShaking(true);
-      
-      // Play heavy nuclear detonation boom matching video reference
       playAtomicBombExplosionSound();
-      
       setExp(prev => prev + 2500);
 
-      const targetDocId = getTargetDefenderId(inspectedPlayer);
-      const flatDamage = 70000;
-      if (targetDocId && db) {
-        const baseShips = (inspectedPlayer.ships && Array.isArray(inspectedPlayer.ships) && inspectedPlayer.ships.length > 0)
-          ? inspectedPlayer.ships
-          : getInspectedPlayerShips(inspectedPlayer);
-
-        // Apply 70,000 damage to all ships
-        let allDestroyed = false;
-        const updatedShips = baseShips.map((s: any) => {
-          const normalized = normalizeShipEnergyToCargo(s, inspectedPlayer.portDestroyed);
-          const maxH = getShipMaxHeart(normalized);
-          const dmg = flatDamage;
-          const currentHeart = typeof normalized.heart === 'number' ? Math.min(normalized.heart, maxH) : maxH;
-          const newHeart = Math.max(0, currentHeart - dmg);
-          return {
-            ...normalized,
-            maxHeart: maxH,
-            heart: newHeart,
-            energySyncedToCargo: true,
-            ...(newHeart <= 0 ? { moving: false, status: 'docked' } : {})
-          };
-        });
-
-        allDestroyed = updatedShips.length > 0 && updatedShips.every((s: any) => typeof s.heart === 'number' && s.heart <= 0);
-
-        const nowTime = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-        const newReport = {
-          id: `atomic_${Date.now()}`,
-          opponent: username,
-          opponentName: username,
-          opponentAvatar: avatar || '💣',
-          type: 'defense',
-          result: 'defeat',
-          isVictory: false,
-          goldChange: 0,
-          time: nowTime,
-          date: new Date().toISOString(),
-          title: allDestroyed ? '🚨 كارثة الموت الأسود: تم تدمير أسطولك ومينائك بالكامل!' : '💣 قصف بقنبلة الموت الأسود!',
-          log: [
-            `💣 شن القبطان @${username} هجوماً فتاكاً بقنبلة الموت الأسود على مينائك ملحقاً ضرر ${flatDamage.toLocaleString()} من طاقة كل سفينة!`,
-            allDestroyed ? `🔥 دُمرت جميع سفن أسطولك بالكامل وغرقت في المياه وأصبح الميناء محترقاً ومدمراً!` : `⚠️ تعرضت سفن الأسطول لأضرار جسيمة للغاية، توجه للصيانة وترميم الهيكل فوراً.`,
-            `⚠️ اضغط على زر [إعادة إعمار الميناء وترميم الأسطول] لإصلاح الأضرار واستعادة أسطولك.`
-          ]
-        };
-
-        // Secure collection-based dispatch to /harborEvents
-        createHarborEvent(targetDocId, 'ATOMIC_BOMB', {
-          damage: flatDamage,
-          allDestroyed,
-          targetName: inspectedPlayer.username || '',
-          newReport
-        });
-
-        // Direct persistent update to target user profile document in Firestore
-        if (targetDocId && db) {
-          updateDoc(doc(db, 'users', targetDocId), {
-            portDestroyed: allDestroyed,
-            ships: updatedShips,
-            battleReports: [newReport, ...(Array.isArray(inspectedPlayer.battleReports) ? inspectedPlayer.battleReports.slice(0, 19) : [])],
-            updatedAt: new Date().toISOString()
-          }).catch((err) => {
-            console.warn("Direct update to target user doc failed, harborEvent will handle it:", err);
-          });
-        }
-
-        // Synchronize local inspectedPlayer
-        setInspectedPlayer((prev: any) => prev ? {
+      if (targetDocId) {
+        setInspectedPlayer((prev: any) => prev && getTargetDefenderId(prev) === targetDocId ? {
           ...prev,
           portDestroyed: allDestroyed,
           ships: updatedShips
         } : prev);
 
-        // Synchronize realPlayers
         setRealPlayers(prev => prev.map(p => {
-          if (p.id === targetDocId || p.userId === targetDocId) {
+          if (getTargetDefenderId(p) === targetDocId || p.id === targetDocId || p.userId === targetDocId) {
             return { ...p, portDestroyed: allDestroyed, ships: updatedShips };
           }
           return p;
         }));
       }
 
-      // Secure Chat Announcement in Firestore
       sendSecureChatMessage(
         'قنبلة الموت الأسود 💣',
         '💣',
-        `💣 قنبلة الموت الأسود! أطلق القبطان مباغتاً @${username} قنبلة الموت الأسود الفتاكة على ميناء القبطان @${inspectedPlayer.username} وأنقص ${flatDamage.toLocaleString()} من طاقة جميع سفن الأسطول!`
+        `💣 قنبلة الموت الأسود! أطلق القبطان مباغتاً @${username} قنبلة الموت الأسود الفتاكة على ميناء القبطان @${targetSnapshot.username} وأنقص ${flatDamage.toLocaleString()} من طاقة جميع سفن الأسطول!`
       );
 
       showToast(`💥 تم إطلاق قنبلة الموت الأسود وإنقاص ${flatDamage.toLocaleString()} من طاقة أسطول الخصم!`, "success");
 
-      // Camera shake lasts 950ms for solid nuclear impact punch
       setTimeout(() => {
         setIsShaking(false);
       }, 950);
 
-      // Hide XP pill after 2.8s
       setTimeout(() => {
         setShowAtomicBombXp(false);
       }, 2800);
-
     }, 1350);
 
-    // Stage 2: Stop atomic bomb sequence after 4.8s
     setTimeout(() => {
       setIsAtomicBombActive(false);
       setShowAtomicExplosion(false);
-    }, 4800);
+    }, 4900);
 
-    // Stage 3: Reset XP anim
     setTimeout(() => {
       setGainedXpAnim(false);
     }, 5000);
 
-    // Stage 4: Reset state (do NOT auto-open loot selector or global message modal)
     setTimeout(() => {
       setSelectedLootCard(null);
       setLootResultText('');
@@ -2372,10 +2396,10 @@ export default function App() {
 
   const handleOpenProfile = async (player: any) => {
     setIsProfileLoading(true);
-    let freshPlayer = realPlayers.find(p => p.userId === player.userId || p.id === player.id) || player;
-    
-    // Fetch direct from Firestore to ensure 100% real-time data for inspected player
-    const targetDocId = player?.id || player?.userId;
+    const resolvedId = getTargetDefenderId(player);
+    let freshPlayer = realPlayers.find(p => p.id === resolvedId || p.userId === resolvedId || p.userId === player?.userId || p.id === player?.id) || player;
+
+    const targetDocId = resolvedId || player?.id || player?.userId;
     if (targetDocId && db) {
       try {
         const snap = await getDoc(doc(db, 'users', targetDocId));
@@ -2385,6 +2409,8 @@ export default function App() {
             ...freshPlayer,
             id: snap.id,
             userId: d.userId || snap.id,
+            email: (d.email || freshPlayer.email || '').toLowerCase().trim(),
+            migratedFromUid: d.migratedFromUid || freshPlayer.migratedFromUid || '',
             username: d.username || freshPlayer.username,
             avatar: d.avatar || freshPlayer.avatar,
             gold: typeof d.gold === 'number' ? d.gold : (freshPlayer.gold || 0),
@@ -2408,7 +2434,7 @@ export default function App() {
         console.warn("Could not fetch fresh user profile snapshot directly, falling back to cache:", err);
       }
     }
-    
+
     setInspectedPlayer(freshPlayer);
     setTimeout(() => {
       setIsProfileLoading(false);
@@ -2416,12 +2442,12 @@ export default function App() {
   };
 
   // --- Revenge & Counter-Attack Logic (نظام رد الهجوم والانتقام الفوري في محيط المهاجم) ---
-  const handleRevenge = async (attackerName: string, attackId?: string) => {
+  const handleRevenge = async (attackerName: string, attackId?: string, attackerIdOverride?: string) => {
     // 1. Mark as avenged in attack logs
     setAttackLogs(prev => {
-      const updated = prev.map(a => 
-        (attackId && a.id === attackId) || a.attackerName === attackerName 
-          ? { ...a, isAvenged: true } 
+      const updated = prev.map(a =>
+        (attackId && a.id === attackId) || a.attackerName === attackerName
+          ? { ...a, isAvenged: true }
           : a
       );
       try { localStorage.setItem('pirate_attack_logs', JSON.stringify(updated)); } catch {}
@@ -2433,40 +2459,55 @@ export default function App() {
     handleDismissNotification();
     setIncomingAttackAlert(null);
 
-    // 3. Find attacker's real profile (match trimmed case-insensitively, or query Firestore)
+    // 3. Find attacker's real profile using canonical UID first, then normalized username + Firestore lookup
+    const resolvedAttackerId = resolveCanonicalUid(attackerIdOverride);
     const cleanAttacker = (attackerName || '').trim().toLowerCase();
-    let target = realPlayers.find(
-      p => (p.username || '').trim().toLowerCase() === cleanAttacker || (p.displayName || '').trim().toLowerCase() === cleanAttacker
-    );
+    let target = resolvedAttackerId
+      ? realPlayers.find(p => p.id === resolvedAttackerId || p.userId === resolvedAttackerId)
+      : undefined;
+
+    if (!target && resolvedAttackerId && db) {
+      try {
+        const directSnap = await getDoc(doc(db, 'users', resolvedAttackerId));
+        if (directSnap.exists()) {
+          const d = directSnap.data();
+          target = { id: directSnap.id, userId: d.userId || directSnap.id, ...d };
+        }
+      } catch {}
+    }
+
+    if (!target && cleanAttacker) {
+      target = realPlayers.find(
+        p =>
+          (p.username || '').trim().toLowerCase() === cleanAttacker ||
+          (p.displayName || '').trim().toLowerCase() === cleanAttacker ||
+          normalizeString(p.username) === normalizeString(attackerName)
+      );
+    }
+
     if (!target && attackerName && db) {
       try {
         const snap = await getDocs(query(collection(db, 'users'), where('username', '==', attackerName.trim()), limit(1)));
         if (!snap.empty) {
           const dSnap = snap.docs[0];
           const d = dSnap.data();
-          target = { id: dSnap.id, userId: dSnap.id, ...d };
+          const canonicalId = resolveCanonicalUid(dSnap.id);
+          if (canonicalId && canonicalId !== dSnap.id) {
+            const cSnap = await getDoc(doc(db, 'users', canonicalId)).catch(() => null);
+            if (cSnap && cSnap.exists()) {
+              target = { id: cSnap.id, userId: cSnap.id, ...cSnap.data() };
+            }
+          }
+          if (!target) {
+            target = { id: dSnap.id, userId: d.userId || dSnap.id, ...d };
+          }
         }
       } catch {}
     }
+
     if (!target) {
-      target = {
-        id: 'rival_' + attackerName,
-        userId: 'rival_' + attackerName,
-        username: attackerName,
-        displayName: attackerName,
-        avatar: '/assets/chat_avatar_2.png',
-        gold: 15000000,
-        gems: 850,
-        shipTowerLevel: 28,
-        fishStorageLevel: 12,
-        server: 'سيرفر الأسطورة 1',
-        pirateClass: 'قرصان الأعماق المهاجم',
-        portDestroyed: false,
-        ships: [
-          { id: 'rs1', name: 'سفينة الظل الحربية', level: 6, heart: 16000, maxHeart: 16000, left: '20%', top: '35%', scaleX: 1, moving: false, exists: true, crewPower: 800, hasNetUpgrade: true, hasEngineUpgrade: true, status: 'docked' },
-          { id: 'rs2', name: 'غواصة الأعماق 3', level: 3, heart: 24000, maxHeart: 24000, left: '60%', top: '45%', scaleX: 1, moving: false, exists: true, crewPower: 1200, hasNetUpgrade: true, hasEngineUpgrade: true, status: 'docked' },
-        ]
-      };
+      showToast(`⚠️ تعذر العثور على ميناء القبطان @${attackerName} حالياً لرد الهجوم.`, 'error');
+      return;
     }
 
     // 4. Open their profile and ocean directly in visit / attack mode
@@ -2476,7 +2517,7 @@ export default function App() {
     setTimeout(() => {
       setIsProfileLoading(false);
       setInspectedPlayerShipVisit(true);
-      showToast(`⚔️ تم الانتقال فوراً إلى محيط @${attackerName}! اقصف سفنها بالصواريخ والأسلحة الآن لتفجيرها والانتقام لمينائك! 💥`, 'success');
+      showToast(`⚔️ تم الانتقال فوراً إلى محيط @${target.username || attackerName}! اقصف سفنه بالصواريخ والأسلحة الآن للانتقام لمينائك! 💥`, 'success');
       playDetonationWarningVoiceAndSound();
     }, 350);
   };
@@ -3006,7 +3047,6 @@ export default function App() {
   // --- Random Dynamic Weather Loop ---
   useEffect(() => {
     const interval = setInterval(() => {
-      if (document.hidden) return;
       const rand = Math.random();
       let nextWeather: 'clear' | 'rain' | 'fog' | 'storm' = 'clear';
       if (rand < 0.45) {
@@ -3029,19 +3069,17 @@ export default function App() {
 
   // --- Lightning flash interval for storms ---
   useEffect(() => {
-    if (weather !== 'storm' || lowGraphics || activeTab !== 'harbor' || inspectedPlayerShipVisit || isPageHidden) {
+    if (weather !== 'storm' || lowGraphics) {
       setLightningActive(false);
       return;
     }
 
     let lightningTimeout: any;
     const triggerLightning = () => {
-      if (!document.hidden) {
-        setLightningActive(true);
-        setTimeout(() => {
-          setLightningActive(false);
-        }, 450);
-      }
+      setLightningActive(true);
+      setTimeout(() => {
+        setLightningActive(false);
+      }, 450);
 
       const nextDelay = 8000 + Math.random() * 14000;
       lightningTimeout = setTimeout(triggerLightning, nextDelay);
@@ -3050,7 +3088,7 @@ export default function App() {
     lightningTimeout = setTimeout(triggerLightning, 6000 + Math.random() * 6000);
 
     return () => clearTimeout(lightningTimeout);
-  }, [weather, lowGraphics, activeTab, inspectedPlayerShipVisit, isPageHidden]);
+  }, [weather, lowGraphics]);
 
   // --- Dynamic Tide & Ebb (المد والجزر) ---
   const [tide, setTide] = useState<'low' | 'incoming' | 'high' | 'outgoing'>(() => {
@@ -3087,7 +3125,6 @@ export default function App() {
   // --- Automatic Tide Cycle ---
   useEffect(() => {
     const interval = setInterval(() => {
-      if (document.hidden) return;
       const phases: ('low' | 'incoming' | 'high' | 'outgoing')[] = ['low', 'incoming', 'high', 'outgoing'];
       const nextIndex = (phases.indexOf(tide) + 1) % phases.length;
       changeTide(phases[nextIndex]);
@@ -3096,12 +3133,9 @@ export default function App() {
     return () => clearInterval(interval);
   }, [tide]);
 
-  // --- Power-Saving Single Background Video Controller (pauses automatically when off-harbor or hidden) ---
+  // --- Harbor Background Video Controller ---
   const shouldPlayHarborVideo =
     isLoggedIn &&
-    !isPageHidden &&
-    activeTab === 'harbor' &&
-    !inspectedPlayerShipVisit &&
     !portDestroyed &&
     bgTheme !== 'destroyed' &&
     !disableAnimatedBackground &&
@@ -3407,6 +3441,7 @@ export default function App() {
       ...(activeTribeSnapshot ? { tribeSnapshot: activeTribeSnapshot } : {}),
       bgTheme,
       profileTheme,
+      processedHarborEventIds: Array.from(processedHarborEventIdsRef.current).slice(-120),
       settings: {
         language,
         showDeathBanners,
@@ -3507,6 +3542,19 @@ export default function App() {
     } else if (isInitial) {
       setBattleReports([]);
       try { localStorage.removeItem('pirate_battle_reports'); } catch {}
+    }
+
+    if (Array.isArray(data.processedHarborEventIds)) {
+      if (isInitial) {
+        processedHarborEventIdsRef.current = new Set(data.processedHarborEventIds.filter((id: any) => typeof id === 'string'));
+      } else {
+        data.processedHarborEventIds.forEach((id: any) => {
+          if (typeof id === 'string') processedHarborEventIdsRef.current.add(id);
+        });
+      }
+      try {
+        localStorage.setItem('pirate_processed_harbor_events', JSON.stringify(Array.from(processedHarborEventIdsRef.current).slice(-120)));
+      } catch {}
     }
 
     if (Array.isArray(data.attackLogs)) {
@@ -4022,7 +4070,6 @@ export default function App() {
   // --- Active Session Continuous Validation (Interval + Tab Focus + Event) ---
   useEffect(() => {
     const checkSessionActivity = async () => {
-      if (typeof document !== 'undefined' && document.hidden) return;
       const user = auth.currentUser;
       if (!user || isSessionTerminated.current || localStorage.getItem('pirate_login_in_progress') === 'true') return;
       const res = await verifyActiveSession(user.uid);
@@ -4330,6 +4377,7 @@ export default function App() {
           playerList.push({
             id: docSnap.id,
             userId: docUserId,
+            migratedFromUid: typeof data.migratedFromUid === 'string' ? data.migratedFromUid : '',
             username: docUsername,
             email: docEmail,
             avatar: data.avatar || '⚓',
@@ -4377,9 +4425,75 @@ export default function App() {
           });
         }
 
-        // Map deduplication by document UID so every active account in Firestore appears cleanly
+        // Build canonical UID resolution map across migrated & same-email duplicate documents
+        const aliasMap: Record<string, string> = {};
+        const supersededUids = new Set<string>();
+        for (const p of playerList) {
+          if (p.migratedFromUid && p.migratedFromUid !== p.id) {
+            aliasMap[p.migratedFromUid] = p.id;
+            supersededUids.add(p.migratedFromUid);
+          }
+        }
+
+        // Group same-email docs and pick the canonical active document (preferring currentUser.uid or highest updatedAt/progress)
+        const byEmail = new Map<string, any[]>();
+        for (const p of playerList) {
+          if (p.email) {
+            const list = byEmail.get(p.email) || [];
+            list.push(p);
+            byEmail.set(p.email, list);
+          }
+        }
+        const canonicalEmailChosen = new Map<string, any>();
+        byEmail.forEach((docsForEmail, emailKey) => {
+          if (docsForEmail.length <= 1) {
+            canonicalEmailChosen.set(emailKey, docsForEmail[0]);
+            return;
+          }
+          const sorted = [...docsForEmail].sort((a, b) => {
+            if (a.id === currentUser.uid) return -1;
+            if (b.id === currentUser.uid) return 1;
+            const aSup = supersededUids.has(a.id) ? 1 : 0;
+            const bSup = supersededUids.has(b.id) ? 1 : 0;
+            if (aSup !== bSup) return aSup - bSup;
+            const tA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+            const tB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+            if (tB !== tA) return tB - tA;
+            return scoreAccountDocProgress(b) - scoreAccountDocProgress(a);
+          });
+          const winner = sorted[0];
+          canonicalEmailChosen.set(emailKey, winner);
+          for (const dup of sorted.slice(1)) {
+            if (dup.id !== winner.id) {
+              aliasMap[dup.id] = winner.id;
+              supersededUids.add(dup.id);
+            }
+          }
+        });
+
+        uidAliasToCanonicalRef.current = aliasMap;
+
+        const cleanMyEmail = (currentUser.email || localStorage.getItem('google_auth_email') || '').toLowerCase().trim();
+        const myAliases: string[] = [];
+        for (const p of playerList) {
+          if (p.id === currentUser.uid) continue;
+          let resolved = p.id;
+          const seen = new Set<string>();
+          while (aliasMap[resolved] && !seen.has(resolved)) {
+            seen.add(resolved);
+            resolved = aliasMap[resolved];
+          }
+          if (resolved === currentUser.uid || (cleanMyEmail && p.email === cleanMyEmail)) {
+            myAliases.push(p.id);
+          }
+        }
+        const sortedAliases = Array.from(new Set(myAliases)).sort();
+        setMyAliasUids(prev => (prev.join(',') === sortedAliases.join(',') ? prev : sortedAliases));
+
+        // Deduplicate leaderboard/visit list to canonical active documents only
         const uniquePlayersMap = new Map<string, any>();
         for (const p of playerList) {
+          if (supersededUids.has(p.id) && p.id !== currentUser.uid) continue;
           const key = p.id || p.userId;
           if (!uniquePlayersMap.has(key)) {
             uniquePlayersMap.set(key, p);
@@ -4489,17 +4603,188 @@ export default function App() {
     avatar,
   };
 
-  // --- Live Firestore Harbor Events & Defender Defense Engine (No composite index needed) ---
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
+  const inspectedPlayerShipVisitRef = useRef(inspectedPlayerShipVisit);
+  inspectedPlayerShipVisitRef.current = inspectedPlayerShipVisit;
+  const inspectedPlayerRef = useRef(inspectedPlayer);
+  inspectedPlayerRef.current = inspectedPlayer;
+  const loadingFirebaseRef = useRef(loadingFirebase);
+  loadingFirebaseRef.current = loadingFirebase;
+  const isPageHiddenRef = useRef(isPageHidden);
+  isPageHiddenRef.current = isPageHidden;
+
+  const scheduleAttackTimer = useCallback((fn: () => void, ms: number) => {
+    const id = window.setTimeout(() => {
+      attackTimersRef.current = attackTimersRef.current.filter(t => t !== id);
+      fn();
+    }, ms);
+    attackTimersRef.current.push(id);
+    return id;
+  }, []);
+
+  const clearAllAttackTimers = useCallback(() => {
+    attackTimersRef.current.forEach(t => window.clearTimeout(t));
+    attackTimersRef.current = [];
+  }, []);
+
+  const canSeeOwnHarborCombat = useCallback(() => {
+    const hidden = isPageHiddenRef.current || (typeof document !== 'undefined' && document.hidden);
+    return (
+      activeTabRef.current === 'harbor' &&
+      !inspectedPlayerShipVisitRef.current &&
+      !inspectedPlayerRef.current &&
+      !loadingFirebaseRef.current &&
+      !hidden
+    );
+  }, []);
+
+  const drainPendingAttackVisualsRef = useRef<() => void>(() => {});
+
+  const startHarborAttackVisual = useCallback((effect: {
+    type: 'ROCKET_SMALL' | 'ROCKET_MEDIUM' | 'ROCKET_LARGE' | 'ATOMIC_BOMB' | 'AD_BOMB';
+    targetX: string;
+    targetY: string;
+    damage: number;
+  }) => {
+    clearAllAttackTimers();
+    const token = ++attackVisualTokenRef.current;
+    isPlayingAttackVisualRef.current = true;
+
+    const safeX = typeof effect.targetX === 'string' && effect.targetX.includes('%') ? effect.targetX : '45%';
+    const safeY = typeof effect.targetY === 'string' && effect.targetY.includes('%') ? effect.targetY : '49%';
+
+    const completeCurrentVisual = (expectedToken?: number) => {
+      if (typeof expectedToken === 'number' && expectedToken !== attackVisualTokenRef.current) return;
+      if (token !== attackVisualTokenRef.current) return;
+      clearAllAttackTimers();
+      isPlayingAttackVisualRef.current = false;
+      setOwnAttackEffect(null);
+      setIsOwnHarborShaking(false);
+      scheduleAttackTimer(() => {
+        drainPendingAttackVisualsRef.current();
+      }, 220);
+    };
+
+    finishOwnAttackVisualRef.current = () => completeCurrentVisual(token);
+
+    if (effect.type === 'ROCKET_SMALL' || effect.type === 'ROCKET_MEDIUM' || effect.type === 'ROCKET_LARGE') {
+      const flightMs = effect.type === 'ROCKET_SMALL' ? 750 : effect.type === 'ROCKET_MEDIUM' ? 900 : 1200;
+      const explosionMs = effect.type === 'ROCKET_SMALL' ? 1050 : effect.type === 'ROCKET_MEDIUM' ? 1250 : 1450;
+      if (effect.type === 'ROCKET_SMALL') playSmallRocketIncomingSound();
+      else if (effect.type === 'ROCKET_MEDIUM') playMediumRocketIncomingSound();
+      else playLargeRocketIncomingSound();
+
+      setOwnAttackEffect({ type: effect.type, targetX: safeX, targetY: safeY, damage: effect.damage, phase: 'flying' });
+
+      scheduleAttackTimer(() => {
+        if (token !== attackVisualTokenRef.current) return;
+        setOwnAttackEffect({ type: effect.type, targetX: safeX, targetY: safeY, damage: effect.damage, phase: 'impact' });
+        setIsOwnHarborShaking(true);
+        if (effect.type === 'ROCKET_SMALL') playSmallRocketExplosionSound();
+        else if (effect.type === 'ROCKET_MEDIUM') playMediumRocketExplosionSound();
+        else playLargeRocketExplosionSound();
+
+        scheduleAttackTimer(() => {
+          if (token === attackVisualTokenRef.current) setIsOwnHarborShaking(false);
+        }, 650);
+        scheduleAttackTimer(() => {
+          completeCurrentVisual(token);
+        }, explosionMs);
+      }, flightMs);
+    } else if (effect.type === 'ATOMIC_BOMB') {
+      playAtomicBombDropSound();
+      setOwnAttackEffect({ type: 'ATOMIC_BOMB', targetX: '45%', targetY: '48%', damage: effect.damage, phase: 'impact' });
+      scheduleAttackTimer(() => {
+        if (token !== attackVisualTokenRef.current) return;
+        setIsOwnHarborShaking(true);
+        playAtomicBombExplosionSound();
+        scheduleAttackTimer(() => {
+          if (token === attackVisualTokenRef.current) setIsOwnHarborShaking(false);
+        }, 950);
+      }, 1350);
+      scheduleAttackTimer(() => {
+        completeCurrentVisual(token);
+      }, 4700);
+    } else if (effect.type === 'AD_BOMB') {
+      playAtomicBombDropSound();
+      setOwnAttackEffect({ type: 'AD_BOMB', targetX: '48%', targetY: '52%', damage: effect.damage, phase: 'impact' });
+      scheduleAttackTimer(() => {
+        if (token !== attackVisualTokenRef.current) return;
+        setIsOwnHarborShaking(true);
+        playMediaBombExplosionSound();
+        scheduleAttackTimer(() => {
+          if (token === attackVisualTokenRef.current) setIsOwnHarborShaking(false);
+        }, 900);
+      }, 850);
+      scheduleAttackTimer(() => {
+        if (token === attackVisualTokenRef.current) {
+          playDetonationWarningVoiceAndSound();
+        }
+      }, 2000);
+      scheduleAttackTimer(() => {
+        completeCurrentVisual(token);
+      }, 2350);
+    }
+  }, [clearAllAttackTimers, scheduleAttackTimer]);
+
+  const drainPendingAttackVisuals = useCallback(() => {
+    if (isPlayingAttackVisualRef.current) return;
+    if (!canSeeOwnHarborCombat()) return;
+    if (pendingAttackEffectsRef.current.length === 0) return;
+    const nextEffect = pendingAttackEffectsRef.current.shift();
+    if (nextEffect) {
+      startHarborAttackVisual(nextEffect);
+    }
+  }, [canSeeOwnHarborCombat, startHarborAttackVisual]);
+
+  drainPendingAttackVisualsRef.current = drainPendingAttackVisuals;
+
+  const playHarborAttackVisual = useCallback((effect: {
+    type: 'ROCKET_SMALL' | 'ROCKET_MEDIUM' | 'ROCKET_LARGE' | 'ATOMIC_BOMB' | 'AD_BOMB';
+    targetX: string;
+    targetY: string;
+    damage: number;
+  }) => {
+    setIncomingCombatFlash(true);
+    setTimeout(() => setIncomingCombatFlash(false), 950);
+
+    pendingAttackEffectsRef.current = [...pendingAttackEffectsRef.current.slice(-9), effect];
+    drainPendingAttackVisuals();
+  }, [drainPendingAttackVisuals]);
+
+  // --- Live Firestore Harbor Events & Defender Defense Engine (Primary UID + Alias/Email Fallback, Atomic Batch) ---
+  const myAliasKey = myAliasUids.join(',');
   useEffect(() => {
     if (!isLoggedIn || !currentUser || userDocReadyUid !== currentUser.uid) return;
 
-    const qEvents = query(
-      collection(db, 'harborEvents'),
-      where('defenderId', '==', currentUser.uid)
-    );
+    const aliasSet = new Set(myAliasUids);
+    const cleanMyEmail = (currentUser.email || localStorage.getItem('google_auth_email') || '').toLowerCase().trim();
 
-    const unsubscribe = onSnapshot(qEvents, async (snapshot) => {
-      for (const change of snapshot.docChanges()) {
+    const processHarborChanges = (changes: any[]) => {
+      if (!changes || changes.length === 0) return;
+
+      const curState = latestUserStateRef.current || {};
+      let workingShips = Array.isArray(curState.ships) && curState.ships.length > 0 ? [...curState.ships] : [...shipsRef.current];
+      let workingReports = Array.isArray(curState.battleReports) ? [...curState.battleReports] : [];
+      let workingAttackLogs = Array.isArray(curState.attackLogs) ? [...curState.attackLogs] : [];
+      let workingGold = typeof curState.gold === 'number' ? curState.gold : gold;
+      let workingGems = typeof curState.gems === 'number' ? curState.gems : gems;
+      let workingRedGems = typeof curState.redGems === 'number' ? curState.redGems : redGems;
+      let workingPortDestroyed = Boolean(curState.portDestroyed);
+      let workingActiveAd: string | null = curState.activeAd ?? null;
+
+      let shipsChanged = false;
+      let reportsChanged = false;
+      let attackLogsChanged = false;
+      let goldChanged = false;
+      let gemsChanged = false;
+      let redGemsChanged = false;
+      let portChanged = false;
+      let adChanged = false;
+      let processedListChanged = false;
+
+      for (const change of changes) {
         if (change.type !== 'added' && change.type !== 'modified') continue;
 
         const evDoc = change.doc;
@@ -4509,20 +4794,28 @@ export default function App() {
         if ((ev.status && ev.status !== 'PENDING') || processedHarborEventIdsRef.current.has(evId)) {
           continue;
         }
-        processedHarborEventIdsRef.current.add(evId);
 
-        // Immediately mark event PROCESSED so duplicate snapshots never re-fire it
-        updateDoc(doc(db, 'harborEvents', evId), {
-          status: 'PROCESSED',
-          processedAt: new Date().toISOString(),
-        }).catch(() => {});
+        const isDirectPrimary = ev.defenderId === currentUser.uid;
+        const isAliasMatch = aliasSet.has(ev.defenderId);
+        const evTargetEmail = (ev.payload?.targetEmail || '').toLowerCase().trim();
+        const isEmailMatch = Boolean(cleanMyEmail && evTargetEmail && evTargetEmail === cleanMyEmail);
+
+        if (!isDirectPrimary && !isAliasMatch && !isEmailMatch) {
+          continue;
+        }
+
+        processedHarborEventIdsRef.current.add(evId);
+        processedListChanged = true;
+
+        if (isDirectPrimary) {
+          updateDoc(doc(db, 'harborEvents', evId), {
+            status: 'PROCESSED',
+            processedAt: new Date().toISOString(),
+          }).catch(() => {});
+        }
 
         try {
-          const userDocRef = doc(db, 'users', currentUser.uid);
           const nowTime = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-          const curState = latestUserStateRef.current || {};
-          const prevReports = Array.isArray(curState.battleReports) ? curState.battleReports : [];
-          const prevAttackLogs = Array.isArray(curState.attackLogs) ? curState.attackLogs : [];
 
           if (
             ev.type === 'ROCKET_SMALL' ||
@@ -4543,22 +4836,26 @@ export default function App() {
               : (fallbackDamageMap[ev.type] ?? 1000);
             const targetShipId = ev.payload?.targetShipId;
             const targetShipIdx = typeof ev.payload?.targetShipIndex === 'number' ? ev.payload.targetShipIndex : 0;
+            const attackerId = ev.attackerId || '';
             const attackerName = ev.attackerName || 'قبطان معادٍ';
             const attackerAvatar = ev.attackerAvatar || '☠️';
             const isAreaAttack = ev.type === 'ATOMIC_BOMB' || ev.type === 'AD_BOMB';
 
-            const baseShips = Array.isArray(curState.ships) && curState.ships.length > 0 ? curState.ships : shipsRef.current;
             const activeTargetCandidate =
-              baseShips.find((s: any) => targetShipId && s.id === targetShipId) ||
-              baseShips[targetShipIdx] ||
-              baseShips.find((s: any) => s.exists !== false) ||
-              baseShips[0];
+              workingShips.find((s: any) => targetShipId && s.id === targetShipId) ||
+              workingShips[targetShipIdx] ||
+              workingShips.find((s: any) => s.exists !== false) ||
+              workingShips[0];
             const resolvedTargetShipId = activeTargetCandidate?.id;
             const fallbackPos = (resolvedTargetShipId && docks[resolvedTargetShipId]) || { l: '45%', t: '49%' };
-            const impactX = activeTargetCandidate?.left || fallbackPos.l;
-            const impactY = activeTargetCandidate?.top || fallbackPos.t;
+            const impactX = (typeof activeTargetCandidate?.left === 'string' && activeTargetCandidate.left.includes('%'))
+              ? activeTargetCandidate.left
+              : (typeof ev.payload?.targetX === 'string' && ev.payload.targetX.includes('%') ? ev.payload.targetX : fallbackPos.l);
+            const impactY = (typeof activeTargetCandidate?.top === 'string' && activeTargetCandidate.top.includes('%'))
+              ? activeTargetCandidate.top
+              : (typeof ev.payload?.targetY === 'string' && ev.payload.targetY.includes('%') ? ev.payload.targetY : fallbackPos.t);
 
-            const updatedShips = baseShips.map((s: any) => {
+            workingShips = workingShips.map((s: any) => {
               const normalized = normalizeShipEnergyToCargo(s);
               const isHit = isAreaAttack || (resolvedTargetShipId ? normalized.id === resolvedTargetShipId : false);
               if (!isHit) return normalized;
@@ -4574,9 +4871,12 @@ export default function App() {
                 ...(newH <= 0 ? { moving: false, status: 'docked' as const } : {}),
               };
             });
+            shipsChanged = true;
 
-            const activeUpdated = updatedShips.filter((s: any) => s.exists !== false);
+            const activeUpdated = workingShips.filter((s: any) => s.exists !== false);
             const isAllDestroyed = activeUpdated.length > 0 && activeUpdated.every((s: any) => typeof s.heart === 'number' && s.heart <= 0);
+            workingPortDestroyed = isAllDestroyed;
+            portChanged = true;
 
             const weaponMetaMap: Record<string, { title: string; icon: string }> = {
               ROCKET_SMALL: { title: 'قصف بصاروخ صغير', icon: '🚀' },
@@ -4610,9 +4910,12 @@ export default function App() {
               time: rawReport.time || nowTime,
             };
 
-            const nextReports = [normalizedReport, ...prevReports.filter((r: any) => r.id !== normalizedReport.id).slice(0, 29)];
+            workingReports = [normalizedReport, ...workingReports.filter((r: any) => r.id !== normalizedReport.id).slice(0, 29)];
+            reportsChanged = true;
+
             const newAttackLog: AttackLogItem = {
               id: 'atk_' + evId,
+              attackerId,
               attackerName,
               attackerAvatar,
               attackerLevel: ev.payload?.attackerLevel || 28,
@@ -4626,90 +4929,19 @@ export default function App() {
               isAvenged: false,
               date: new Date().toISOString(),
             };
-            const nextAttackLogs = [newAttackLog, ...prevAttackLogs.filter((a: any) => a.id !== newAttackLog.id).slice(0, 29)];
-            const nextActiveAd = ev.type === 'AD_BOMB' ? (ev.payload?.adKey || 'luffy_king') : (curState.activeAd ?? null);
+            workingAttackLogs = [newAttackLog, ...workingAttackLogs.filter((a: any) => a.id !== newAttackLog.id).slice(0, 29)];
+            attackLogsChanged = true;
 
-            // Sync local React state & localStorage immediately
-            setShips(updatedShips);
-            setPortDestroyed(isAllDestroyed);
-            setBattleReports(nextReports);
-            setAttackLogs(nextAttackLogs);
-            if (ev.type === 'AD_BOMB' && nextActiveAd) {
-              setActiveAd(nextActiveAd);
-              try { localStorage.setItem('pirate_active_ad', nextActiveAd); } catch {}
+            if (ev.type === 'AD_BOMB') {
+              workingActiveAd = ev.payload?.adKey || 'luffy_king';
+              adChanged = true;
             }
 
-            try {
-              localStorage.setItem('pirate_port_destroyed', isAllDestroyed ? 'true' : 'false');
-              localStorage.setItem('pirate_ships_v2', JSON.stringify(updatedShips));
-              localStorage.setItem('pirate_ships', JSON.stringify(updatedShips));
-              localStorage.setItem('pirate_battle_reports', JSON.stringify(nextReports));
-              localStorage.setItem('pirate_attack_logs', JSON.stringify(nextAttackLogs));
-            } catch {}
+            playHarborAttackVisual({ type: ev.type, targetX: impactX, targetY: impactY, damage: dmg });
 
-            // Sync lastDbData so Auto-Save never overwrites the incoming damage/logs
-            if (lastDbData.current) {
-              lastDbData.current = {
-                ...lastDbData.current,
-                ships: updatedShips.map((s: any) => ({ ...s, moving: false })),
-                portDestroyed: isAllDestroyed,
-                battleReports: nextReports,
-                attackLogs: nextAttackLogs,
-                ...(ev.type === 'AD_BOMB' ? { activeAd: nextActiveAd } : {}),
-              };
-            }
-
-            updateDoc(userDocRef, {
-              ships: updatedShips,
-              portDestroyed: isAllDestroyed,
-              battleReports: nextReports,
-              attackLogs: nextAttackLogs,
-              ...(ev.type === 'AD_BOMB' && nextActiveAd ? { activeAd: nextActiveAd } : {}),
-              updatedAt: new Date().toISOString()
-            }).catch(console.error);
-
-            // Trigger visual & audio combat sequence directly on defender's own harbor
-            if (ev.type === 'ROCKET_SMALL' || ev.type === 'ROCKET_MEDIUM' || ev.type === 'ROCKET_LARGE') {
-              const flightMs = ev.type === 'ROCKET_SMALL' ? 700 : ev.type === 'ROCKET_MEDIUM' ? 850 : 1150;
-              if (ev.type === 'ROCKET_SMALL') playSmallRocketIncomingSound();
-              else if (ev.type === 'ROCKET_MEDIUM') playMediumRocketIncomingSound();
-              else playLargeRocketIncomingSound();
-
-              setOwnAttackEffect({ type: ev.type, targetX: impactX, targetY: impactY, damage: dmg, phase: 'flying' });
-
-              setTimeout(() => {
-                setOwnAttackEffect({ type: ev.type, targetX: impactX, targetY: impactY, damage: dmg, phase: 'impact' });
-                setIsOwnHarborShaking(true);
-                if (ev.type === 'ROCKET_SMALL') playSmallRocketExplosionSound();
-                else if (ev.type === 'ROCKET_MEDIUM') playMediumRocketExplosionSound();
-                else playLargeRocketExplosionSound();
-
-                setTimeout(() => setIsOwnHarborShaking(false), 600);
-                setTimeout(() => setOwnAttackEffect(null), 1600);
-              }, flightMs);
-            } else if (ev.type === 'ATOMIC_BOMB') {
-              playAtomicBombDropSound();
-              setOwnAttackEffect({ type: 'ATOMIC_BOMB', targetX: '45%', targetY: '48%', damage: dmg, phase: 'impact' });
-              setTimeout(() => {
-                setIsOwnHarborShaking(true);
-                playAtomicBombExplosionSound();
-                setTimeout(() => setIsOwnHarborShaking(false), 950);
-              }, 1300);
-              setTimeout(() => setOwnAttackEffect(null), 4600);
-            } else if (ev.type === 'AD_BOMB') {
-              setOwnAttackEffect({ type: 'AD_BOMB', targetX: '50%', targetY: '50%', damage: dmg, phase: 'impact' });
-              setIsOwnHarborShaking(true);
-              playMediaBombExplosionSound();
-              setTimeout(() => setIsOwnHarborShaking(false), 750);
-              setTimeout(() => setOwnAttackEffect(null), 1850);
-              setTimeout(() => {
-                playDetonationWarningVoiceAndSound();
-              }, 1500);
-            }
-
-            // Persistent interactive attack alert card visible across all tabs
             setIncomingAttackAlert({
               id: evId,
+              attackerId,
               attackerName,
               attackerAvatar,
               weaponTitle: wMeta.title,
@@ -4727,21 +4959,25 @@ export default function App() {
               title: `🚨 ${wMeta.title}!`,
               message: `تعرض ميناؤك لهجوم مباشر من القبطان @${attackerName}!`,
               icon: wMeta.icon,
+              authorId: attackerId,
+              senderId: attackerId,
               authorName: attackerName,
               senderName: attackerName,
               createdAt: new Date().toISOString()
             });
             showToast(`🚨 هجوم معادٍ! هاجم القبطان @${attackerName} ميناءك بـ ${wMeta.title}!`, 'error');
           } else if (ev.type === 'DISABLE_DEFENSE') {
+            const attackerId = ev.attackerId || '';
             const attackerName = ev.attackerName || 'قبطان معادٍ';
             const attackerAvatar = ev.attackerAvatar || '🛡️';
             const weaponLabel = ev.payload?.weaponLabel || 'سلاح تعطيل الدفاعات';
 
             const newDisableLog: AttackLogItem = {
               id: 'dis_' + evId,
+              attackerId,
               attackerName,
               attackerAvatar,
-              attackerLevel: 25,
+              attackerLevel: ev.payload?.attackerLevel || 25,
               time: nowTime,
               title: `تعطيل الدفاعات ⚡`,
               description: `استخدم القبطان @${attackerName} [${weaponLabel}] لتعطيل منظومة دفاعك لمدة 10 دقائق!`,
@@ -4750,13 +4986,12 @@ export default function App() {
               isAvenged: false,
               date: new Date().toISOString(),
             };
-            const nextAttackLogs = [newDisableLog, ...prevAttackLogs.slice(0, 29)];
-            setAttackLogs(nextAttackLogs);
-            try { localStorage.setItem('pirate_attack_logs', JSON.stringify(nextAttackLogs)); } catch {}
-            updateDoc(userDocRef, { attackLogs: nextAttackLogs, updatedAt: new Date().toISOString() }).catch(() => {});
+            workingAttackLogs = [newDisableLog, ...workingAttackLogs.filter((a: any) => a.id !== newDisableLog.id).slice(0, 29)];
+            attackLogsChanged = true;
 
             setIncomingAttackAlert({
               id: evId,
+              attackerId,
               attackerName,
               attackerAvatar,
               weaponTitle: weaponLabel,
@@ -4771,6 +5006,8 @@ export default function App() {
               title: `⚡ ${weaponLabel}!`,
               message: `قام القبطان @${attackerName} بتعطيل دفاعات مينائك لمدة 10 دقائق!`,
               icon: '⚡',
+              authorId: attackerId,
+              senderId: attackerId,
               authorName: attackerName,
               senderName: attackerName,
               createdAt: new Date().toISOString()
@@ -4778,13 +5015,15 @@ export default function App() {
             showToast(`⚡ تحذير! القبطان @${attackerName} استخدم [${weaponLabel}] على مينائك!`, 'error');
           } else if (ev.type === 'STEAL') {
             const stolenAmount = ev.payload?.amount || 0;
+            const attackerId = ev.attackerId || '';
             const attackerName = ev.attackerName || 'لص';
             const attackerAvatar = ev.attackerAvatar || '🥷';
-            const curGold = typeof curState.gold === 'number' ? curState.gold : gold;
-            const newGold = Math.max(0, curGold - stolenAmount);
+            workingGold = Math.max(0, workingGold - stolenAmount);
+            goldChanged = true;
 
             const newStealLog: AttackLogItem = {
               id: 'steal_' + evId,
+              attackerId,
               attackerName,
               attackerAvatar,
               attackerLevel: ev.payload?.attackerLevel || 25,
@@ -4796,22 +5035,12 @@ export default function App() {
               isAvenged: false,
               date: new Date().toISOString(),
             };
-            const nextAttackLogs = [newStealLog, ...prevAttackLogs.slice(0, 29)];
-
-            setGold(newGold);
-            setAttackLogs(nextAttackLogs);
-            try {
-              localStorage.setItem('gold', String(newGold));
-              localStorage.setItem('pirate_attack_logs', JSON.stringify(nextAttackLogs));
-            } catch {}
-
-            if (lastDbData.current) {
-              lastDbData.current = { ...lastDbData.current, gold: newGold, attackLogs: nextAttackLogs };
-            }
-            updateDoc(userDocRef, { gold: newGold, attackLogs: nextAttackLogs, updatedAt: new Date().toISOString() }).catch(console.error);
+            workingAttackLogs = [newStealLog, ...workingAttackLogs.filter((a: any) => a.id !== newStealLog.id).slice(0, 29)];
+            attackLogsChanged = true;
 
             setIncomingAttackAlert({
               id: evId,
+              attackerId,
               attackerName,
               attackerAvatar,
               weaponTitle: 'تسلل وسرقة ذهب',
@@ -4827,6 +5056,8 @@ export default function App() {
               title: '🏴‍☠️ تسلل ولصوص!',
               message: `تسلل القبطان @${attackerName} وسرق 🪙 ${stolenAmount.toLocaleString()} ذهبة من مينائك! هل تريد رد الهجوم؟`,
               icon: '🥷',
+              authorId: attackerId,
+              senderId: attackerId,
               authorName: attackerName,
               senderName: attackerName,
               createdAt: new Date().toISOString()
@@ -4837,8 +5068,7 @@ export default function App() {
             const healPercent = typeof ev.payload?.healPercent === 'number' ? ev.payload.healPercent : null;
             const targetShipId = ev.payload?.targetShipId;
             const helperName = ev.attackerName || 'صديق';
-            const baseShips = Array.isArray(curState.ships) && curState.ships.length > 0 ? curState.ships : shipsRef.current;
-            const updatedShips = baseShips.map((s: any) => {
+            workingShips = workingShips.map((s: any) => {
               const normalized = normalizeShipEnergyToCargo(s);
               if (targetShipId && normalized.id !== targetShipId) return normalized;
               const maxH = getShipMaxHeart(normalized);
@@ -4847,14 +5077,12 @@ export default function App() {
               const newH = Math.min(maxH, curH + delta);
               return { ...normalized, maxHeart: maxH, heart: newH, energySyncedToCargo: true };
             });
-            const activeUpdated = updatedShips.filter((s: any) => s.exists !== false);
-            const stillAllDestroyed = activeUpdated.length > 0 && activeUpdated.every((s: any) => typeof s.heart === 'number' && s.heart <= 0);
-            setShips(updatedShips);
-            setPortDestroyed(stillAllDestroyed);
-            if (lastDbData.current) {
-              lastDbData.current = { ...lastDbData.current, ships: updatedShips, portDestroyed: stillAllDestroyed };
-            }
-            updateDoc(userDocRef, { ships: updatedShips, portDestroyed: stillAllDestroyed, updatedAt: new Date().toISOString() }).catch(console.error);
+            shipsChanged = true;
+
+            const activeUpdated = workingShips.filter((s: any) => s.exists !== false);
+            workingPortDestroyed = activeUpdated.length > 0 && activeUpdated.every((s: any) => typeof s.heart === 'number' && s.heart <= 0);
+            portChanged = true;
+
             queueNotification({
               id: 'hb_' + evId,
               type: 'SUPPORT',
@@ -4867,13 +5095,9 @@ export default function App() {
           } else if (ev.type === 'DONATION' || ev.type === 'GIFT') {
             const giftAmount = ev.payload?.amount || 500;
             const senderName = ev.attackerName || ev.payload?.senderName || 'صديق';
-            const curGold = typeof curState.gold === 'number' ? curState.gold : gold;
-            const newGold = curGold + giftAmount;
-            setGold(newGold);
-            if (lastDbData.current) {
-              lastDbData.current = { ...lastDbData.current, gold: newGold };
-            }
-            updateDoc(userDocRef, { gold: newGold, updatedAt: new Date().toISOString() }).catch(console.error);
+            workingGold = workingGold + giftAmount;
+            goldChanged = true;
+
             queueNotification({
               id: 'hb_' + evId,
               type: 'SUPPORT',
@@ -4884,6 +5108,7 @@ export default function App() {
             });
             showToast(`🎁 هدية ذهب! أرسل لك القبطان @${senderName} مبلغ 🪙 ${giftAmount.toLocaleString()} ذهبة! 🎉`, 'success');
           } else if (ev.type === 'DETONATION_MESSAGE') {
+            const attackerId = ev.attackerId || '';
             const sender = ev.attackerName || 'قبطان معادٍ';
             const customMsg = ev.payload?.message || '';
             setIncomingAttackAlert(prev => prev ? {
@@ -4891,6 +5116,7 @@ export default function App() {
               customMessage: customMsg,
             } : {
               id: 'det_msg_' + evId,
+              attackerId,
               attackerName: sender,
               attackerAvatar: ev.attackerAvatar || '📡',
               weaponTitle: 'رسالة تفجير مباشرة',
@@ -4905,6 +5131,8 @@ export default function App() {
               title: `📡 رسالة تفجير من القبطان @${sender}!`,
               message: `"${customMsg}"`,
               icon: '✉️',
+              authorId: attackerId,
+              senderId: attackerId,
               authorName: sender,
               senderName: sender,
               createdAt: new Date().toISOString()
@@ -4913,23 +5141,40 @@ export default function App() {
           } else if (ev.type === 'LOOT') {
             const lootType = ev.payload?.lootType || 'gold';
             const lootAmt = ev.payload?.amount || 1000;
+            const attackerId = ev.attackerId || '';
             const attackerName = ev.attackerName || 'قبطان معادٍ';
             if (lootType === 'gold') {
-              const newGold = Math.max(0, (typeof curState.gold === 'number' ? curState.gold : gold) - lootAmt);
-              setGold(newGold);
-              updateDoc(userDocRef, { gold: newGold, updatedAt: new Date().toISOString() }).catch(console.error);
+              workingGold = Math.max(0, workingGold - lootAmt);
+              goldChanged = true;
             } else if (lootType === 'gems') {
-              const newGems = Math.max(0, (typeof curState.gems === 'number' ? curState.gems : gems) - lootAmt);
-              setGems(newGems);
-              updateDoc(userDocRef, { gems: newGems, updatedAt: new Date().toISOString() }).catch(console.error);
+              workingGems = Math.max(0, workingGems - lootAmt);
+              gemsChanged = true;
             } else if (lootType === 'redGems') {
-              const newRedGems = Math.max(0, (typeof curState.redGems === 'number' ? curState.redGems : redGems) - lootAmt);
-              setRedGems(newRedGems);
-              updateDoc(userDocRef, { redGems: newRedGems, updatedAt: new Date().toISOString() }).catch(console.error);
+              workingRedGems = Math.max(0, workingRedGems - lootAmt);
+              redGemsChanged = true;
             }
             const lootLabel = lootType === 'gold' ? `🪙 ${lootAmt.toLocaleString()} ذهبة` : lootType === 'gems' ? `💎 ${lootAmt} جوهرة` : `🔴 ${lootAmt} جوهرة حمراء`;
+
+            const newLootLog: AttackLogItem = {
+              id: 'loot_' + evId,
+              attackerId,
+              attackerName,
+              attackerAvatar: ev.attackerAvatar || '💰',
+              attackerLevel: ev.payload?.attackerLevel || 25,
+              time: nowTime,
+              title: 'غنائم قرصنة 🏴‍☠️',
+              description: `غنم القبطان @${attackerName} من مينائك ${lootLabel}!`,
+              goldLooted: lootType === 'gold' ? lootAmt : 0,
+              shipsDamaged: 0,
+              isAvenged: false,
+              date: new Date().toISOString(),
+            };
+            workingAttackLogs = [newLootLog, ...workingAttackLogs.filter((a: any) => a.id !== newLootLog.id).slice(0, 29)];
+            attackLogsChanged = true;
+
             setIncomingAttackAlert({
               id: evId,
+              attackerId,
               attackerName,
               attackerAvatar: ev.attackerAvatar || '💰',
               weaponTitle: 'غنائم قرصنة',
@@ -4943,12 +5188,136 @@ export default function App() {
           console.error("Error processing harbor event:", procErr);
         }
       }
+
+      if (!processedListChanged) return;
+
+      const persistedEventIds = Array.from(processedHarborEventIdsRef.current).slice(-120);
+      try { localStorage.setItem('pirate_processed_harbor_events', JSON.stringify(persistedEventIds)); } catch {}
+
+      const userDocRef = doc(db, 'users', currentUser.uid);
+      const dbPatch: Record<string, any> = {
+        processedHarborEventIds: persistedEventIds,
+        updatedAt: new Date().toISOString()
+      };
+
+      if (shipsChanged) {
+        setShips(workingShips);
+        dbPatch.ships = workingShips;
+        try {
+          localStorage.setItem('pirate_ships_v2', JSON.stringify(workingShips));
+          localStorage.setItem('pirate_ships', JSON.stringify(workingShips));
+        } catch {}
+      }
+      if (portChanged) {
+        setPortDestroyed(workingPortDestroyed);
+        dbPatch.portDestroyed = workingPortDestroyed;
+        try { localStorage.setItem('pirate_port_destroyed', workingPortDestroyed ? 'true' : 'false'); } catch {}
+      }
+      if (reportsChanged) {
+        setBattleReports(workingReports);
+        dbPatch.battleReports = workingReports;
+        try { localStorage.setItem('pirate_battle_reports', JSON.stringify(workingReports)); } catch {}
+      }
+      if (attackLogsChanged) {
+        setAttackLogs(workingAttackLogs);
+        dbPatch.attackLogs = workingAttackLogs;
+        try { localStorage.setItem('pirate_attack_logs', JSON.stringify(workingAttackLogs)); } catch {}
+      }
+      if (goldChanged) {
+        setGold(workingGold);
+        dbPatch.gold = workingGold;
+        try { localStorage.setItem('gold', String(workingGold)); } catch {}
+      }
+      if (gemsChanged) {
+        setGems(workingGems);
+        dbPatch.gems = workingGems;
+        try { localStorage.setItem('gems', String(workingGems)); } catch {}
+      }
+      if (redGemsChanged) {
+        setRedGems(workingRedGems);
+        dbPatch.redGems = workingRedGems;
+        try { localStorage.setItem('pirate_red_gems', String(workingRedGems)); } catch {}
+      }
+      if (adChanged && workingActiveAd) {
+        setActiveAd(workingActiveAd);
+        dbPatch.activeAd = workingActiveAd;
+        try { localStorage.setItem('pirate_active_ad', workingActiveAd); } catch {}
+      }
+
+      latestUserStateRef.current = {
+        ...latestUserStateRef.current,
+        ships: workingShips,
+        portDestroyed: workingPortDestroyed,
+        battleReports: workingReports,
+        attackLogs: workingAttackLogs,
+        gold: workingGold,
+        gems: workingGems,
+        redGems: workingRedGems,
+        activeAd: workingActiveAd,
+      };
+
+      if (lastDbData.current) {
+        lastDbData.current = {
+          ...lastDbData.current,
+          ...(shipsChanged ? { ships: workingShips.map((s: any) => ({ ...s, moving: false })) } : {}),
+          ...(portChanged ? { portDestroyed: workingPortDestroyed } : {}),
+          ...(reportsChanged ? { battleReports: workingReports } : {}),
+          ...(attackLogsChanged ? { attackLogs: workingAttackLogs } : {}),
+          ...(goldChanged ? { gold: workingGold } : {}),
+          ...(gemsChanged ? { gems: workingGems } : {}),
+          ...(redGemsChanged ? { redGems: workingRedGems } : {}),
+          ...(adChanged && workingActiveAd ? { activeAd: workingActiveAd } : {}),
+        };
+      }
+
+      updateDoc(userDocRef, dbPatch).catch(console.error);
+    };
+
+    // 1. Primary listener targeting active authenticated UID
+    const qPrimary = query(
+      collection(db, 'harborEvents'),
+      where('defenderId', '==', currentUser.uid)
+    );
+    const unsubPrimary = onSnapshot(qPrimary, (snapshot) => {
+      processHarborChanges(snapshot.docChanges());
     }, (err) => {
       handleFirestoreError(err, OperationType.GET, 'harborEvents');
     });
 
-    return () => unsubscribe();
-  }, [isLoggedIn, currentUser, userDocReadyUid]);
+    // 2. Fallback listener for PENDING events targeting any superseded/alias UID or matching email
+    const qPending = query(
+      collection(db, 'harborEvents'),
+      where('status', '==', 'PENDING')
+    );
+    const unsubPending = onSnapshot(qPending, (snapshot) => {
+      processHarborChanges(snapshot.docChanges());
+    }, (err) => {
+      console.warn('Pending harborEvents listener warning:', err?.message || err);
+    });
+
+    return () => {
+      unsubPrimary();
+      unsubPending();
+    };
+  }, [isLoggedIn, currentUser, userDocReadyUid, myAliasKey, playHarborAttackVisual]);
+
+  // --- Replay queued incoming attack visuals as soon as defender returns to their own Harbor ---
+  useEffect(() => {
+    if (
+      activeTab === 'harbor' &&
+      !inspectedPlayerShipVisit &&
+      !inspectedPlayer &&
+      !loadingFirebase &&
+      !isPageHidden &&
+      pendingAttackEffectsRef.current.length > 0 &&
+      !isPlayingAttackVisualRef.current
+    ) {
+      const timer = window.setTimeout(() => {
+        drainPendingAttackVisuals();
+      }, 200);
+      return () => window.clearTimeout(timer);
+    }
+  }, [activeTab, inspectedPlayerShipVisit, inspectedPlayer, loadingFirebase, isPageHidden, drainPendingAttackVisuals]);
 
   // --- Live Firestore Friend Requests Subscription ---
   useEffect(() => {
@@ -5007,10 +5376,11 @@ export default function App() {
   // --- Synchronize Inspected Player State in Real-Time ---
   useEffect(() => {
     if (inspectedPlayer) {
-      const updated = realPlayers.find(p => p.userId === inspectedPlayer.userId);
+      const targetId = getTargetDefenderId(inspectedPlayer);
+      const updated = realPlayers.find(p => p.id === targetId || p.userId === targetId || p.userId === inspectedPlayer.userId);
       if (updated) {
         setInspectedPlayer(updated);
-        
+
         // Update selected visited ship details if open
         if (selectedVisitedShip) {
           const updatedShip = updated.ships?.find((s: any) => s.id === selectedVisitedShip.id);
@@ -5020,7 +5390,7 @@ export default function App() {
         }
       }
     }
-  }, [realPlayers, inspectedPlayer?.userId, selectedVisitedShip?.id]);
+  }, [realPlayers, inspectedPlayer?.userId, inspectedPlayer?.id, selectedVisitedShip?.id]);
 
   // --- Handle Login ---
   const handleLoginSuccess = async (user: string, av: string, serv: string, pCl: string) => {
@@ -5816,15 +6186,15 @@ export default function App() {
     shipsRef.current = ships;
   }, [ships]);
 
-  // Live 1-second fishing countdown ticker (only ticks UI when harbor is visible; uses single timeout when off-harbor)
+  // Live 1-second fishing countdown ticker + completion toast alert
   const hasAnyFishingShip = ships.some(s => s.exists && s.status === 'fishing');
-  const shouldTickHarborTimer = hasAnyFishingShip && activeTab === 'harbor' && !inspectedPlayerShipVisit && !isPageHidden;
 
   useEffect(() => {
     if (!hasAnyFishingShip) return;
 
-    const checkFinishedToasts = () => {
+    const tick = () => {
       const now = Date.now();
+      setTimerNow(now);
       for (const ship of shipsRef.current) {
         if (
           ship.exists &&
@@ -5843,32 +6213,12 @@ export default function App() {
           }
         }
       }
-      return now;
     };
 
-    if (shouldTickHarborTimer) {
-      const tick = () => {
-        if (document.hidden) return;
-        const now = checkFinishedToasts();
-        setTimerNow(now);
-      };
-      tick();
-      const interval = setInterval(tick, 1000);
-      return () => clearInterval(interval);
-    } else {
-      // Schedule one-shot toast check for nearest completion without 1Hz full-app re-renders
-      const now = checkFinishedToasts();
-      const pendingEnds = shipsRef.current
-        .filter(s => s.exists && s.status === 'fishing' && typeof s.fishingEndTime === 'number' && s.fishingEndTime > now)
-        .map(s => (s.fishingEndTime as number) - now);
-      if (pendingEnds.length === 0) return;
-      const nextDelay = Math.min(...pendingEnds) + 100;
-      const timer = setTimeout(() => {
-        checkFinishedToasts();
-      }, nextDelay);
-      return () => clearTimeout(timer);
-    }
-  }, [hasAnyFishingShip, shouldTickHarborTimer, showToast]);
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [hasAnyFishingShip, showToast]);
 
   const portDestroyedRef = useRef(portDestroyed);
   useEffect(() => {
@@ -7255,7 +7605,7 @@ export default function App() {
       showToast('يجب تسجيل الدخول لإرسال طلب صداقة', 'error');
       return;
     }
-    const targetId = targetPlayer.userId || targetPlayer.id;
+    const targetId = getTargetDefenderId(targetPlayer);
     if (!targetId || targetId === currentUser.uid) return;
 
     try {
@@ -7330,7 +7680,7 @@ export default function App() {
     }
     const currentUser = auth.currentUser;
     if (!currentUser) return;
-    const friendId = friendPlayer.userId || friendPlayer.id;
+    const friendId = getTargetDefenderId(friendPlayer);
     if (!friendId) return;
 
     try {
@@ -7342,7 +7692,9 @@ export default function App() {
       // Secure collection-based dispatch to /harborEvents
       await createHarborEvent(friendId, 'GIFT', {
         amount: 500,
-        senderName: username
+        senderName: username,
+        targetName: friendPlayer.username || '',
+        targetEmail: friendPlayer.email || ''
       });
 
       sendSecureChatMessage(
@@ -7675,14 +8027,9 @@ export default function App() {
     }
   }
 
-  const isHarborIdlePaused = isPageHidden || activeTab !== 'harbor' || inspectedPlayerShipVisit || disableAnimatedBackground || powerSaver;
-
   return (
     <div style={{ margin: 0, background: '#080604', overflow: 'hidden', width: '100vw', minWidth: '1024px', height: '100dvh', position: 'relative' }}>
       <style>{`
-        .harbor-paused, .harbor-paused * {
-          animation-play-state: paused !important;
-        }
         @keyframes shake-viewport-extreme {
           0% { transform: translate(0, 0) scale(1) rotate(0deg); }
           10% { transform: translate(-12px, -8px) scale(1.03) rotate(-1.8deg); }
@@ -8944,7 +9291,7 @@ export default function App() {
 
 
       {/* ----------------- GAME BACKGROUND AND HARBOR VIEW ----------------- */}
-      <div id="harbor-viewport" className={isHarborIdlePaused ? 'harbor-paused' : ''}>
+      <div id="harbor-viewport">
         <div 
           id="map-canvas" 
           style={(() => {
@@ -9010,10 +9357,7 @@ export default function App() {
             />
           )}
           {/* Particles Effect System Overlay */}
-          <ParticlesEffect
-            portDestroyed={portDestroyed}
-            active={activeTab === 'harbor' && !inspectedPlayerShipVisit && !isPageHidden}
-          />
+          <ParticlesEffect portDestroyed={portDestroyed} />
 
           {/* Dynamic Weather System Overlays */}
           {!lowGraphics && (
@@ -9062,7 +9406,10 @@ export default function App() {
             </>
           )}
 
-          {/* Lightweight GPU-only sea backdrop overlay (SVG turbulence displacement removed for thermal efficiency) */}
+          {/* High-quality Isolated Sea Overlay */}
+          {!portDestroyed && bgTheme !== 'destroyed' && (
+            <div className="sea-isolated-overlay" />
+          )}
 
           {activeTab === 'harbor' && (
             <>
@@ -9523,73 +9870,6 @@ export default function App() {
           )}
         </div>
 
-        {/* Live Incoming Enemy Combat Visuals & Ad Bomb Billboard on Defender's Own Harbor */}
-        {activeTab === 'harbor' && !inspectedPlayerShipVisit && ownAttackEffect && (
-          <div style={{ position: 'absolute', inset: 0, zIndex: 998, pointerEvents: 'none' }}>
-            {ownAttackEffect.phase === 'flying' && ownAttackEffect.type === 'ROCKET_SMALL' && (
-              <FlyingNavalMissile tier="small" targetX={ownAttackEffect.targetX} targetY={ownAttackEffect.targetY} />
-            )}
-            {ownAttackEffect.phase === 'flying' && ownAttackEffect.type === 'ROCKET_MEDIUM' && (
-              <FlyingNavalMissile tier="medium" targetX={ownAttackEffect.targetX} targetY={ownAttackEffect.targetY} />
-            )}
-            {ownAttackEffect.phase === 'flying' && ownAttackEffect.type === 'ROCKET_LARGE' && (
-              <FlyingNavalMissile tier="large" targetX={ownAttackEffect.targetX} targetY={ownAttackEffect.targetY} />
-            )}
-            {ownAttackEffect.phase === 'impact' && ownAttackEffect.type === 'ROCKET_SMALL' && (
-              <SmallRocketExplosion
-                x={ownAttackEffect.targetX}
-                y={ownAttackEffect.targetY}
-                damage={ownAttackEffect.damage}
-                onComplete={() => setOwnAttackEffect(null)}
-              />
-            )}
-            {ownAttackEffect.phase === 'impact' && ownAttackEffect.type === 'ROCKET_MEDIUM' && (
-              <MediumRocketExplosion
-                x={ownAttackEffect.targetX}
-                y={ownAttackEffect.targetY}
-                damage={ownAttackEffect.damage}
-                onComplete={() => setOwnAttackEffect(null)}
-              />
-            )}
-            {ownAttackEffect.phase === 'impact' && ownAttackEffect.type === 'ROCKET_LARGE' && (
-              <LargeRocketExplosion
-                x={ownAttackEffect.targetX}
-                y={ownAttackEffect.targetY}
-                damage={ownAttackEffect.damage}
-                onComplete={() => setOwnAttackEffect(null)}
-              />
-            )}
-            {ownAttackEffect.type === 'ATOMIC_BOMB' && (
-              <AtomicBombExplosion
-                x="45%"
-                surfaceY="48%"
-                depthY="64%"
-                onComplete={() => setOwnAttackEffect(null)}
-              />
-            )}
-            {ownAttackEffect.type === 'AD_BOMB' && (
-              <div style={{
-                position: 'absolute',
-                left: '50%',
-                top: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: '320px',
-                height: '320px',
-                borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(161, 161, 170, 0.85) 0%, rgba(63, 63, 70, 0.6) 60%, rgba(0,0,0,0) 80%)',
-                boxShadow: '0 0 50px rgba(161,161,170,0.65)',
-                animation: 'zoom-in-out 1.8s ease-out forwards',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '96px',
-              }}>
-                💨📺💨
-              </div>
-            )}
-          </div>
-        )}
-
         {activeTab === 'harbor' && !inspectedPlayerShipVisit && activeAd && (
           <div style={{
             position: 'absolute',
@@ -9691,6 +9971,73 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {/* Live Incoming Enemy Combat Visuals Rendered Above Harbor, Top Bar, and Damage Banners */}
+      {activeTab === 'harbor' && !inspectedPlayerShipVisit && ownAttackEffect && (
+        <div
+          className="harbor-combat-layer"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            minWidth: '1024px',
+            height: 'calc(100dvh - var(--bottom-nav-height))',
+            zIndex: 95,
+            pointerEvents: 'none',
+            overflow: 'hidden'
+          }}
+        >
+          {ownAttackEffect.phase === 'flying' && ownAttackEffect.type === 'ROCKET_SMALL' && (
+            <FlyingNavalMissile tier="small" targetX={ownAttackEffect.targetX} targetY={ownAttackEffect.targetY} />
+          )}
+          {ownAttackEffect.phase === 'flying' && ownAttackEffect.type === 'ROCKET_MEDIUM' && (
+            <FlyingNavalMissile tier="medium" targetX={ownAttackEffect.targetX} targetY={ownAttackEffect.targetY} />
+          )}
+          {ownAttackEffect.phase === 'flying' && ownAttackEffect.type === 'ROCKET_LARGE' && (
+            <FlyingNavalMissile tier="large" targetX={ownAttackEffect.targetX} targetY={ownAttackEffect.targetY} />
+          )}
+          {ownAttackEffect.phase === 'impact' && ownAttackEffect.type === 'ROCKET_SMALL' && (
+            <SmallRocketExplosion
+              x={ownAttackEffect.targetX}
+              y={ownAttackEffect.targetY}
+              damage={ownAttackEffect.damage}
+              onComplete={() => finishOwnAttackVisualRef.current?.()}
+            />
+          )}
+          {ownAttackEffect.phase === 'impact' && ownAttackEffect.type === 'ROCKET_MEDIUM' && (
+            <MediumRocketExplosion
+              x={ownAttackEffect.targetX}
+              y={ownAttackEffect.targetY}
+              damage={ownAttackEffect.damage}
+              onComplete={() => finishOwnAttackVisualRef.current?.()}
+            />
+          )}
+          {ownAttackEffect.phase === 'impact' && ownAttackEffect.type === 'ROCKET_LARGE' && (
+            <LargeRocketExplosion
+              x={ownAttackEffect.targetX}
+              y={ownAttackEffect.targetY}
+              damage={ownAttackEffect.damage}
+              onComplete={() => finishOwnAttackVisualRef.current?.()}
+            />
+          )}
+          {ownAttackEffect.type === 'ATOMIC_BOMB' && (
+            <AtomicBombExplosion
+              x="45%"
+              surfaceY="48%"
+              depthY="64%"
+              onComplete={() => finishOwnAttackVisualRef.current?.()}
+            />
+          )}
+          {ownAttackEffect.type === 'AD_BOMB' && (
+            <AdBombStrike
+              x={ownAttackEffect.targetX}
+              y={ownAttackEffect.targetY}
+              onComplete={() => finishOwnAttackVisualRef.current?.()}
+            />
+          )}
+        </div>
+      )}
 
 
 
@@ -9988,31 +10335,6 @@ export default function App() {
                   </button>
                 </div>
               </div>
-            </div>
-          )}
-
-          {settingsToast && (
-            <div style={{
-              position: 'fixed',
-              top: '20px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              zIndex: 999999,
-              background: settingsToast.type === 'success' ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #ef4444, #dc2626)',
-              color: '#fff',
-              padding: '12px 24px',
-              borderRadius: '12px',
-              fontWeight: 'bold',
-              fontSize: '13px',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.5), 0 0 10px rgba(255,255,255,0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              animation: 'fade-in-scale 0.25s ease-out',
-              direction: 'rtl'
-            }}>
-              <span>{settingsToast.type === 'success' ? '✅' : '❌'}</span>
-              <span>{settingsToast.message}</span>
             </div>
           )}
 
@@ -12204,6 +12526,7 @@ export default function App() {
                   setTimeout(() => {
                     setIsProfileLoading(false);
                     setInspectedPlayerShipVisit(false);
+                    setInspectedPlayer(null);
                   }, 400);
                 }}
                 style={{
@@ -12579,7 +12902,7 @@ export default function App() {
             }}
           >
             {/* Real animated water background video - only if port is not destroyed */}
-            {!inspectedPlayer.portDestroyed && !disableAnimatedBackground && !powerSaver && !isPageHidden && (
+            {!inspectedPlayer.portDestroyed && !disableAnimatedBackground && !powerSaver && (
               <video
                 src="/background_video.mp4"
                 playsInline
@@ -12634,10 +12957,7 @@ export default function App() {
 
             {/* Real-time particles overlay for visited port combat & destruction */}
             <div style={{ position: 'absolute', inset: 0, zIndex: (isAtomicBombActive || showSmallRocketExplosion || showMediumRocketExplosion || showLargeRocketExplosion) ? 9999 : 4, pointerEvents: 'none' }}>
-              <ParticlesEffect
-                portDestroyed={!!inspectedPlayer.portDestroyed}
-                active={!isPageHidden && Boolean(inspectedPlayerShipVisit)}
-              />
+              <ParticlesEffect portDestroyed={!!inspectedPlayer.portDestroyed} />
             </div>
 
             {/* ----------------- REAL HARBOR BUILDINGS OF THE VISITED PLAYER ----------------- */}
@@ -13001,6 +13321,7 @@ export default function App() {
                 setTimeout(() => {
                   setIsProfileLoading(false);
                   setInspectedPlayerShipVisit(false);
+                  setInspectedPlayer(null);
                 }, 600);
               }}
               style={{
@@ -13152,28 +13473,13 @@ export default function App() {
               />
             )}
 
-            {/* Ad Bomb Smoke Explosion */}
+            {/* Ad Bomb Falling Strike & Explosion */}
             {showSmokeExplosion && (
-              <div style={{
-                position: 'absolute',
-                left: '50%',
-                top: '55%',
-                transform: 'translate(-50%, -50%)',
-                zIndex: 998,
-                width: '320px',
-                height: '320px',
-                borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(161, 161, 170, 0.8) 0%, rgba(63, 63, 70, 0.6) 60%, rgba(0,0,0,0) 80%)',
-                boxShadow: '0 0 50px rgba(161,161,170,0.6)',
-                animation: 'zoom-in-out 1.8s ease-out forwards',
-                pointerEvents: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '96px'
-              }}>
-                💨📺💨
-              </div>
+              <AdBombStrike
+                x="48%"
+                y="52%"
+                onComplete={() => setShowSmokeExplosion(false)}
+              />
             )}
 
             {/* Active Advertisement Billboard */}
@@ -16921,7 +17227,7 @@ export default function App() {
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button
-              onClick={() => handleRevenge(incomingAttackAlert.attackerName, 'atk_' + incomingAttackAlert.id)}
+              onClick={() => handleRevenge(incomingAttackAlert.attackerName, 'atk_' + incomingAttackAlert.id, incomingAttackAlert.attackerId)}
               style={{
                 flex: 1,
                 background: 'linear-gradient(to bottom, #dc2626, #991b1b)',
@@ -16940,6 +17246,8 @@ export default function App() {
               onClick={() => {
                 setActiveTab('harbor');
                 setInspectedPlayerShipVisit(false);
+                setInspectedPlayer(null);
+                setShowWarLogModal(false);
                 setIncomingAttackAlert(null);
               }}
               style={{
@@ -16956,6 +17264,55 @@ export default function App() {
               👁️ الميناء
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Global Incoming Combat Screen Flash across all tabs */}
+      {incomingCombatFlash && (
+        <div
+          className="harbor-combat-layer"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9995,
+            pointerEvents: 'none',
+            boxShadow: 'inset 0 0 85px 18px rgba(239, 68, 68, 0.72)',
+            border: '4px solid rgba(248, 113, 113, 0.85)',
+            animation: 'fade-in-scale 0.25s ease-out'
+          }}
+        />
+      )}
+
+      {/* Global Toast Notification across all tabs */}
+      {settingsToast && (
+        <div
+          className="harbor-combat-layer"
+          style={{
+            position: 'fixed',
+            top: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 999999,
+            background: settingsToast.type === 'success'
+              ? 'linear-gradient(135deg, #10b981, #059669)'
+              : settingsToast.type === 'info' || settingsToast.type === 'warning'
+              ? 'linear-gradient(135deg, #f59e0b, #d97706)'
+              : 'linear-gradient(135deg, #ef4444, #dc2626)',
+            color: '#fff',
+            padding: '12px 24px',
+            borderRadius: '12px',
+            fontWeight: 'bold',
+            fontSize: '13px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.5), 0 0 10px rgba(255,255,255,0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            animation: 'fade-in-scale 0.25s ease-out',
+            direction: 'rtl'
+          }}
+        >
+          <span>{settingsToast.type === 'success' ? '✅' : settingsToast.type === 'info' || settingsToast.type === 'warning' ? '⚠️' : '❌'}</span>
+          <span>{settingsToast.message}</span>
         </div>
       )}
 

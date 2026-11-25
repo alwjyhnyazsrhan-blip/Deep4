@@ -9,9 +9,9 @@ interface FlyingNavalMissileProps {
 }
 
 const FLIGHT_CONFIG: Record<RocketTier, { durationMs: number; scale: number; smokeScale: number }> = {
-  small: { durationMs: 750, scale: 0.78, smokeScale: 0.78 },
-  medium: { durationMs: 900, scale: 0.96, smokeScale: 0.96 },
-  large: { durationMs: 1250, scale: 1.18, smokeScale: 1.15 },
+  small: { durationMs: 750, scale: 0.85, smokeScale: 0.85 },
+  medium: { durationMs: 900, scale: 1.04, smokeScale: 1.0 },
+  large: { durationMs: 1200, scale: 1.24, smokeScale: 1.2 },
 };
 
 export const FlyingNavalMissile: React.FC<FlyingNavalMissileProps> = ({
@@ -34,13 +34,10 @@ export const FlyingNavalMissile: React.FC<FlyingNavalMissileProps> = ({
       <style>{`
         @keyframes naval-missile-dive {
           0% {
-            left: calc(var(--missile-target-x) - 24%);
-            top: calc(var(--missile-target-y) - 42%);
-            transform: translate(-50%, -50%) rotate(134deg) scale(calc(var(--missile-scale) * 0.78));
-            opacity: 0;
-          }
-          8% {
-            opacity: 1;
+            left: calc(var(--missile-target-x) - 22%);
+            top: max(-6%, calc(var(--missile-target-y) - 44%));
+            transform: translate(-50%, -50%) rotate(134deg) scale(calc(var(--missile-scale) * 0.84));
+            opacity: 0.92;
           }
           88% {
             opacity: 1;
@@ -254,9 +251,9 @@ const EXPLOSION_CONFIG: Record<
   RocketTier,
   { durationMs: number; sizePx: number; particleCount: number; splashCount: number }
 > = {
-  small: { durationMs: 480, sizePx: 300, particleCount: 14, splashCount: 12 },
-  medium: { durationMs: 580, sizePx: 380, particleCount: 20, splashCount: 16 },
-  large: { durationMs: 680, sizePx: 460, particleCount: 26, splashCount: 22 },
+  small: { durationMs: 950, sizePx: 320, particleCount: 16, splashCount: 14 },
+  medium: { durationMs: 1150, sizePx: 400, particleCount: 22, splashCount: 18 },
+  large: { durationMs: 1350, sizePx: 480, particleCount: 28, splashCount: 24 },
 };
 
 const ROCKET_DEBRIS = [
@@ -568,6 +565,221 @@ export const NavalRocketExplosion: React.FC<NavalRocketExplosionProps> = ({
           <path d={chunk.p} fill="#27272a" stroke="#09090b" strokeWidth="1.2" />
         </svg>
       ))}
+    </div>
+  );
+};
+
+interface AdBombStrikeProps {
+  x?: string;
+  y?: string;
+  onDetonate?: () => void;
+  onComplete?: () => void;
+}
+
+export const AdBombStrike: React.FC<AdBombStrikeProps> = ({
+  x = '48%',
+  y = '52%',
+  onDetonate,
+  onComplete,
+}) => {
+  const [phase, setPhase] = React.useState<'descent' | 'impact'>('descent');
+  const onDetonateRef = useRef(onDetonate);
+  onDetonateRef.current = onDetonate;
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
+  useEffect(() => {
+    const tImpact = setTimeout(() => {
+      setPhase('impact');
+      onDetonateRef.current?.();
+
+      const pctX = x.endsWith('%') ? parseFloat(x) : 48;
+      const pctY = y.endsWith('%') ? parseFloat(y) : 52;
+      window.dispatchEvent(
+        new CustomEvent('spawn-pirate-particles', {
+          detail: { x: pctX, y: pctY, type: 'destroy', count: 28 },
+        })
+      );
+      window.dispatchEvent(
+        new CustomEvent('spawn-pirate-particles', {
+          detail: { x: pctX, y: pctY + 3, type: 'water-splash', count: 20 },
+        })
+      );
+    }, 850);
+
+    const tDone = setTimeout(() => {
+      onCompleteRef.current?.();
+    }, 2150);
+
+    return () => {
+      clearTimeout(tImpact);
+      clearTimeout(tDone);
+    };
+  }, [x, y]);
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 9999,
+        pointerEvents: 'none',
+        overflow: 'hidden',
+      }}
+    >
+      <style>{`
+        @keyframes ad-bomb-fall {
+          0% {
+            left: calc(var(--ad-target-x) - 10%);
+            top: -110px;
+            transform: translate(-50%, -50%) rotate(14deg) scale(0.85);
+            opacity: 0.95;
+          }
+          100% {
+            left: var(--ad-target-x);
+            top: var(--ad-target-y);
+            transform: translate(-50%, -50%) rotate(4deg) scale(1.12);
+            opacity: 1;
+          }
+        }
+        @keyframes ad-blast-ring {
+          0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+          45% { opacity: 0.9; }
+          100% { transform: translate(-50%, -50%) scale(2.4); opacity: 0; }
+        }
+        @keyframes ad-smoke-cloud {
+          0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0.45; }
+          25% { transform: translate(-50%, -56%) scale(1.1); opacity: 1; }
+          75% { transform: translate(-50%, -62%) scale(1.22); opacity: 0.85; }
+          100% { transform: translate(-50%, -68%) scale(1.32); opacity: 0; }
+        }
+      `}</style>
+
+      {phase === 'descent' && (
+        <div
+          style={{
+            position: 'absolute',
+            left: x,
+            top: y,
+            '--ad-target-x': x,
+            '--ad-target-y': y,
+            animation: 'ad-bomb-fall 850ms cubic-bezier(0.32, 0.08, 0.78, 0.95) forwards',
+            width: '120px',
+            height: '150px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          } as React.CSSProperties}
+        >
+          {/* Dark Smoke & Emerald Plasma Trail */}
+          <svg
+            viewBox="0 0 120 260"
+            width="120"
+            height="260"
+            style={{
+              position: 'absolute',
+              bottom: '84px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              overflow: 'visible',
+            }}
+          >
+            <defs>
+              <radialGradient id="adTrailSmoke" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#18181b" stopOpacity="0.95" />
+                <stop offset="60%" stopColor="#27272a" stopOpacity="0.82" />
+                <stop offset="100%" stopColor="#3f3f46" stopOpacity="0" />
+              </radialGradient>
+              <radialGradient id="adTrailPlasma" cx="50%" cy="65%" r="55%">
+                <stop offset="0%" stopColor="#bbf7d0" stopOpacity="1" />
+                <stop offset="40%" stopColor="#22c55e" stopOpacity="0.95" />
+                <stop offset="100%" stopColor="#15803d" stopOpacity="0" />
+              </radialGradient>
+            </defs>
+            <circle cx="60" cy="40" r="32" fill="url(#adTrailSmoke)" />
+            <circle cx="48" cy="85" r="34" fill="url(#adTrailSmoke)" />
+            <circle cx="72" cy="115" r="34" fill="url(#adTrailSmoke)" />
+            <circle cx="60" cy="155" r="38" fill="url(#adTrailSmoke)" />
+            <ellipse cx="60" cy="215" rx="34" ry="44" fill="url(#adTrailPlasma)" />
+          </svg>
+
+          {/* Heavy Canister Media Warhead */}
+          <svg viewBox="0 0 90 120" width="84" height="112" style={{ filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.9)) drop-shadow(0 0 14px rgba(34,197,94,0.85))' }}>
+            <polygon points="24,18 45,36 66,18 58,6 32,6" fill="#18181b" stroke="#22c55e" strokeWidth="2" />
+            <rect x="26" y="30" width="38" height="54" rx="8" fill="#09090b" stroke="#4ade80" strokeWidth="2.5" />
+            <path d="M 26,84 Q 45,114 64,84 Z" fill="#dc2626" stroke="#7f1d1d" strokeWidth="2" />
+            <circle cx="45" cy="57" r="12" fill="#14532d" stroke="#4ade80" strokeWidth="2" />
+            <text x="45" y="62" textAnchor="middle" fontSize="14" fill="#fef08a">⚡</text>
+          </svg>
+        </div>
+      )}
+
+      {phase === 'impact' && (
+        <>
+          {/* Bright Green & Orange Blast Flash */}
+          <div
+            style={{
+              position: 'absolute',
+              left: x,
+              top: y,
+              width: '360px',
+              height: '360px',
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(254,249,195,0.95) 0%, rgba(34,197,94,0.72) 38%, rgba(234,88,12,0.4) 68%, transparent 82%)',
+              animation: 'ad-blast-ring 1.1s ease-out forwards',
+            }}
+          />
+
+          {/* Expanding Shockwave */}
+          <div
+            style={{
+              position: 'absolute',
+              left: x,
+              top: y,
+              width: '260px',
+              height: '120px',
+              borderRadius: '50%',
+              border: '10px solid rgba(134, 239, 172, 0.95)',
+              boxShadow: '0 0 36px rgba(34, 197, 94, 0.9), inset 0 0 22px rgba(74, 222, 128, 0.7)',
+              animation: 'ad-blast-ring 1.25s cubic-bezier(0.14, 0.84, 0.3, 1) forwards',
+            }}
+          />
+
+          {/* Billowing Smoke & Fire Cloud */}
+          <div
+            style={{
+              position: 'absolute',
+              left: x,
+              top: y,
+              width: '440px',
+              height: '420px',
+              animation: 'ad-smoke-cloud 1.3s cubic-bezier(0.14, 0.84, 0.3, 1) forwards',
+            }}
+          >
+            <svg viewBox="0 0 440 420" width="100%" height="100%" style={{ overflow: 'visible', filter: 'drop-shadow(0 14px 28px rgba(0,0,0,0.75))' }}>
+              <defs>
+                <radialGradient id="adSmokeDark" cx="45%" cy="40%" r="60%">
+                  <stop offset="0%" stopColor="#3f3f46" />
+                  <stop offset="50%" stopColor="#18181b" />
+                  <stop offset="100%" stopColor="#09090b" />
+                </radialGradient>
+                <radialGradient id="adCoreGlow" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="#fef9c3" stopOpacity="1" />
+                  <stop offset="35%" stopColor="#4ade80" stopOpacity="0.92" />
+                  <stop offset="70%" stopColor="#ea580c" stopOpacity="0.85" />
+                  <stop offset="100%" stopColor="#991b1b" stopOpacity="0" />
+                </radialGradient>
+              </defs>
+              <circle cx="145" cy="240" r="72" fill="url(#adSmokeDark)" />
+              <circle cx="295" cy="240" r="72" fill="url(#adSmokeDark)" />
+              <circle cx="220" cy="175" r="88" fill="url(#adSmokeDark)" />
+              <circle cx="220" cy="255" r="92" fill="url(#adSmokeDark)" />
+              <ellipse cx="220" cy="240" rx="76" ry="56" fill="url(#adCoreGlow)" />
+              <text x="220" y="254" textAnchor="middle" fontSize="64">📡💥</text>
+            </svg>
+          </div>
+        </>
+      )}
     </div>
   );
 };

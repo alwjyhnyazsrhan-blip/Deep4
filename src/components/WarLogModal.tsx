@@ -22,6 +22,7 @@ import { BattleReport } from '../types';
 
 export interface AttackLogItem {
   id: string;
+  attackerId?: string;
   attackerName: string;
   attackerAvatar: string;
   attackerLevel: number;
@@ -53,7 +54,7 @@ export interface SupportGiftItem {
 
 interface WarLogModalProps {
   onClose: () => void;
-  onRevenge: (attackerName: string, attackId?: string) => void;
+  onRevenge: (attackerName: string, attackId?: string, attackerId?: string) => void;
   onClaimGift: (gift: SupportGiftItem) => void;
   battleReports: BattleReport[];
   attackLogs: AttackLogItem[];
@@ -543,7 +544,7 @@ export const WarLogModal: React.FC<WarLogModalProps> = ({
                         </div>
                       ) : (
                         <button
-                          onClick={() => onRevenge(item.attackerName, item.id)}
+                          onClick={() => onRevenge(item.attackerName, item.id, item.attackerId)}
                           style={{
                             background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%)',
                             border: '1.5px solid #fca5a5',

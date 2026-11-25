@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { playWaterPlungeSound } from '../utils/explosionSound';
 
 interface AtomicBombExplosionProps {
@@ -53,6 +53,10 @@ export const AtomicBombExplosion: React.FC<AtomicBombExplosionProps> = ({
   // 2. 'detonating': Massive ocean water splash crown + billowing black death smoke + glowing orange fire pockets + flying dark debris (1350ms - 3400ms)
   // 3. 'dissipating': Smoke and sea spray disperse cleanly (3400ms - 4500ms)
   const [phase, setPhase] = useState<'descent' | 'detonating' | 'dissipating'>('descent');
+  const onDetonateRef = useRef(onDetonate);
+  onDetonateRef.current = onDetonate;
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
     const tSurfaceSplashAudio = setTimeout(() => {
@@ -61,7 +65,7 @@ export const AtomicBombExplosion: React.FC<AtomicBombExplosionProps> = ({
 
     const tDetonate = setTimeout(() => {
       setPhase('detonating');
-      if (onDetonate) onDetonate();
+      onDetonateRef.current?.();
 
       // Trigger dynamic canvas particles alongside the SVG blast
       const pctX = typeof x === 'string' && x.endsWith('%') ? parseFloat(x) : 45;
@@ -83,7 +87,7 @@ export const AtomicBombExplosion: React.FC<AtomicBombExplosionProps> = ({
     }, 3400);
 
     const tComplete = setTimeout(() => {
-      if (onComplete) onComplete();
+      onCompleteRef.current?.();
     }, 4500);
 
     return () => {
@@ -92,7 +96,7 @@ export const AtomicBombExplosion: React.FC<AtomicBombExplosionProps> = ({
       clearTimeout(tDissipate);
       clearTimeout(tComplete);
     };
-  }, [x, surfaceY, onDetonate, onComplete]);
+  }, [x, surfaceY]);
 
   const centerX = typeof x === 'number' ? `${x}px` : x;
   const surfaceTop = typeof surfaceY === 'number' ? `${surfaceY}px` : surfaceY;

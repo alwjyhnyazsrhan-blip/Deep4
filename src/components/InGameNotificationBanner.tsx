@@ -8,7 +8,7 @@ interface InGameNotificationBannerProps {
   onDismiss: () => void;
   isSoundEnabled: boolean;
   onToggleSound: () => void;
-  onRevenge?: (attackerName: string) => void;
+  onRevenge?: (attackerName: string, attackId?: string, attackerId?: string) => void;
   onOpenWarLog?: () => void;
 }
 
@@ -154,9 +154,12 @@ export const InGameNotificationBanner: React.FC<InGameNotificationBannerProps> =
                   <button
                     type="button"
                     onClick={() => {
-                      const attacker = notification.authorName || notification.senderName || 'رماس محمد';
+                      const attacker = notification.authorName || notification.senderName || 'قبطان معادٍ';
+                      const attackerUid = notification.authorId && notification.authorId !== 'anonymous'
+                        ? notification.authorId
+                        : (notification.senderId && notification.senderId !== 'anonymous' ? notification.senderId : undefined);
                       onDismiss();
-                      onRevenge(attacker);
+                      onRevenge(attacker, undefined, attackerUid);
                     }}
                     className="mt-2.5 px-3.5 py-1.5 bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-black text-xs sm:text-sm rounded-xl border border-yellow-300 shadow-[0_0_15px_rgba(239,68,68,0.7)] flex items-center gap-2 cursor-pointer active:scale-95 transition-transform"
                   >

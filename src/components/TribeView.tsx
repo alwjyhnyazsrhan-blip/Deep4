@@ -645,7 +645,7 @@ const OceanTribeHeaderArt: React.FC = () => (
     viewBox="0 0 900 215"
     preserveAspectRatio="xMidYMid slice"
     aria-hidden="true"
-    style={{ width: '100%', height: '185px', display: 'block', flexShrink: 0 }}
+    style={{ width: '100%', height: '215px', display: 'block', flexShrink: 0 }}
   >
     <defs>
       <linearGradient id="oceanSkyGrad" x1="0" y1="0" x2="0" y2="215" gradientUnits="userSpaceOnUse">
@@ -1764,7 +1764,7 @@ export default function TribeView({
             position: 'relative',
             zIndex: 4,
             width: '100%',
-            maxWidth: '900px',
+            maxWidth: '1060px',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -1883,16 +1883,16 @@ export default function TribeView({
           position: 'relative',
           zIndex: 3,
           width: '100%',
-          maxWidth: screenMode === 'manage' && currentTribe ? '900px' : '880px',
+          maxWidth: screenMode === 'manage' && currentTribe ? '1060px' : '1000px',
           padding:
             screenMode === 'manage' && currentTribe
-              ? '0 8px 20px 8px'
-              : '32px 44px 48px 44px',
+              ? '0 4px 18px 4px'
+              : '34px 36px 50px 36px',
           boxSizing: 'border-box',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: screenMode === 'manage' && currentTribe ? '0px' : '30px',
+          gap: screenMode === 'manage' && currentTribe ? '0px' : '32px',
           flex: 1,
         }}
       >
@@ -2204,8 +2204,8 @@ export default function TribeView({
                 position: 'relative',
                 zIndex: 3,
                 width: '100%',
-                minHeight: '72px',
-                padding: '10px 38px',
+                minHeight: '82px',
+                padding: '12px 42px',
                 background:
                   'repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 3px, transparent 3px, transparent 16px), linear-gradient(180deg, #653e1d 0%, #41250f 55%, #241307 100%)',
                 borderBottom: '3.5px solid #e7b952',
@@ -2223,7 +2223,7 @@ export default function TribeView({
               <h1
                 style={{
                   margin: 0,
-                  fontSize: '36px',
+                  fontSize: '40px',
                   fontWeight: '900',
                   color: '#f8d367',
                   textShadow: '0 3px 6px rgba(0,0,0,0.95), 0 0 14px rgba(245, 158, 11, 0.35)',
@@ -2248,10 +2248,10 @@ export default function TribeView({
                 position: 'relative',
                 zIndex: 2,
                 width: '100%',
-                padding: '14px 20px 18px 20px',
+                padding: '18px 22px 22px 22px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '16px',
+                gap: '18px',
                 boxSizing: 'border-box',
               }}
             >
@@ -2261,7 +2261,7 @@ export default function TribeView({
                   width: '100%',
                   display: 'grid',
                   gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                  gap: '10px',
+                  gap: '12px',
                   boxSizing: 'border-box',
                 }}
               >
@@ -2279,8 +2279,8 @@ export default function TribeView({
                       type="button"
                       onClick={() => setManageTab(tab.id)}
                       style={{
-                        height: '58px',
-                        padding: '0 10px',
+                        height: '66px',
+                        padding: '0 12px',
                         borderRadius: '8px',
                         border: isActive ? '2.5px solid #f7c95c' : '2px solid #c99940',
                         background: isActive
@@ -2291,7 +2291,7 @@ export default function TribeView({
                           : '0 4px 10px rgba(0, 0, 0, 0.7), inset 0 1.5px 0 rgba(147, 197, 253, 0.25)',
                         color: isActive ? '#fef08a' : '#f3ebd8',
                         fontFamily: 'inherit',
-                        fontSize: '21px',
+                        fontSize: '23px',
                         fontWeight: '900',
                         cursor: 'pointer',
                         whiteSpace: 'nowrap',
@@ -2388,7 +2388,7 @@ export default function TribeView({
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span
                           style={{
-                            fontSize: '30px',
+                            fontSize: '34px',
                             fontWeight: '900',
                             color: '#ffffff',
                             textShadow: '0 2px 6px rgba(0,0,0,0.95)',
@@ -2405,13 +2405,13 @@ export default function TribeView({
                             setIsEditingTribeName(true);
                           }}
                           style={{
-                            width: '34px',
-                            height: '34px',
+                            width: '38px',
+                            height: '38px',
                             borderRadius: '8px',
                             border: '1.5px solid rgba(231, 185, 82, 0.55)',
                             background: 'rgba(8, 28, 66, 0.65)',
                             color: '#fde047',
-                            fontSize: '16px',
+                            fontSize: '18px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -2440,7 +2440,7 @@ export default function TribeView({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <span
                         style={{
-                          fontSize: '30px',
+                          fontSize: '34px',
                           fontWeight: '900',
                           color: '#ffffff',
                           textShadow: '0 2px 6px rgba(0,0,0,0.95)',
@@ -2463,7 +2463,7 @@ export default function TribeView({
                           justifyContent: 'center',
                         }}
                       >
-                        <TribeEmblemCrest emblem={currentTribe.emblem || '⚓'} size={132} oceanGold />
+                        <TribeEmblemCrest emblem={currentTribe.emblem || '⚓'} size={148} oceanGold />
                       </button>
                     </div>
 
@@ -2473,9 +2473,9 @@ export default function TribeView({
                       onClick={() => setShowJoinInvitesPanel((prev) => !prev)}
                       style={{
                         position: 'relative',
-                        minWidth: '245px',
-                        height: '62px',
-                        padding: '0 28px',
+                        minWidth: '268px',
+                        height: '70px',
+                        padding: '0 32px',
                         borderRadius: '10px',
                         border: '2.5px solid #93c5fd',
                         background: 'linear-gradient(180deg, #2789ec 0%, #1056b0 52%, #083475 100%)',
@@ -2483,7 +2483,7 @@ export default function TribeView({
                           '0 8px 18px rgba(0,0,0,0.8), 0 0 16px rgba(56, 189, 248, 0.4), inset 0 2px 0 rgba(219, 234, 254, 0.55)',
                         color: '#ffffff',
                         fontFamily: 'inherit',
-                        fontSize: '24px',
+                        fontSize: '27px',
                         fontWeight: '900',
                         cursor: 'pointer',
                         textShadow: '0 2px 4px rgba(0,0,0,0.75)',
@@ -2670,7 +2670,7 @@ export default function TribeView({
                       justifyContent: 'flex-start',
                       gap: '16px',
                       flexWrap: 'wrap',
-                      fontSize: '26px',
+                      fontSize: '29px',
                       fontWeight: '900',
                       color: '#ffffff',
                       fontVariantNumeric: 'tabular-nums',
@@ -2701,7 +2701,7 @@ export default function TribeView({
                   >
                     <span
                       style={{
-                        fontSize: '27px',
+                        fontSize: '30px',
                         fontWeight: '900',
                         color: '#ffffff',
                         fontVariantNumeric: 'tabular-nums',
@@ -2718,9 +2718,9 @@ export default function TribeView({
                         onClick={() => setScreenMode('donations')}
                         style={{
                           position: 'relative',
-                          minWidth: '175px',
-                          height: '58px',
-                          padding: '0 30px',
+                          minWidth: '195px',
+                          height: '66px',
+                          padding: '0 34px',
                           borderRadius: '10px',
                           border: '2.5px solid #93c5fd',
                           background: 'linear-gradient(180deg, #2789ec 0%, #1056b0 52%, #083475 100%)',
@@ -2728,7 +2728,7 @@ export default function TribeView({
                             '0 8px 18px rgba(0,0,0,0.8), 0 0 16px rgba(56, 189, 248, 0.4), inset 0 2px 0 rgba(219, 234, 254, 0.55)',
                           color: '#ffffff',
                           fontFamily: 'inherit',
-                          fontSize: '25px',
+                          fontSize: '28px',
                           fontWeight: '900',
                           cursor: 'pointer',
                           textShadow: '0 2px 4px rgba(0,0,0,0.75)',
@@ -2776,7 +2776,7 @@ export default function TribeView({
                       display: 'flex',
                       alignItems: 'center',
                       gap: '10px',
-                      fontSize: '28px',
+                      fontSize: '31px',
                       fontWeight: '900',
                       color: '#ffffff',
                       textShadow: '0 2px 5px rgba(0,0,0,0.95)',
@@ -2788,12 +2788,12 @@ export default function TribeView({
                   </div>
 
                   {/* Row 6: إنجاز التحالف القبيلة + Gold-Framed Cream Parchment Card with Sailing Ship */}
-                  <div style={{ position: 'relative', zIndex: 1, width: '100%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ position: 'relative', zIndex: 1, width: '100%', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
                       <label
                         htmlFor="tribe-statement-textarea"
                         style={{
-                          fontSize: '28px',
+                          fontSize: '31px',
                           fontWeight: '900',
                           color: '#ffffff',
                           textShadow: '0 2px 5px rgba(0,0,0,0.95)',
@@ -2826,22 +2826,22 @@ export default function TribeView({
                       style={{
                         position: 'relative',
                         width: '100%',
-                        minHeight: '210px',
+                        minHeight: '245px',
                         borderRadius: '8px',
                         border: '3.5px solid #d9a441',
                         background:
                           'radial-gradient(ellipse at 35% 35%, rgba(255, 250, 232, 0.7) 0%, transparent 65%), linear-gradient(135deg, #f8e9c4 0%, #edd29b 55%, #deb973 100%)',
                         boxShadow:
                           '0 12px 26px rgba(0,0,0,0.8), inset 0 0 26px rgba(133, 86, 26, 0.38), inset 0 0 0 1.5px rgba(254, 240, 138, 0.6)',
-                        padding: '18px 22px',
+                        padding: '20px 24px',
                         boxSizing: 'border-box',
                         overflow: 'hidden',
                       }}
                     >
-                      <OceanGoldCornerFlourish position="top-right" size={32} />
-                      <OceanGoldCornerFlourish position="top-left" size={32} />
-                      <OceanGoldCornerFlourish position="bottom-right" size={32} />
-                      <OceanGoldCornerFlourish position="bottom-left" size={32} />
+                      <OceanGoldCornerFlourish position="top-right" size={36} />
+                      <OceanGoldCornerFlourish position="top-left" size={36} />
+                      <OceanGoldCornerFlourish position="bottom-right" size={36} />
+                      <OceanGoldCornerFlourish position="bottom-left" size={36} />
                       <ParchmentShipIllustration />
                       <textarea
                         id="tribe-statement-textarea"
@@ -2860,12 +2860,12 @@ export default function TribeView({
                           position: 'relative',
                           zIndex: 1,
                           width: '100%',
-                          minHeight: '170px',
+                          minHeight: '200px',
                           border: 'none',
                           background: 'transparent',
                           color: '#23180c',
                           fontFamily: 'inherit',
-                          fontSize: '26px',
+                          fontSize: '28px',
                           fontWeight: '800',
                           lineHeight: 1.55,
                           resize: 'none',
@@ -3255,8 +3255,8 @@ export default function TribeView({
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '10px',
-                        fontSize: '29px',
+                        gap: '12px',
+                        fontSize: '32px',
                         fontWeight: '900',
                         color: '#ffffff',
                         fontVariantNumeric: 'tabular-nums',
@@ -3273,9 +3273,9 @@ export default function TribeView({
                       type="button"
                       onClick={() => handleToggleJoin(currentTribe)}
                       style={{
-                        minWidth: '250px',
-                        height: '62px',
-                        padding: '0 24px',
+                        minWidth: '275px',
+                        height: '68px',
+                        padding: '0 28px',
                         borderRadius: '10px',
                         border: '2.5px solid #e7b952',
                         background: 'linear-gradient(180deg, #b91c1c 0%, #881313 55%, #5c0909 100%)',
@@ -3283,7 +3283,7 @@ export default function TribeView({
                           '0 8px 18px rgba(0,0,0,0.85), inset 0 2px 0 rgba(254, 202, 202, 0.35), inset 0 -3px 8px rgba(69, 10, 10, 0.8)',
                         color: '#ffffff',
                         fontFamily: 'inherit',
-                        fontSize: '23px',
+                        fontSize: '25px',
                         fontWeight: '900',
                         display: 'flex',
                         alignItems: 'center',
@@ -3306,8 +3306,8 @@ export default function TribeView({
                 onClick={handleBackAction}
                 style={{
                   width: '100%',
-                  height: '82px',
-                  padding: '0 28px',
+                  height: '92px',
+                  padding: '0 32px',
                   borderRadius: '10px',
                   border: '3px solid #e7b952',
                   background:
@@ -3320,18 +3320,18 @@ export default function TribeView({
                   cursor: 'pointer',
                   color: '#ffffff',
                   fontFamily: 'inherit',
-                  fontSize: '33px',
+                  fontSize: '36px',
                   fontWeight: '900',
                   textShadow: '0 2px 5px rgba(0,0,0,0.95)',
                   boxSizing: 'border-box',
                 }}
               >
-                <span style={{ fontSize: '26px', color: '#facc15', textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}>▶</span>
+                <span style={{ fontSize: '28px', color: '#facc15', textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}>▶</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <span>عودة</span>
                   <span>←</span>
                 </span>
-                <span style={{ fontSize: '26px', color: '#facc15', textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}>◀</span>
+                <span style={{ fontSize: '28px', color: '#facc15', textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}>◀</span>
               </button>
             </div>
           </div>

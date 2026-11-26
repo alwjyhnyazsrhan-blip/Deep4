@@ -115,7 +115,7 @@ export const ShipStatusBars: React.FC<ShipStatusBarsProps> = ({
   const fishingTooltip = isReady
     ? 'اكتمل الصيد 100% — اضغط لجمع الأسماك'
     : isAutoFishing
-      ? `صيد آلي مستمر (${safeFishingPct}%)`
+      ? `صيد آلي (${safeFishingPct}%)${remainingMs > 0 ? ` — المتبقي: ${formatFishingCountdown(remainingMs)}` : ''}`
       : isFishing && remainingMs > 0
         ? `جاري الصيد (${safeFishingPct}%) — المتبقي: ${formatFishingCountdown(remainingMs)}`
         : 'الصيد: 0%';

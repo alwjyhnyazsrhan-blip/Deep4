@@ -258,26 +258,45 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
         zIndex: 120,
         display: 'flex',
         flexDirection: 'column',
-        maxHeight: '92vh',
         background: 'linear-gradient(180deg, rgba(16, 12, 8, 0.98) 0%, rgba(8, 6, 4, 0.99) 100%)',
-        border: '2px solid #ca8a04',
+        border: '2.5px solid #ca8a04',
         boxShadow: '0 20px 50px rgba(0,0,0,0.9), 0 0 30px rgba(202, 138, 4, 0.3)',
+        overflow: 'hidden',
+        paddingBottom: '20px',
       }}
     >
       {/* Header */}
-      <div className="tab-title" style={{ borderBottom: '2px solid rgba(202, 138, 4, 0.5)', paddingBottom: '10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '24px' }}>👥</span>
+      <div
+        className="tab-title"
+        style={{
+          borderBottom: '2px solid rgba(202, 138, 4, 0.5)',
+          paddingBottom: '14px',
+          marginBottom: '12px',
+          flexShrink: 0,
+          gap: '12px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'right' }}>
+          <span style={{ fontSize: '38px', lineHeight: 1 }}>👥</span>
           <div>
-            <div style={{ fontSize: '18px', fontWeight: '900', color: '#fef08a', textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
+            <div style={{ fontSize: '30px', fontWeight: '900', color: '#fef08a', textShadow: '0 2px 4px rgba(0,0,0,0.8)', lineHeight: 1.2 }}>
               حانة وتعيين طواقم الأسطول
             </div>
-            <div style={{ fontSize: '11px', color: '#fbbf24', marginTop: '2px' }}>
+            <div style={{ fontSize: '17px', fontWeight: '700', color: '#fbbf24', marginTop: '4px' }}>
               عيّن شخصية الطاقم مباشرة على ظهر السفينة التي تحددها لتعزيز قوتها وصيدها
             </div>
           </div>
         </div>
-        <button className="close-tab-btn" onClick={onClose}>
+        <button
+          className="close-tab-btn"
+          onClick={onClose}
+          style={{
+            fontSize: '22px',
+            padding: '10px 22px',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+          }}
+        >
           ✕ إغلاق
         </button>
       </div>
@@ -286,13 +305,15 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
       <div
         style={{
           display: 'flex',
-          gap: '8px',
-          padding: '8px 0',
-          borderBottom: '1px solid rgba(202, 138, 4, 0.3)',
-          overflowX: 'auto'
+          alignItems: 'center',
+          gap: '10px',
+          padding: '10px 0',
+          borderBottom: '1.5px solid rgba(202, 138, 4, 0.35)',
+          overflowX: 'auto',
+          flexShrink: 0,
         }}
       >
-        <span style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: '18px', color: '#f1f5f9', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', flexShrink: 0 }}>
           📍 اختر السفينة لتعيين الطاقم:
         </span>
         {existingShips.map((ship, idx) => {
@@ -309,32 +330,33 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                padding: '6px 14px',
-                borderRadius: '8px',
+                gap: '8px',
+                padding: '10px 18px',
+                borderRadius: '10px',
                 background: isSelected
                   ? 'linear-gradient(135deg, #ca8a04 0%, #854d0e 100%)'
-                  : 'rgba(30, 41, 59, 0.7)',
-                color: isSelected ? '#fff' : '#cbd5e1',
-                border: isSelected ? '1.5px solid #facc15' : '1px solid #475569',
+                  : 'rgba(30, 41, 59, 0.85)',
+                color: isSelected ? '#fff' : '#e2e8f0',
+                border: isSelected ? '2px solid #facc15' : '1.5px solid #475569',
                 cursor: 'pointer',
-                fontSize: '12px',
-                fontWeight: 'bold',
+                fontSize: '18px',
+                fontWeight: '900',
                 whiteSpace: 'nowrap',
-                boxShadow: isSelected ? '0 0 12px rgba(250, 204, 21, 0.5)' : 'none',
+                flexShrink: 0,
+                boxShadow: isSelected ? '0 0 14px rgba(250, 204, 21, 0.55)' : 'none',
                 transition: 'all 0.2s ease'
               }}
             >
-              <span>🚢</span>
+              <span style={{ fontSize: '21px' }}>🚢</span>
               <span>{ship.name} ({idx + 1})</span>
               {assignedCount > 0 && (
                 <span
                   style={{
                     background: '#16a34a',
                     color: '#fff',
-                    borderRadius: '10px',
-                    padding: '1px 6px',
-                    fontSize: '10px',
+                    borderRadius: '12px',
+                    padding: '2px 10px',
+                    fontSize: '15px',
                     fontWeight: '900'
                   }}
                 >
@@ -353,29 +375,30 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
           flexWrap: 'wrap',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '10px',
-          background: 'linear-gradient(90deg, rgba(202, 138, 4, 0.25) 0%, rgba(120, 53, 15, 0.35) 100%)',
-          border: '1px solid #ca8a04',
-          borderRadius: '10px',
-          padding: '8px 14px',
-          margin: '8px 0',
+          gap: '12px',
+          background: 'linear-gradient(90deg, rgba(202, 138, 4, 0.28) 0%, rgba(120, 53, 15, 0.38) 100%)',
+          border: '1.5px solid #ca8a04',
+          borderRadius: '12px',
+          padding: '11px 18px',
+          margin: '10px 0',
+          flexShrink: 0,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '18px' }}>⚓</span>
-          <span style={{ fontSize: '13px', color: '#fef08a', fontWeight: 'bold' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '26px' }}>⚓</span>
+          <span style={{ fontSize: '20px', color: '#fef08a', fontWeight: '900' }}>
             السفينة المحددة: <span style={{ color: '#fff', textDecoration: 'underline' }}>{currentShip?.name || 'سفينة'}</span>
           </span>
           {currentShip && (
-            <span style={{ fontSize: '11px', background: currentAssignedCrew.length > 0 ? '#059669' : '#475569', color: '#fff', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>
+            <span style={{ fontSize: '17px', background: currentAssignedCrew.length > 0 ? '#059669' : '#475569', color: '#fff', padding: '4px 12px', borderRadius: '14px', fontWeight: '900' }}>
               قوة الطاقم: 👤 +{currentAssignedCrew.length * 15}
             </span>
           )}
 
           {/* Render miniature crew badges assigned to this ship */}
           {currentAssignedCrew.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginRight: '6px' }}>
-              <span style={{ fontSize: '11px', color: '#94a3b8' }}>الطاقم على ظهر السفينة:</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginRight: '6px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '16px', color: '#cbd5e1', fontWeight: '700' }}>الطاقم على ظهر السفينة:</span>
               {currentAssignedCrew.map(cId => {
                 const info = CREW_VISUAL_MAP[cId];
                 if (!info) return null;
@@ -385,14 +408,14 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                     title={info.name}
                     style={{
                       background: info.badgeBg,
-                      border: `1px solid ${info.badgeBorder}`,
+                      border: `2px solid ${info.badgeBorder}`,
                       borderRadius: '50%',
-                      width: '20px',
-                      height: '20px',
+                      width: '34px',
+                      height: '34px',
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '11px'
+                      fontSize: '19px'
                     }}
                   >
                     {info.badgeIcon}
@@ -404,13 +427,13 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
         </div>
 
         {/* Currency balances */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '12.5px', fontWeight: 'bold' }}>
-          <span style={{ color: '#facc15', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span>🪙</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '18px', fontSize: '20px', fontWeight: '900' }}>
+          <span style={{ color: '#facc15', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '22px' }}>🪙</span>
             <span>{gold.toLocaleString()} ذهب</span>
           </span>
-          <span style={{ color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span>💎</span>
+          <span style={{ color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '22px' }}>💎</span>
             <span>{gems.toLocaleString()} جوهرة</span>
           </span>
         </div>
@@ -420,26 +443,28 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
       <div
         style={{
           display: 'flex',
-          gap: '8px',
+          gap: '10px',
           marginBottom: '12px',
-          borderBottom: '1px solid rgba(255,255,255,0.1)',
-          paddingBottom: '8px',
+          borderBottom: '1.5px solid rgba(255,255,255,0.12)',
+          paddingBottom: '10px',
           overflowX: 'auto',
+          flexShrink: 0,
         }}
       >
         <button
           onClick={() => setFilterCategory('all')}
           style={{
-            padding: '7px 14px',
-            borderRadius: '8px',
-            border: filterCategory === 'all' ? '1.5px solid #facc15' : '1px solid rgba(255,255,255,0.15)',
-            background: filterCategory === 'all' ? 'linear-gradient(135deg, #b45309 0%, #78350f 100%)' : 'rgba(30, 24, 18, 0.6)',
-            color: filterCategory === 'all' ? '#fef08a' : '#d1d5db',
-            fontWeight: 'bold',
-            fontSize: '12px',
+            padding: '11px 20px',
+            borderRadius: '10px',
+            border: filterCategory === 'all' ? '2px solid #facc15' : '1.5px solid rgba(255,255,255,0.2)',
+            background: filterCategory === 'all' ? 'linear-gradient(135deg, #b45309 0%, #78350f 100%)' : 'rgba(30, 24, 18, 0.75)',
+            color: filterCategory === 'all' ? '#fef08a' : '#e2e8f0',
+            fontWeight: '900',
+            fontSize: '18px',
             cursor: 'pointer',
-            boxShadow: filterCategory === 'all' ? '0 0 10px rgba(250, 204, 21, 0.4)' : 'none',
+            boxShadow: filterCategory === 'all' ? '0 0 12px rgba(250, 204, 21, 0.45)' : 'none',
             whiteSpace: 'nowrap',
+            flexShrink: 0,
           }}
         >
           ⚓ جميع الطواقم والمصلحين ({CREW_SHOP_ITEMS.length})
@@ -448,16 +473,17 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
         <button
           onClick={() => setFilterCategory('crew')}
           style={{
-            padding: '7px 14px',
-            borderRadius: '8px',
-            border: filterCategory === 'crew' ? '1.5px solid #facc15' : '1px solid rgba(255,255,255,0.15)',
-            background: filterCategory === 'crew' ? 'linear-gradient(135deg, #b45309 0%, #78350f 100%)' : 'rgba(30, 24, 18, 0.6)',
-            color: filterCategory === 'crew' ? '#fef08a' : '#d1d5db',
-            fontWeight: 'bold',
-            fontSize: '12px',
+            padding: '11px 20px',
+            borderRadius: '10px',
+            border: filterCategory === 'crew' ? '2px solid #facc15' : '1.5px solid rgba(255,255,255,0.2)',
+            background: filterCategory === 'crew' ? 'linear-gradient(135deg, #b45309 0%, #78350f 100%)' : 'rgba(30, 24, 18, 0.75)',
+            color: filterCategory === 'crew' ? '#fef08a' : '#e2e8f0',
+            fontWeight: '900',
+            fontSize: '18px',
             cursor: 'pointer',
-            boxShadow: filterCategory === 'crew' ? '0 0 10px rgba(250, 204, 21, 0.4)' : 'none',
+            boxShadow: filterCategory === 'crew' ? '0 0 12px rgba(250, 204, 21, 0.45)' : 'none',
             whiteSpace: 'nowrap',
+            flexShrink: 0,
           }}
         >
           👥 أفراد الطاقم والبحارة (7)
@@ -466,66 +492,71 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
         <button
           onClick={() => setFilterCategory('fixers')}
           style={{
-            padding: '7px 14px',
-            borderRadius: '8px',
-            border: filterCategory === 'fixers' ? '1.5px solid #facc15' : '1px solid rgba(255,255,255,0.15)',
-            background: filterCategory === 'fixers' ? 'linear-gradient(135deg, #b45309 0%, #78350f 100%)' : 'rgba(30, 24, 18, 0.6)',
-            color: filterCategory === 'fixers' ? '#fef08a' : '#d1d5db',
-            fontWeight: 'bold',
-            fontSize: '12px',
+            padding: '11px 20px',
+            borderRadius: '10px',
+            border: filterCategory === 'fixers' ? '2px solid #facc15' : '1.5px solid rgba(255,255,255,0.2)',
+            background: filterCategory === 'fixers' ? 'linear-gradient(135deg, #b45309 0%, #78350f 100%)' : 'rgba(30, 24, 18, 0.75)',
+            color: filterCategory === 'fixers' ? '#fef08a' : '#e2e8f0',
+            fontWeight: '900',
+            fontSize: '18px',
             cursor: 'pointer',
-            boxShadow: filterCategory === 'fixers' ? '0 0 10px rgba(250, 204, 21, 0.4)' : 'none',
+            boxShadow: filterCategory === 'fixers' ? '0 0 12px rgba(250, 204, 21, 0.45)' : 'none',
             whiteSpace: 'nowrap',
+            flexShrink: 0,
           }}
         >
           🛠️ مصلحو وهياكل السفن (4)
         </button>
       </div>
 
-      {/* GLOBAL CREW MULTIPLIER & CUSTOM QUANTITY BANNER (خانة إضافة الكمية حسب رغبتك) */}
+      {/* GLOBAL CREW MULTIPLIER & CUSTOM QUANTITY BANNER */}
       <div
         style={{
           width: '100%',
-          maxWidth: '890px',
-          margin: '0 auto 12px auto',
+          margin: '0 auto 14px auto',
           background: 'linear-gradient(90deg, #1e1b4b, #312e81, #1e1b4b)',
-          border: '1.5px solid #818cf8',
-          borderRadius: '12px',
-          padding: '10px 16px',
+          border: '2px solid #818cf8',
+          borderRadius: '14px',
+          padding: '12px 18px',
           display: 'flex',
           flexWrap: 'wrap',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '10px',
+          gap: '12px',
           boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+          flexShrink: 0,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '20px' }}>👥</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '28px' }}>👥</span>
           <div>
-            <div style={{ fontSize: '13px', fontWeight: '900', color: '#e0e7ff' }}>
+            <div style={{ fontSize: '19px', fontWeight: '900', color: '#e0e7ff' }}>
               مضاعفة كمية الشراء لكافة الطواقم (تحديد كم ماتبي)
             </div>
-            <div style={{ fontSize: '10.5px', color: '#a5b4fc' }}>
+            <div style={{ fontSize: '15px', fontWeight: '600', color: '#c7d2fe', marginTop: '2px' }}>
               حدد أي رقم تريده لتوظيف 3 أو 4 أو أكثر دفعة واحدة لكل فرد طاقم
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(0,0,0,0.4)', padding: '3px 6px', borderRadius: '8px', border: '1px solid #6366f1' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(0,0,0,0.45)', padding: '5px 8px', borderRadius: '10px', border: '1.5px solid #6366f1' }}>
             <button
               type="button"
               onClick={() => setGlobalTavernMultiplier(prev => Math.max(1, prev - 1))}
               style={{
-                width: '26px',
-                height: '24px',
-                borderRadius: '5px',
+                width: '38px',
+                height: '36px',
+                borderRadius: '7px',
                 border: 'none',
                 background: '#ef4444',
                 color: '#fff',
-                fontWeight: 'bold',
+                fontSize: '22px',
+                fontWeight: '900',
                 cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
               -
@@ -540,15 +571,15 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                 setGlobalTavernMultiplier(isNaN(val) || val < 1 ? 1 : val);
               }}
               style={{
-                width: '60px',
-                height: '24px',
-                borderRadius: '5px',
-                border: '1px solid #818cf8',
+                width: '82px',
+                height: '36px',
+                borderRadius: '7px',
+                border: '1.5px solid #818cf8',
                 background: '#0f172a',
                 color: '#facc15',
                 textAlign: 'center',
                 fontWeight: '900',
-                fontSize: '13px',
+                fontSize: '20px',
               }}
               title="أدخل أي كمية تريدها"
             />
@@ -556,14 +587,18 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
               type="button"
               onClick={() => setGlobalTavernMultiplier(prev => prev + 1)}
               style={{
-                width: '26px',
-                height: '24px',
-                borderRadius: '5px',
+                width: '38px',
+                height: '36px',
+                borderRadius: '7px',
                 border: 'none',
                 background: '#22c55e',
                 color: '#fff',
-                fontWeight: 'bold',
+                fontSize: '22px',
+                fontWeight: '900',
                 cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
               +
@@ -576,13 +611,13 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
               type="button"
               onClick={() => setGlobalTavernMultiplier(mult)}
               style={{
-                padding: '4px 8px',
-                borderRadius: '6px',
-                border: globalTavernMultiplier === mult ? '1.5px solid #facc15' : '1px solid rgba(255,255,255,0.2)',
-                background: globalTavernMultiplier === mult ? '#4f46e5' : 'rgba(0,0,0,0.4)',
+                padding: '7px 13px',
+                borderRadius: '8px',
+                border: globalTavernMultiplier === mult ? '2px solid #facc15' : '1.5px solid rgba(255,255,255,0.25)',
+                background: globalTavernMultiplier === mult ? '#4f46e5' : 'rgba(0,0,0,0.45)',
                 color: '#fff',
-                fontWeight: 'bold',
-                fontSize: '11px',
+                fontWeight: '900',
+                fontSize: '16px',
                 cursor: 'pointer',
               }}
             >
@@ -600,15 +635,15 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
               setTavernCrewMultipliers(prev => ({ ...prev, ...updated }));
             }}
             style={{
-              padding: '5px 12px',
-              borderRadius: '8px',
-              border: 'none',
+              padding: '9px 18px',
+              borderRadius: '10px',
+              border: '1.5px solid #fef08a',
               background: 'linear-gradient(135deg, #f59e0b, #d97706)',
               color: '#000',
               fontWeight: '900',
-              fontSize: '11px',
+              fontSize: '17px',
               cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(245, 158, 11, 0.4)',
+              boxShadow: '0 2px 10px rgba(245, 158, 11, 0.45)',
             }}
           >
             تطبيق على كافة الطواقم ⚡
@@ -620,12 +655,14 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
       <div
         style={{
           flex: 1,
+          minHeight: 0,
           overflowY: 'auto',
           display: 'flex',
           flexWrap: 'wrap',
-          gap: '16px',
+          gap: '22px',
           justifyContent: 'center',
-          padding: '6px 4px 30px 4px',
+          alignItems: 'stretch',
+          padding: '8px 6px 36px 6px',
         }}
       >
         {filteredItems.map(item => {
@@ -638,15 +675,14 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
             <div
               key={item.id}
               style={{
-                width: '275px',
-                height: '475px',
-                minHeight: '475px',
-                maxWidth: '275px',
-                borderRadius: '16px',
-                border: assignedToCurrent ? '2.5px solid #22c55e' : '2px solid rgba(234, 179, 8, 0.75)',
+                width: '430px',
+                maxWidth: '100%',
+                minHeight: '610px',
+                borderRadius: '18px',
+                border: assignedToCurrent ? '3px solid #22c55e' : '2.5px solid rgba(234, 179, 8, 0.8)',
                 boxShadow: assignedToCurrent
-                  ? '0 12px 30px rgba(34, 197, 94, 0.3), 0 0 16px rgba(34, 197, 94, 0.4)'
-                  : '0 12px 30px rgba(0,0,0,0.65), 0 0 16px rgba(234, 179, 8, 0.25)',
+                  ? '0 12px 30px rgba(34, 197, 94, 0.35), 0 0 18px rgba(34, 197, 94, 0.4)'
+                  : '0 12px 30px rgba(0,0,0,0.7), 0 0 18px rgba(234, 179, 8, 0.28)',
                 position: 'relative',
                 overflow: 'hidden',
                 background: '#0a1020',
@@ -667,99 +703,68 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                       height: '100%',
                       objectFit: 'cover',
                       objectPosition: 'center',
-                      filter: 'brightness(0.92) contrast(1.05)',
+                      filter: 'brightness(0.88) contrast(1.06)',
                     }}
                   />
                   <div
                     style={{
                       position: 'absolute',
                       inset: 0,
-                      background: 'linear-gradient(180deg, rgba(10, 16, 32, 0.2) 0%, rgba(10, 16, 32, 0.7) 65%, rgba(6, 10, 22, 0.95) 100%)',
+                      background: 'linear-gradient(180deg, rgba(10, 16, 32, 0.25) 0%, rgba(10, 16, 32, 0.72) 55%, rgba(6, 10, 22, 0.96) 100%)',
                     }}
                   />
                 </div>
               ) : null}
 
-              {/* Character Illustration / Standalone cutout */}
-              {item.image && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '25px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: '180px',
-                    height: '210px',
-                    zIndex: 3,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    pointerEvents: 'none',
-                  }}
-                >
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    referrerPolicy="no-referrer"
-                    style={{
-                      maxHeight: '195px',
-                      maxWidth: '100%',
-                      objectFit: 'contain',
-                      filter: 'drop-shadow(0 10px 18px rgba(0,0,0,0.95)) drop-shadow(0 0 8px rgba(250, 204, 21, 0.35))',
-                    }}
-                  />
-                </div>
-              )}
-
               {/* Top Badges */}
               <div
                 style={{
-                  position: 'absolute',
-                  top: '10px',
-                  right: '10px',
-                  left: '10px',
+                  position: 'relative',
+                  padding: '12px 14px 0 14px',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
+                  gap: '8px',
+                  flexWrap: 'wrap',
                   zIndex: 10,
                 }}
               >
                 {/* Category Badge */}
                 <div
                   style={{
-                    background: 'rgba(10, 15, 30, 0.85)',
+                    background: 'rgba(10, 15, 30, 0.9)',
                     color: '#fde047',
-                    border: '1px solid rgba(250, 204, 21, 0.5)',
-                    borderRadius: '8px',
-                    fontSize: '11px',
-                    fontWeight: 'bold',
-                    padding: '3px 8px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.6)',
+                    border: '1.5px solid rgba(250, 204, 21, 0.55)',
+                    borderRadius: '10px',
+                    fontSize: '15px',
+                    fontWeight: '900',
+                    padding: '5px 11px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.65)',
                     backdropFilter: 'blur(4px)',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px',
+                    gap: '6px',
                   }}
                 >
-                  <span>{item.icon}</span>
+                  <span style={{ fontSize: '18px' }}>{item.icon}</span>
                   <span>{isFixer ? 'صيانة وإصلاح' : 'طاقم بحري'}</span>
                 </div>
 
                 {/* Owned Badge */}
                 <div
                   style={{
-                    background: ownedQty > 0 ? 'rgba(79, 70, 229, 0.9)' : 'rgba(30, 41, 59, 0.85)',
+                    background: ownedQty > 0 ? 'rgba(79, 70, 229, 0.92)' : 'rgba(30, 41, 59, 0.9)',
                     color: '#ffffff',
-                    border: ownedQty > 0 ? '1px solid #818cf8' : '1px solid rgba(255,255,255,0.2)',
-                    borderRadius: '8px',
-                    fontSize: '11px',
+                    border: ownedQty > 0 ? '1.5px solid #818cf8' : '1.5px solid rgba(255,255,255,0.25)',
+                    borderRadius: '10px',
+                    fontSize: '15px',
                     fontWeight: '900',
-                    padding: '3px 8px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.6)',
+                    padding: '5px 11px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.65)',
                     backdropFilter: 'blur(4px)',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '3px',
+                    gap: '5px',
                   }}
                   title="العدد الإجمالي المملوك لديك من هذا الطاقم"
                 >
@@ -771,39 +776,65 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                 <div
                   style={{
                     background: item.costType === 'gold'
-                      ? 'rgba(234, 179, 8, 0.95)'
-                      : 'rgba(56, 189, 248, 0.95)',
+                      ? 'rgba(234, 179, 8, 0.96)'
+                      : 'rgba(56, 189, 248, 0.96)',
                     color: item.costType === 'gold' ? '#000000' : '#ffffff',
                     border: item.costType === 'gold'
-                      ? '1px solid #fef08a'
-                      : '1px solid #7dd3fc',
-                    borderRadius: '8px',
-                    fontSize: '11px',
-                    fontWeight: 'bold',
-                    padding: '3px 8px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.6)',
+                      ? '1.5px solid #fef08a'
+                      : '1.5px solid #7dd3fc',
+                    borderRadius: '10px',
+                    fontSize: '15.5px',
+                    fontWeight: '900',
+                    padding: '5px 11px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.65)',
                     backdropFilter: 'blur(4px)',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '3px',
+                    gap: '5px',
                   }}
                 >
-                  <span>{item.costType === 'gold' ? '🪙' : '💎'}</span>
+                  <span style={{ fontSize: '18px' }}>{item.costType === 'gold' ? '🪙' : '💎'}</span>
                   <span>{item.costType === 'gold' ? item.price.toLocaleString() : item.price}</span>
                 </div>
               </div>
 
-              {/* Bottom Semi-Transparent Text & Controls Overlay */}
+              {/* Character Illustration / Standalone cutout */}
+              {item.image && (
+                <div
+                  style={{
+                    position: 'relative',
+                    height: '215px',
+                    zIndex: 3,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '6px 14px',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    referrerPolicy="no-referrer"
+                    style={{
+                      maxHeight: '200px',
+                      maxWidth: '230px',
+                      objectFit: 'contain',
+                      filter: 'drop-shadow(0 10px 18px rgba(0,0,0,0.95)) drop-shadow(0 0 8px rgba(250, 204, 21, 0.35))',
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Bottom Panel (Flow Layout so text & enlarged controls never overlap the character) */}
               <div
                 style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  background: 'linear-gradient(to top, rgba(6, 10, 22, 0.98) 0%, rgba(6, 10, 22, 0.9) 70%, rgba(6, 10, 22, 0.4) 92%, rgba(6, 10, 22, 0) 100%)',
+                  position: 'relative',
+                  marginTop: 'auto',
+                  background: 'linear-gradient(to top, rgba(6, 10, 22, 0.98) 0%, rgba(6, 10, 22, 0.94) 84%, rgba(6, 10, 22, 0.72) 100%)',
                   backdropFilter: 'blur(8px)',
-                  padding: '12px 12px 10px 12px',
-                  borderTop: '1px solid rgba(250, 204, 21, 0.3)',
+                  padding: '14px 16px 16px 16px',
+                  borderTop: '1.5px solid rgba(250, 204, 21, 0.35)',
                   display: 'flex',
                   flexDirection: 'column',
                   textAlign: 'right',
@@ -814,33 +845,31 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                 {/* Title */}
                 <div
                   style={{
-                    fontSize: '16px',
+                    fontSize: '23px',
                     fontWeight: '900',
                     color: '#facc15',
-                    marginBottom: '3px',
+                    marginBottom: '6px',
                     textShadow: '0 2px 4px rgba(0,0,0,0.9)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    gap: '8px',
                   }}
                 >
                   <span>{item.title}</span>
-                  <span style={{ fontSize: '18px' }}>{item.icon}</span>
+                  <span style={{ fontSize: '26px', flexShrink: 0 }}>{item.icon}</span>
                 </div>
 
                 {/* Description */}
                 <div
                   style={{
-                    fontSize: '11px',
-                    color: '#e2e8f0',
-                    lineHeight: '1.35',
-                    marginBottom: '5px',
-                    textShadow: '0 1px 3px rgba(0,0,0,0.8)',
-                    minHeight: '30px',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
+                    fontSize: '16.5px',
+                    color: '#f1f5f9',
+                    fontWeight: '600',
+                    lineHeight: '1.5',
+                    marginBottom: '10px',
+                    textShadow: '0 1px 3px rgba(0,0,0,0.85)',
+                    minHeight: '48px',
                   }}
                 >
                   {item.desc}
@@ -852,22 +881,22 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '3px 8px',
-                    marginBottom: '6px',
-                    background: 'rgba(0, 0, 0, 0.65)',
-                    border: '1px solid rgba(234, 179, 8, 0.35)',
-                    borderRadius: '8px',
+                    padding: '6px 12px',
+                    marginBottom: '10px',
+                    background: 'rgba(0, 0, 0, 0.7)',
+                    border: '1.5px solid rgba(234, 179, 8, 0.4)',
+                    borderRadius: '10px',
                   }}
                 >
-                  <div style={{ display: 'flex', gap: '2px', color: '#fbbf24', fontSize: '11px' }}>
+                  <div style={{ display: 'flex', gap: '3px', color: '#fbbf24', fontSize: '16px' }}>
                     <span>⭐</span>
                     <span>⭐</span>
                     <span>⭐</span>
                     <span>⭐</span>
                     <span>⭐</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10.5px', fontWeight: 'bold' }}>
-                    <span style={{ color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '15.5px', fontWeight: '900' }}>
+                    <span style={{ color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <span>💎</span>
                       <span>نادر</span>
                     </span>
@@ -886,15 +915,15 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                   const selectedCrewQty = tavernCrewMultipliers[item.id] || 1;
                   const totalCrewCost = item.price * selectedCrewQty;
 
-                  // Quantity Controls Component (خانة تحديد الكمية: أضف كم ماتبي 3 أو 4 أو غيرها)
+                  // Quantity Controls Component
                   const quantityBox = (
-                    <div style={{ width: '100%', background: 'rgba(0,0,0,0.45)', padding: '4px 6px', borderRadius: '8px', border: '1px solid rgba(250, 204, 21, 0.4)', marginTop: '3px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10.5px', color: '#fef08a', marginBottom: '3px', fontWeight: 'bold' }}>
+                    <div style={{ width: '100%', background: 'rgba(0,0,0,0.52)', padding: '10px 12px', borderRadius: '10px', border: '1.5px solid rgba(250, 204, 21, 0.45)', marginTop: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '15.5px', color: '#fef08a', marginBottom: '8px', fontWeight: '900' }}>
                         <span>🔢 خانة الكمية (كم ماتبي):</span>
                         <span style={{ color: '#facc15', fontWeight: '900' }}>{selectedCrewQty}x فرد</span>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginBottom: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
                         <button
                           type="button"
                           onClick={(e) => {
@@ -903,15 +932,18 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                             setTavernCrewMultipliers(prev => ({ ...prev, [item.id]: next }));
                           }}
                           style={{
-                            width: '24px',
-                            height: '22px',
-                            borderRadius: '4px',
-                            border: '1px solid rgba(255,255,255,0.3)',
-                            background: 'rgba(239, 68, 68, 0.5)',
+                            width: '40px',
+                            height: '36px',
+                            borderRadius: '7px',
+                            border: '1.5px solid rgba(255,255,255,0.35)',
+                            background: 'rgba(239, 68, 68, 0.7)',
                             color: '#ffffff',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer'
+                            fontSize: '22px',
+                            fontWeight: '900',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                           }}
                         >
                           -
@@ -929,16 +961,16 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                             setTavernCrewMultipliers(prev => ({ ...prev, [item.id]: next }));
                           }}
                           style={{
-                            width: '58px',
-                            height: '22px',
-                            borderRadius: '4px',
-                            border: '1.5px solid #facc15',
+                            width: '84px',
+                            height: '36px',
+                            borderRadius: '7px',
+                            border: '2px solid #facc15',
                             background: '#090d16',
                             color: '#facc15',
                             textAlign: 'center',
-                            fontSize: '12px',
+                            fontSize: '19px',
                             fontWeight: '900',
-                            padding: '0 2px'
+                            padding: '0 4px'
                           }}
                           title="أدخل أي كمية تريدها"
                         />
@@ -951,15 +983,18 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                             setTavernCrewMultipliers(prev => ({ ...prev, [item.id]: next }));
                           }}
                           style={{
-                            width: '24px',
-                            height: '22px',
-                            borderRadius: '4px',
-                            border: '1px solid rgba(255,255,255,0.3)',
-                            background: 'rgba(34, 197, 94, 0.5)',
+                            width: '40px',
+                            height: '36px',
+                            borderRadius: '7px',
+                            border: '1.5px solid rgba(255,255,255,0.35)',
+                            background: 'rgba(34, 197, 94, 0.7)',
                             color: '#ffffff',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer'
+                            fontSize: '22px',
+                            fontWeight: '900',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                           }}
                         >
                           +
@@ -967,7 +1002,7 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                       </div>
 
                       {/* Presets: 1, 3, 4, 5, 10, 50 */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
                         {[1, 3, 4, 5, 10, 50].map(multiplier => {
                           const isSelected = selectedCrewQty === multiplier;
                           return (
@@ -979,13 +1014,13 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                                 setTavernCrewMultipliers(prev => ({ ...prev, [item.id]: multiplier }));
                               }}
                               style={{
-                                fontSize: '10px',
-                                fontWeight: 'bold',
-                                padding: '1px 5px',
-                                borderRadius: '4px',
-                                border: isSelected ? '1.5px solid #facc15' : '1px solid rgba(255, 255, 255, 0.2)',
-                                background: isSelected ? 'linear-gradient(to bottom, #ca8a04, #854d0e)' : 'rgba(0, 0, 0, 0.5)',
-                                color: isSelected ? '#ffffff' : '#d1d5db',
+                                fontSize: '14.5px',
+                                fontWeight: '900',
+                                padding: '5px 10px',
+                                borderRadius: '6px',
+                                border: isSelected ? '2px solid #facc15' : '1.5px solid rgba(255, 255, 255, 0.25)',
+                                background: isSelected ? 'linear-gradient(to bottom, #ca8a04, #854d0e)' : 'rgba(0, 0, 0, 0.55)',
+                                color: isSelected ? '#ffffff' : '#e2e8f0',
                                 cursor: 'pointer',
                               }}
                             >
@@ -1008,24 +1043,24 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                           ? 'linear-gradient(to bottom, #f59e0b, #d97706)'
                           : 'linear-gradient(to bottom, #0284c7, #0369a1)',
                         color: '#fff',
-                        border: item.costType === 'gold' ? '1px solid #fde68a' : '1px solid #bae6fd',
-                        borderRadius: '8px',
-                        padding: '6px 0',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
+                        border: item.costType === 'gold' ? '2px solid #fde68a' : '2px solid #bae6fd',
+                        borderRadius: '10px',
+                        padding: '12px 14px',
+                        fontSize: '18.5px',
+                        fontWeight: '900',
                         cursor: 'pointer',
                         boxShadow: item.costType === 'gold'
-                          ? '0 4px 12px rgba(245, 158, 11, 0.4)'
-                          : '0 4px 12px rgba(2, 132, 199, 0.4)',
+                          ? '0 4px 14px rgba(245, 158, 11, 0.45)'
+                          : '0 4px 14px rgba(2, 132, 199, 0.45)',
                         transition: 'all 0.2s ease',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '5px',
+                        gap: '8px',
                       }}
                     >
                       <span>🛒 {btnText} ({selectedCrewQty}x)</span>
-                      <span>{item.costType === 'gold' ? '🪙' : '💎'}</span>
+                      <span style={{ fontSize: '20px' }}>{item.costType === 'gold' ? '🪙' : '💎'}</span>
                       <span>{item.costType === 'gold' ? totalCrewCost.toLocaleString() : totalCrewCost}</span>
                     </button>
                   );
@@ -1034,26 +1069,27 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                     if (isGHAssignedAny) {
                       const isPaused = currentShip?.autoFishingPaused;
                       return (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                           {/* Fleet Status Badge */}
                           <div
                             style={{
-                              background: 'rgba(22, 163, 74, 0.25)',
+                              background: 'rgba(22, 163, 74, 0.28)',
                               color: '#4ade80',
-                              border: '1px solid #16a34a',
-                              borderRadius: '8px',
-                              padding: '4px 6px',
-                              fontSize: '10.5px',
-                              fontWeight: 'bold',
+                              border: '1.5px solid #16a34a',
+                              borderRadius: '10px',
+                              padding: '8px 10px',
+                              fontSize: '15.5px',
+                              fontWeight: '900',
                               textAlign: 'center',
-                              boxShadow: '0 0 10px rgba(34, 197, 94, 0.2)',
+                              boxShadow: '0 0 10px rgba(34, 197, 94, 0.25)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'space-between',
+                              gap: '6px',
                             }}
                           >
                             <span>🔱 {isGHAssignedAll ? 'مُعيّن على كامل الأسطول' : `مُعيّن على (${ghAssignedCount}/${existingShips.length}) سفن`}</span>
-                            <span style={{ fontSize: '9.5px', color: '#fef08a' }}>24/7 صيد</span>
+                            <span style={{ fontSize: '14px', color: '#fef08a', whiteSpace: 'nowrap' }}>24/7 صيد</span>
                           </div>
 
                           {/* Pause / Resume Button */}
@@ -1073,27 +1109,27 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                             }}
                             style={{
                               width: '100%',
-                              padding: '4px 0',
-                              borderRadius: '6px',
-                              fontSize: '10.5px',
-                              fontWeight: 'bold',
+                              padding: '10px 12px',
+                              borderRadius: '9px',
+                              fontSize: '16.5px',
+                              fontWeight: '900',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: '4px',
+                              gap: '6px',
                               background: isPaused
                                 ? 'linear-gradient(135deg, #059669 0%, #047857 100%)'
                                 : 'linear-gradient(135deg, #b45309 0%, #78350f 100%)',
                               color: '#ffffff',
-                              border: isPaused ? '1px solid #34d399' : '1px solid #facc15',
+                              border: isPaused ? '1.5px solid #34d399' : '1.5px solid #facc15',
                             }}
                           >
                             <span>{isPaused ? '▶️ تشغيل الصيد التلقائي' : '⏸️ إيقاف مؤقت'}</span>
                           </button>
 
                           {/* Action Row: Cancel Everywhere + Assign to All */}
-                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                             <button
                               onClick={() => {
                                 handleUnassignAll(item.id);
@@ -1101,13 +1137,13 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                               }}
                               style={{
                                 flex: 1,
-                                background: 'rgba(239, 68, 68, 0.25)',
-                                color: '#fca5a5',
-                                border: '1px solid #ef4444',
-                                borderRadius: '6px',
-                                padding: '3px 4px',
-                                fontSize: '10px',
-                                fontWeight: 'bold',
+                                background: 'rgba(239, 68, 68, 0.28)',
+                                color: '#fecaca',
+                                border: '1.5px solid #ef4444',
+                                borderRadius: '9px',
+                                padding: '8px 10px',
+                                fontSize: '15px',
+                                fontWeight: '900',
                                 cursor: 'pointer',
                               }}
                             >
@@ -1121,13 +1157,13 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                                   alert(`🗑️ تم إلغاء تعيين الصياد الذهبي من [${currentShip?.name}] بنجاح!`);
                                 }}
                                 style={{
-                                  background: 'rgba(239, 68, 68, 0.2)',
-                                  color: '#fca5a5',
-                                  border: '1px solid #ef4444',
-                                  borderRadius: '6px',
-                                  padding: '3px 6px',
-                                  fontSize: '10px',
-                                  fontWeight: 'bold',
+                                  background: 'rgba(239, 68, 68, 0.24)',
+                                  color: '#fecaca',
+                                  border: '1.5px solid #ef4444',
+                                  borderRadius: '9px',
+                                  padding: '8px 10px',
+                                  fontSize: '15px',
+                                  fontWeight: '900',
                                   cursor: 'pointer',
                                 }}
                               >
@@ -1145,11 +1181,11 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                                   flex: 1,
                                   background: 'linear-gradient(135deg, #ca8a04 0%, #854d0e 100%)',
                                   color: '#ffffff',
-                                  border: '1px solid #facc15',
-                                  borderRadius: '6px',
-                                  padding: '3px 4px',
-                                  fontSize: '10px',
-                                  fontWeight: 'bold',
+                                  border: '1.5px solid #facc15',
+                                  borderRadius: '9px',
+                                  padding: '8px 10px',
+                                  fontSize: '15px',
+                                  fontWeight: '900',
                                   cursor: 'pointer',
                                 }}
                               >
@@ -1165,7 +1201,7 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                       );
                     } else {
                       return (
-                        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                           {quantityBox}
                           {buyBtn('توظيف وتعيين')}
                         </div>
@@ -1176,20 +1212,23 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                   // Non-Golden Hunter crew and fixers
                   if (assignedToCurrent) {
                     return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <div style={{ display: 'flex', gap: '6px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
                           <div
                             style={{
                               flex: 1,
-                              background: 'rgba(22, 163, 74, 0.25)',
+                              background: 'rgba(22, 163, 74, 0.28)',
                               color: '#4ade80',
-                              border: '1px solid #16a34a',
-                              borderRadius: '8px',
-                              padding: '5px 0',
-                              fontSize: '11px',
-                              fontWeight: 'bold',
+                              border: '1.5px solid #16a34a',
+                              borderRadius: '10px',
+                              padding: '9px 10px',
+                              fontSize: '16px',
+                              fontWeight: '900',
                               textAlign: 'center',
-                              boxShadow: '0 0 10px rgba(34, 197, 94, 0.2)',
+                              boxShadow: '0 0 10px rgba(34, 197, 94, 0.25)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
                             }}
                           >
                             ✔️ مُعيّن على {currentShip?.name}
@@ -1201,17 +1240,17 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                             }}
                             title="إلغاء تعيين هذا الطاقم"
                             style={{
-                              background: 'rgba(239, 68, 68, 0.3)',
-                              color: '#fca5a5',
-                              border: '1px solid #ef4444',
-                              borderRadius: '8px',
-                              padding: '0 10px',
-                              fontSize: '11px',
-                              fontWeight: 'bold',
+                              background: 'rgba(239, 68, 68, 0.34)',
+                              color: '#fecaca',
+                              border: '1.5px solid #ef4444',
+                              borderRadius: '10px',
+                              padding: '9px 14px',
+                              fontSize: '16px',
+                              fontWeight: '900',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '4px'
+                              gap: '6px'
                             }}
                           >
                             <span>إلغاء</span>
@@ -1221,12 +1260,12 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
 
                         {/* Guide Expected Fish Selector */}
                         {item.id === 'guide' && currentShip && (
-                          <div style={{ background: 'rgba(2, 132, 199, 0.2)', border: '1px solid #38bdf8', borderRadius: '8px', padding: '4px 6px' }}>
-                            <div style={{ fontSize: '10px', color: '#7dd3fc', fontWeight: 'bold', marginBottom: '3px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ background: 'rgba(2, 132, 199, 0.24)', border: '1.5px solid #38bdf8', borderRadius: '10px', padding: '8px 10px' }}>
+                            <div style={{ fontSize: '15.5px', color: '#bae6fd', fontWeight: '900', marginBottom: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               <span>🧭 السمك المتوقع:</span>
                               <span style={{ color: '#fef08a' }}>{currentShip.expectedFish || (currentShip.fishTypes && currentShip.fishTypes[currentShip.fishTypes.length - 1]) || 'السردين'} 🐟</span>
                             </div>
-                            <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                               {(currentShip.fishTypes && currentShip.fishTypes.length > 0 ? currentShip.fishTypes : ['السردين']).map((fName, fIdx) => {
                                 const isSel = (currentShip.expectedFish || currentShip.fishTypes?.[currentShip.fishTypes.length - 1]) === fName;
                                 return (
@@ -1238,14 +1277,14 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                                       handleSelectExpectedFish(currentShip.id, fName);
                                     }}
                                     style={{
-                                      padding: '2px 5px',
-                                      borderRadius: '4px',
-                                      fontSize: '9.5px',
-                                      fontWeight: 'bold',
+                                      padding: '5px 10px',
+                                      borderRadius: '7px',
+                                      fontSize: '14.5px',
+                                      fontWeight: '900',
                                       cursor: 'pointer',
-                                      border: isSel ? '1.5px solid #facc15' : '1px solid rgba(56, 189, 248, 0.4)',
-                                      background: isSel ? 'linear-gradient(135deg, #ca8a04, #854d0e)' : 'rgba(15, 23, 42, 0.8)',
-                                      color: isSel ? '#ffffff' : '#93c5fd',
+                                      border: isSel ? '2px solid #facc15' : '1.5px solid rgba(56, 189, 248, 0.45)',
+                                      background: isSel ? 'linear-gradient(135deg, #ca8a04, #854d0e)' : 'rgba(15, 23, 42, 0.85)',
+                                      color: isSel ? '#ffffff' : '#bae6fd',
                                     }}
                                   >
                                     {isSel ? '🎯 ' : ''}{fName}
@@ -1264,9 +1303,9 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                   }
 
                   return (
-                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {quantityBox}
-                      {buyBtn(isFixer ? 'توظيف وتعيين' : 'توظيف وتعيين')}
+                      {buyBtn('توظيف وتعيين')}
                     </div>
                   );
                 })()}

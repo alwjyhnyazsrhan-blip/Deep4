@@ -923,6 +923,7 @@ const CrimsonLeaveAllianceIcon: React.FC = () => (
     <circle cx="11" cy="18" r="2" fill="#78350f" />
   </svg>
 );
+
 interface TribeViewProps {
   onClose: () => void;
   tribeId: string;
@@ -995,7 +996,28 @@ export default function TribeView({
     }
   });
   const [tribeMessageInput, setTribeMessageInput] = useState('');
-  const [tribeAnnouncements, setTribeAnnouncements] = useState<Array<{ id: string; sender: string; text: string; time: string }>>([]);
+  const [isChatInputFocused, setIsChatInputFocused] = useState(false);
+  const [tribeAnnouncements, setTribeAnnouncements] = useState<Array<{ id: string; sender: string; text: string; time: string }>>(() => {
+    try {
+      const key = tribeId ? `pirate_tribe_chat_${tribeId}` : '';
+      return key ? JSON.parse(localStorage.getItem(key) || '[]') : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    if (!tribeId) {
+      setTribeAnnouncements([]);
+      return;
+    }
+    try {
+      const saved = JSON.parse(localStorage.getItem(`pirate_tribe_chat_${tribeId}`) || '[]');
+      if (Array.isArray(saved)) setTribeAnnouncements(saved);
+    } catch {
+      setTribeAnnouncements([]);
+    }
+  }, [tribeId]);
 
   // Sync initial screen if membership state changes externally
   useEffect(() => {
@@ -3018,102 +3040,181 @@ export default function TribeView({
               </div>
             )}
 
-            {/* Sub-Tab 3: رسالة */}
-            {manageTab === 'message' && (
-              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Sub-Tab 3: شات القبيلة */}
+            {manageTab === 'message' && (() => {
+              const handleSendTribeChat = () => {
+                const msg = tribeMessageInput.trim();
+                if (!msg) return;
+                const entry = {
+                  id: String(Date.now()),
+                  sender: username || 'القبطان',
+                  text: msg,
+                  time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+                };
+                setTribeAnnouncements((prev) => {
+                  const next = [entry, ...prev];
+                  try {
+                    if (currentTribe?.id) {
+                      localStorage.setItem(`pirate_tribe_chat_${currentTribe.id}`, JSON.stringify(next));
+                    }
+                  } catch {}
+                  return next;
+                });
+                setTribeMessageInput('');
+                if (sendChatMessage) {
+                  sendChatMessage(`قبيلة [${currentTribe.name}]`, currentTribe.emblem || '👑', `@${username}: ${msg}`);
+                }
+                if (showToast) showToast('📣 تم إرسال رسالة القبيلة بنجاح!', 'success');
+              };
+
+              return (
                 <div
                   style={{
-                    padding: '20px',
-                    borderRadius: '12px',
-                    background: 'linear-gradient(180deg, #1d2430 0%, #11161f 100%)',
-                    border: '2.5px solid #967245',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '14px',
+                    position: 'relative',
+                    width: '100%',
+                    aspectRatio: '941 / 1311',
+                    borderRadius: '10px',
+                    overflow: 'hidden',
+                    boxShadow: '0 14px 32px rgba(0, 0, 0, 0.85)',
+                    userSelect: 'none',
                   }}
                 >
-                  <label style={{ fontSize: '25px', fontWeight: '900', color: '#f2d382' }}>
-                    إرسال رسالة لأعضاء القبيلة:
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="اكتب رسالتك هنا..."
-                    value={tribeMessageInput}
-                    onChange={(e) => setTribeMessageInput(e.target.value)}
+                  <img
+                    src="/assets/aistudio/IMG-20261126-WA0032_a204d19c.jpg"
+                    alt="شات القبيلة"
+                    draggable={false}
                     style={{
                       width: '100%',
-                      padding: '14px 16px',
-                      borderRadius: '10px',
-                      border: '2px solid #8a6b41',
-                      background: '#0b0e14',
-                      color: '#ffffff',
-                      fontFamily: 'inherit',
-                      fontSize: '23px',
-                      fontWeight: '700',
-                      boxSizing: 'border-box',
-                      resize: 'none',
-                      outline: 'none',
+                      height: '100%',
+                      objectFit: 'cover',
+                      display: 'block',
+                      pointerEvents: 'none',
                     }}
                   />
+
+                  {/* Scrollable Messages Overlay Inside the Parchment Scroll (only shown when messages exist) */}
+                  {tribeAnnouncements.length > 0 && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '16.5%',
+                        left: '15.5%',
+                        right: '18.5%',
+                        height: '17.2%',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        background:
+                          'radial-gradient(ellipse at 50% 50%, #f1d399 72%, #e3bc77 92%, rgba(227, 188, 119, 0.96) 100%)',
+                        boxShadow: 'inset 0 0 18px rgba(120, 70, 16, 0.25)',
+                        overflowY: 'auto',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                        boxSizing: 'border-box',
+                        zIndex: 3,
+                      }}
+                    >
+                      {tribeAnnouncements.map((item) => (
+                        <div
+                          key={item.id}
+                          style={{
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            background: 'rgba(255, 249, 232, 0.68)',
+                            border: '1.5px solid rgba(138, 90, 25, 0.38)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '2px',
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              fontSize: 'clamp(12px, 2vw, 17px)',
+                              fontWeight: '900',
+                              color: '#6b3f0e',
+                            }}
+                          >
+                            <span>@{item.sender}</span>
+                            <span style={{ fontVariantNumeric: 'tabular-nums' }}>{item.time}</span>
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 'clamp(14px, 2.5vw, 21px)',
+                              fontWeight: '800',
+                              color: '#1e1206',
+                              lineHeight: 1.35,
+                              wordBreak: 'break-word',
+                            }}
+                          >
+                            {item.text}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Interactive Message Input Field Aligned Over the Bottom Dark Box */}
+                  <input
+                    type="text"
+                    dir="rtl"
+                    aria-label="اكتب رسالة"
+                    value={tribeMessageInput}
+                    onChange={(e) => setTribeMessageInput(e.target.value)}
+                    onFocus={() => setIsChatInputFocused(true)}
+                    onBlur={() => setIsChatInputFocused(false)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSendTribeChat();
+                      }
+                    }}
+                    style={{
+                      position: 'absolute',
+                      left: '28.6%',
+                      top: '85.3%',
+                      width: '58.4%',
+                      height: '8.2%',
+                      padding: '0 12px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: isChatInputFocused || tribeMessageInput.length > 0 ? '#14181e' : 'transparent',
+                      color: '#ffffff',
+                      textAlign: 'right',
+                      fontFamily: 'inherit',
+                      fontSize: 'clamp(15px, 2.7vw, 24px)',
+                      fontWeight: '800',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                      zIndex: 4,
+                    }}
+                  />
+
+                  {/* Interactive Send Button Aligned Over the Bottom-Left Gold إرسال Button */}
                   <button
                     type="button"
-                    onClick={() => {
-                      const msg = tribeMessageInput.trim();
-                      if (!msg) return;
-                      const entry = {
-                        id: String(Date.now()),
-                        sender: username || 'القبطان',
-                        text: msg,
-                        time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
-                      };
-                      setTribeAnnouncements((prev) => [entry, ...prev]);
-                      setTribeMessageInput('');
-                      if (sendChatMessage) {
-                        sendChatMessage(`قبيلة [${currentTribe.name}]`, currentTribe.emblem || '⚔️', `@${username}: ${msg}`);
-                      }
-                      if (showToast) showToast('📣 تم إرسال رسالة القبيلة بنجاح!', 'success');
-                    }}
+                    aria-label="إرسال"
+                    onClick={handleSendTribeChat}
                     style={{
-                      height: '68px',
+                      position: 'absolute',
+                      left: '3.4%',
+                      top: '85.1%',
+                      width: '23.4%',
+                      height: '8.6%',
                       borderRadius: '10px',
-                      border: '2.5px solid #86efac',
-                      background: 'linear-gradient(180deg, #439b31 0%, #195f0f 100%)',
-                      color: '#ffffff',
-                      fontFamily: 'inherit',
-                      fontSize: '25px',
-                      fontWeight: '900',
+                      border: 'none',
+                      background: 'transparent',
                       cursor: 'pointer',
+                      zIndex: 5,
                     }}
-                  >
-                    إرسال الرسالة
-                  </button>
+                  />
                 </div>
+              );
+            })()}
 
-                {tribeAnnouncements.map((item) => (
-                  <div
-                    key={item.id}
-                    style={{
-                      padding: '16px 20px',
-                      borderRadius: '10px',
-                      background: 'rgba(20, 24, 33, 0.92)',
-                      border: '2px solid #7f613b',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '6px',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '19px', color: '#f2d382', fontWeight: '800' }}>
-                      <span>@{item.sender}</span>
-                      <span>{item.time}</span>
-                    </div>
-                    <div style={{ fontSize: '23px', color: '#f8fafc', fontWeight: '700' }}>{item.text}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-
-              {manageTab !== 'members' && (
+              {manageTab === 'info' && (
                 <>
                   {/* Horizontal Gold Diamond Divider Line */}
                   <div

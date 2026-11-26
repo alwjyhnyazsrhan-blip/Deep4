@@ -16088,21 +16088,47 @@ export default function App() {
                 className="w-full h-full object-fill block pointer-events-none"
               />
 
-              {/* 1. الذهاب للصيد / جمع / إنهاء */}
+              {/* 1. الذهاب للصيد / إرجاع الصيد */}
               <button
                 type="button"
-                aria-label="الذهاب للصيد"
+                aria-label={shipStatus !== 'docked' ? 'إرجاع الصيد' : 'الذهاب للصيد'}
                 onClick={handleFishingAction}
                 className="absolute cursor-pointer bg-transparent hover:bg-cyan-300/10 active:bg-cyan-300/20 active:scale-[0.985] transition-all rounded-xl"
                 style={{ top: '15.5%', height: '17.5%', left: '18%', width: '64%' }}
               >
+                {shipStatus !== 'docked' && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '19%',
+                      bottom: '19%',
+                      left: '26.5%',
+                      right: '25.5%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'linear-gradient(180deg, #1b3f4b 0%, #14323d 52%, #0e252e 100%)',
+                      boxShadow: '0 0 8px 4px #14323d',
+                      borderRadius: '6px',
+                      color: isReadyToCollect ? '#fef08a' : '#eaf4f7',
+                      fontSize: 'clamp(19px, 5.8vw, 25px)',
+                      fontWeight: '900',
+                      fontFamily: 'Cairo, sans-serif',
+                      textShadow: '0 2px 5px rgba(0,0,0,0.95), 0 0 10px rgba(56,189,248,0.35)',
+                      whiteSpace: 'nowrap',
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    إرجاع الصيد
+                  </span>
+                )}
                 {isReadyToCollect && (
-                  <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-emerald-600 border border-emerald-300 text-white text-[11px] font-black shadow-md whitespace-nowrap">
+                  <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-emerald-600 border border-emerald-300 text-white text-[11px] font-black shadow-md whitespace-nowrap z-10">
                     🪣 جاهز للجمع ✅
                   </span>
                 )}
                 {isFishingActive && timerState && (
-                  <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-sky-900/95 border border-sky-300 text-sky-100 text-[11px] font-black shadow-md whitespace-nowrap">
+                  <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-sky-900/95 border border-sky-300 text-sky-100 text-[11px] font-black shadow-md whitespace-nowrap z-10">
                     ⏳ {formatFishingCountdown(timerState.remainingMs)} • ⚡💎 {gemCost}
                   </span>
                 )}

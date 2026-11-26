@@ -945,7 +945,7 @@ interface TribeViewProps {
 }
 
 type TribeScreenMode = 'menu' | 'create' | 'join' | 'invitations' | 'manage' | 'donations' | 'levels';
-type TribeManageTab = 'info' | 'members' | 'message' | 'private';
+type TribeManageTab = 'info' | 'members' | 'message';
 
 export default function TribeView({
   onClose,
@@ -2212,11 +2212,9 @@ export default function TribeView({
                 }}
               >
                 {manageTab === 'members'
-                  ? 'أعضاء القبيلة'
+                  ? 'تحالف الاعضاء'
                   : manageTab === 'message'
-                  ? 'رسالة القبيلة'
-                  : manageTab === 'private'
-                  ? 'ملكية خاصة'
+                  ? 'شات القبيلة'
                   : 'بيانات ملوك الأعماق'}
               </h1>
               <GoldenAnchorBadge />
@@ -2240,17 +2238,16 @@ export default function TribeView({
                 style={{
                   width: '100%',
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-                  gap: '8px',
+                  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                  gap: '10px',
                   boxSizing: 'border-box',
                 }}
               >
                 {(
                   [
                     { id: 'info', label: 'بيانات ملوك الأعماق' },
-                    { id: 'members', label: 'أعضاء' },
-                    { id: 'message', label: 'رسالة' },
-                    { id: 'private', label: 'ملكية خاصة' },
+                    { id: 'members', label: 'تحالف الاعضاء' },
+                    { id: 'message', label: 'شات القبيلة' },
                   ] as Array<{ id: TribeManageTab; label: string }>
                 ).map((tab) => {
                   const isActive = manageTab === tab.id;
@@ -3115,63 +3112,6 @@ export default function TribeView({
               </div>
             )}
 
-            {/* Sub-Tab 5: ملكية خاصة */}
-            {manageTab === 'private' && (
-              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div
-                  style={{
-                    padding: '18px 22px',
-                    borderRadius: '12px',
-                    background: 'linear-gradient(180deg, #ecd8b4 0%, #cfa971 100%)',
-                    border: '2.5px solid #967245',
-                    color: '#2b1c0c',
-                    fontSize: '24px',
-                    fontWeight: '900',
-                    textAlign: 'center',
-                  }}
-                >
-                  المستوى الحالي: {currentTribeLevel} • الحد الأقصى للأعضاء: {currentTribeMaxMembers} • الإضافة اليومية: {totalDailyAddition} نقطة
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setScreenMode('levels')}
-                  style={{
-                    width: '100%',
-                    height: '78px',
-                    borderRadius: '10px',
-                    border: '2.5px solid #f59e0b',
-                    background: 'linear-gradient(180deg, #b45309 0%, #78350f 100%)',
-                    color: '#fef08a',
-                    fontFamily: 'inherit',
-                    fontSize: '26px',
-                    fontWeight: '900',
-                    cursor: 'pointer',
-                  }}
-                >
-                  استعراض جميع مستويات القبيلة ({TRIBE_DEPTHS.length})
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setScreenMode('join')}
-                  style={{
-                    width: '100%',
-                    height: '74px',
-                    borderRadius: '10px',
-                    border: '2.5px solid #7fb7e6',
-                    background: 'linear-gradient(180deg, #2b6ea3 0%, #103252 100%)',
-                    color: '#ffffff',
-                    fontFamily: 'inherit',
-                    fontSize: '25px',
-                    fontWeight: '900',
-                    cursor: 'pointer',
-                  }}
-                >
-                  استعراض قائمة القبائل
-                </button>
-              </div>
-            )}
 
               {manageTab !== 'members' && (
                 <>

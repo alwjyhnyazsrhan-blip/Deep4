@@ -4494,6 +4494,13 @@ export default function App() {
             gems: typeof data.gems === 'number' ? data.gems : 0,
             redGems: typeof data.redGems === 'number' ? data.redGems : 0,
             exp: typeof data.exp === 'number' ? data.exp : 0,
+            tribeDonations:
+              typeof data.tribeDonations === 'number'
+                ? data.tribeDonations
+                : typeof data.donations === 'number'
+                ? data.donations
+                : 0,
+            photoURL: typeof data.photoURL === 'string' ? data.photoURL : '',
             boomPoints: typeof data.boomPoints === 'number' ? data.boomPoints : undefined,
             country: data.country || undefined,
             ships: data.ships || [],
@@ -16316,30 +16323,32 @@ export default function App() {
         const fishList = detailShip.fishTypes && detailShip.fishTypes.length > 0 ? detailShip.fishTypes : (shipSpec?.fishTypes || ['سردين']);
         const hasGH = Boolean(detailShip.assignedCrew?.some(c => c === 'golden_hunter' || c === 'gold_fisher'));
         const hasGuide = Boolean(detailShip.assignedCrew?.includes('guide'));
-        const timerState = getShipFishingTimerState(detailShip, timerNow);
+        const isSellFullWidth = hasGuide === hasGH;
 
         return (
           <div
-            className="fixed inset-0 z-[140] flex items-center justify-center bg-black/75 backdrop-blur-sm p-3 sm:p-5 overflow-y-auto"
+            className="fixed inset-0 z-[140] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 sm:p-6 overflow-y-auto"
             dir="rtl"
             onClick={(e) => {
               if (e.target === e.currentTarget) setShipDetailsModalShipId(null);
             }}
           >
             <div
-              className="w-full max-w-[500px] my-auto rounded-2xl border-2 border-cyan-500/70 bg-[#071324] text-white shadow-2xl overflow-hidden"
+              className="w-full max-w-[760px] my-auto rounded-3xl border-2 border-cyan-400/80 bg-[#071324] text-white shadow-2xl overflow-hidden"
               style={{
                 background: 'linear-gradient(180deg, #0b1c33 0%, #050c18 100%)',
-                boxShadow: '0 24px 60px rgba(0,0,0,0.9), 0 0 30px rgba(6,182,212,0.28)',
+                boxShadow: '0 24px 60px rgba(0,0,0,0.92), 0 0 36px rgba(6,182,212,0.32)',
               }}
             >
               {/* Header */}
-              <div className="flex items-center justify-between px-5 py-3.5 border-b border-cyan-500/30 bg-[#0a192e]">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-2xl">⚓</span>
+              <div className="flex items-center justify-between px-6 sm:px-7 py-4 sm:py-5 border-b border-cyan-500/35 bg-[#0a192e]">
+                <div className="flex items-center gap-3.5">
+                  <span className="text-4xl">⚓</span>
                   <div>
-                    <h3 className="text-lg font-black text-cyan-200">{detailShip.name}</h3>
-                    <div className="text-xs font-bold text-amber-300">
+                    <h3 className="text-[28px] sm:text-[32px] leading-tight font-black text-cyan-100 drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
+                      {detailShip.name}
+                    </h3>
+                    <div className="text-[19px] sm:text-[21px] font-extrabold text-amber-300 mt-0.5">
                       {shipLvl >= 32
                         ? `غواصة الأعماق (${getSubmarineDisplayTier(shipLvl)})`
                         : `المستوى ${shipLvl}`}
@@ -16349,40 +16358,40 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setShipDetailsModalShipId(null)}
-                  className="w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-600 flex items-center justify-center text-white font-bold cursor-pointer"
+                  className="w-12 h-12 rounded-full bg-slate-800 hover:bg-slate-700 border-2 border-slate-500 flex items-center justify-center text-white text-2xl font-black cursor-pointer transition-colors"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="p-4 sm:p-5 space-y-4">
+              <div className="p-5 sm:p-6 space-y-5">
                 {/* Ship Preview + Key Stats */}
-                <div className="flex flex-col sm:flex-row items-center gap-4 bg-[#06101e] border border-cyan-800/60 rounded-2xl p-3.5">
+                <div className="flex flex-col sm:flex-row items-center gap-5 bg-[#06101e] border border-cyan-700/70 rounded-2xl p-4 sm:p-5">
                   <div className="shrink-0">
-                    <ShipImage level={shipLvl} width={145} plain />
+                    <ShipImage level={shipLvl} width={205} plain />
                   </div>
-                  <div className="flex-1 w-full grid grid-cols-2 gap-2 text-xs">
-                    <div className="bg-[#0b182c] border border-slate-700/70 rounded-xl p-2 text-center">
-                      <div className="text-slate-400 font-bold">السعة</div>
-                      <div className="text-sky-300 font-black text-sm mt-0.5 tabular-nums">
+                  <div className="flex-1 w-full grid grid-cols-2 gap-3.5">
+                    <div className="bg-[#0b182c] border border-slate-600/80 rounded-2xl p-3.5 text-center">
+                      <div className="text-slate-200 font-extrabold text-[19px] sm:text-[20px]">السعة</div>
+                      <div className="text-sky-300 font-black text-[24px] sm:text-[26px] mt-1 tabular-nums whitespace-nowrap">
                         {(detailShip.cargo || shipSpec?.cargo || 2000).toLocaleString('en-US')}
                       </div>
                     </div>
-                    <div className="bg-[#0b182c] border border-slate-700/70 rounded-xl p-2 text-center">
-                      <div className="text-slate-400 font-bold">الطاقة</div>
-                      <div className="text-emerald-300 font-black text-sm mt-0.5 tabular-nums">
+                    <div className="bg-[#0b182c] border border-slate-600/80 rounded-2xl p-3.5 text-center">
+                      <div className="text-slate-200 font-extrabold text-[19px] sm:text-[20px]">الطاقة</div>
+                      <div dir="ltr" className="text-emerald-300 font-black text-[23px] sm:text-[25px] mt-1 tabular-nums whitespace-nowrap">
                         {curH.toLocaleString('en-US')} / {maxH.toLocaleString('en-US')}
                       </div>
                     </div>
-                    <div className="bg-[#0b182c] border border-slate-700/70 rounded-xl p-2 text-center">
-                      <div className="text-slate-400 font-bold">قوة الصيد</div>
-                      <div className="text-amber-300 font-black text-sm mt-0.5 tabular-nums">
+                    <div className="bg-[#0b182c] border border-slate-600/80 rounded-2xl p-3.5 text-center">
+                      <div className="text-slate-200 font-extrabold text-[19px] sm:text-[20px]">قوة الصيد</div>
+                      <div className="text-amber-300 font-black text-[24px] sm:text-[26px] mt-1 tabular-nums whitespace-nowrap">
                         {(detailShip.hook || shipSpec?.hook || 25).toLocaleString('en-US')}
                       </div>
                     </div>
-                    <div className="bg-[#0b182c] border border-slate-700/70 rounded-xl p-2 text-center">
-                      <div className="text-slate-400 font-bold">مدة الرحلة</div>
-                      <div className="text-cyan-200 font-black text-sm mt-0.5">
+                    <div className="bg-[#0b182c] border border-slate-600/80 rounded-2xl p-3.5 text-center">
+                      <div className="text-slate-200 font-extrabold text-[19px] sm:text-[20px]">مدة الرحلة</div>
+                      <div className="text-cyan-200 font-black text-[24px] sm:text-[26px] mt-1 tabular-nums whitespace-nowrap">
                         {formatFishingCountdown(getShipFishingDurationMs(detailShip))}
                       </div>
                     </div>
@@ -16390,11 +16399,11 @@ export default function App() {
                 </div>
 
                 {/* Fish Types & Prices */}
-                <div className="bg-[#06101e] border border-cyan-800/50 rounded-2xl p-3">
-                  <div className="text-xs font-black text-amber-300 mb-2">
+                <div className="bg-[#06101e] border border-cyan-700/60 rounded-2xl p-4 sm:p-5">
+                  <div className="text-[20px] sm:text-[22px] font-black text-amber-300 mb-3.5">
                     🐟 أنواع السمك التي تصطادها السفينة:
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-3">
                     {fishList.map((fName, idx) => {
                       const fImg = subFishInfo?.image || getFishImageUrl(fName, shipLvl);
                       const fPrice = subFishInfo
@@ -16403,16 +16412,16 @@ export default function App() {
                       return (
                         <div
                           key={idx}
-                          className="flex-1 min-w-[140px] flex items-center gap-2.5 bg-[#0c1a30] border border-cyan-500/35 rounded-xl p-2"
+                          className="flex-1 min-w-[220px] flex items-center gap-3.5 bg-[#0c1a30] border-2 border-cyan-500/45 rounded-2xl p-3.5"
                         >
                           {fImg ? (
-                            <img src={fImg} alt={fName} className="w-14 h-9 object-contain shrink-0" />
+                            <img src={fImg} alt={fName} className="w-20 h-14 object-contain shrink-0" />
                           ) : (
-                            <span className="text-2xl">{subFishInfo?.emoji || getFishEmoji(fName)}</span>
+                            <span className="text-4xl shrink-0">{subFishInfo?.emoji || getFishEmoji(fName)}</span>
                           )}
                           <div>
-                            <div className="text-xs font-black text-white">{fName}</div>
-                            <div className="text-[11px] font-bold text-amber-300">{fPrice} 🪙</div>
+                            <div className="text-[21px] sm:text-[22px] font-black text-white leading-snug">{fName}</div>
+                            <div className="text-[19px] sm:text-[20px] font-extrabold text-amber-300 mt-0.5">{fPrice} 🪙</div>
                           </div>
                         </div>
                       );
@@ -16421,7 +16430,7 @@ export default function App() {
                 </div>
 
                 {/* Ship Management Quick Actions */}
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-2 gap-3.5">
                   <button
                     type="button"
                     onClick={() => {
@@ -16429,7 +16438,7 @@ export default function App() {
                       setShipDetailsModalShipId(null);
                       setCrewModal(true);
                     }}
-                    className="py-2.5 px-3 rounded-xl bg-sky-900/70 hover:bg-sky-800/80 border border-sky-400/60 text-white font-black text-xs sm:text-sm cursor-pointer transition-all"
+                    className="py-4 px-5 rounded-2xl bg-sky-900/80 hover:bg-sky-800/90 border-2 border-sky-400/75 text-white font-black text-[21px] sm:text-[23px] shadow-lg cursor-pointer transition-all"
                   >
                     👥 الطاقم
                   </button>
@@ -16440,7 +16449,7 @@ export default function App() {
                       setShipDetailsModalShipId(null);
                       setRepairModalShip(detailShip);
                     }}
-                    className="py-2.5 px-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800/80 border border-emerald-400/60 text-white font-black text-xs sm:text-sm cursor-pointer transition-all"
+                    className="py-4 px-5 rounded-2xl bg-emerald-900/80 hover:bg-emerald-800/90 border-2 border-emerald-400/75 text-white font-black text-[21px] sm:text-[23px] shadow-lg cursor-pointer transition-all"
                   >
                     🔧 الصيانة والإصلاح
                   </button>
@@ -16452,7 +16461,7 @@ export default function App() {
                         setShipDetailsModalShipId(null);
                         setExpectedFishModalShipId(detailShip.id);
                       }}
-                      className="py-2.5 px-3 rounded-xl bg-indigo-900/70 hover:bg-indigo-800/80 border border-indigo-400/60 text-white font-black text-xs sm:text-sm cursor-pointer transition-all"
+                      className="py-4 px-5 rounded-2xl bg-indigo-900/80 hover:bg-indigo-800/90 border-2 border-indigo-400/75 text-white font-black text-[21px] sm:text-[23px] shadow-lg cursor-pointer transition-all"
                     >
                       🧭 تحديد الصيد المتوقع
                     </button>
@@ -16464,26 +16473,13 @@ export default function App() {
                       onClick={() => {
                         toggleAutoFishing(detailShip.id);
                       }}
-                      className={`py-2.5 px-3 rounded-xl border font-black text-xs sm:text-sm cursor-pointer transition-all ${
+                      className={`py-4 px-5 rounded-2xl border-2 font-black text-[21px] sm:text-[23px] shadow-lg cursor-pointer transition-all ${
                         detailShip.autoFishingPaused
-                          ? 'bg-emerald-800/80 border-emerald-400 text-white'
-                          : 'bg-amber-800/80 border-amber-400 text-white'
+                          ? 'bg-emerald-800/85 border-emerald-400 text-white'
+                          : 'bg-amber-800/85 border-amber-400 text-white'
                       }`}
                     >
                       {detailShip.autoFishingPaused ? '▶️ تشغيل الصيد التلقائي' : '⏸️ إيقاف الصيد التلقائي'}
-                    </button>
-                  )}
-
-                  {detailShip.status === 'fishing' && !timerState.isAutoFishing && timerState.remainingMs > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShipDetailsModalShipId(null);
-                        speedUpShipFishing(detailShip.id);
-                      }}
-                      className="py-2.5 px-3 rounded-xl bg-amber-700/80 hover:bg-amber-600/80 border border-amber-300 text-white font-black text-xs sm:text-sm cursor-pointer transition-all"
-                    >
-                      ⚡ إنهاء الآن (💎 {getSpeedUpGemCost(timerState.remainingMs)})
                     </button>
                   )}
 
@@ -16494,7 +16490,7 @@ export default function App() {
                       setShipDetailsModalShipId(null);
                       setConfirmModal(true);
                     }}
-                    className="py-2.5 px-3 rounded-xl bg-rose-950/80 hover:bg-rose-900/80 border border-rose-500/60 text-rose-200 font-black text-xs sm:text-sm cursor-pointer transition-all"
+                    className={`${isSellFullWidth ? 'col-span-2 ' : ''}py-4 px-5 rounded-2xl bg-rose-950/90 hover:bg-rose-900/90 border-2 border-rose-500/75 text-rose-100 font-black text-[21px] sm:text-[23px] shadow-lg cursor-pointer transition-all`}
                   >
                     💰 بيع السفينة
                   </button>

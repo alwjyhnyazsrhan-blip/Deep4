@@ -429,6 +429,148 @@ const GoldCoinBadgeIcon: React.FC = () => (
     </defs>
   </svg>
 );
+
+const RoyalLeaderCrownIcon: React.FC = () => (
+  <svg
+    width="104"
+    height="66"
+    viewBox="0 0 120 76"
+    fill="none"
+    aria-hidden="true"
+    style={{
+      flexShrink: 0,
+      filter: 'drop-shadow(0 6px 10px rgba(0, 0, 0, 0.9))',
+    }}
+  >
+    <defs>
+      <linearGradient id="crownGoldGrad" x1="12" y1="8" x2="108" y2="68" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#fef08a" />
+        <stop offset="42%" stopColor="#e3a93c" />
+        <stop offset="100%" stopColor="#8f5814" />
+      </linearGradient>
+      <linearGradient id="crownVelvetGrad" x1="60" y1="16" x2="60" y2="58" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#e11d48" />
+        <stop offset="55%" stopColor="#9f1239" />
+        <stop offset="100%" stopColor="#4c0519" />
+      </linearGradient>
+    </defs>
+    {/* Velvet dome */}
+    <path
+      d="M24 54C20 34 32 18 60 18C88 18 100 34 96 54H24Z"
+      fill="url(#crownVelvetGrad)"
+      stroke="#5c360b"
+      strokeWidth="2.5"
+    />
+    {/* Top orb & cross */}
+    <path d="M60 4V17M54 9H66" stroke="url(#crownGoldGrad)" strokeWidth="4.5" strokeLinecap="round" />
+    <circle cx="60" cy="18" r="5" fill="url(#crownGoldGrad)" stroke="#5c360b" strokeWidth="1.8" />
+    {/* Crown spikes & arches */}
+    <path
+      d="M14 26L28 48L44 20L60 45L76 20L92 48L106 26L99 58H21L14 26Z"
+      fill="url(#crownGoldGrad)"
+      stroke="#5c360b"
+      strokeWidth="2.6"
+      strokeLinejoin="round"
+    />
+    {/* Crown rim */}
+    <rect x="20" y="54" width="80" height="14" rx="5" fill="url(#crownGoldGrad)" stroke="#5c360b" strokeWidth="2.4" />
+    {/* Tip pearls */}
+    <circle cx="13" cy="24" r="4.5" fill="#fde68a" stroke="#6b410e" strokeWidth="1.8" />
+    <circle cx="44" cy="18" r="4.5" fill="#fde68a" stroke="#6b410e" strokeWidth="1.8" />
+    <circle cx="76" cy="18" r="4.5" fill="#fde68a" stroke="#6b410e" strokeWidth="1.8" />
+    <circle cx="107" cy="24" r="4.5" fill="#fde68a" stroke="#6b410e" strokeWidth="1.8" />
+    {/* Gems along the rim */}
+    <ellipse cx="36" cy="61" rx="5.5" ry="4" fill="#38bdf8" stroke="#0c4a6e" strokeWidth="1.4" />
+    <ellipse cx="60" cy="61" rx="6.5" ry="4.5" fill="#ef4444" stroke="#7f1d1d" strokeWidth="1.4" />
+    <ellipse cx="84" cy="61" rx="5.5" ry="4" fill="#22c55e" stroke="#14532d" strokeWidth="1.4" />
+  </svg>
+);
+
+const SpikedMemberAvatarFrame: React.FC<{ avatar?: string; photoURL?: string; name: string }> = ({
+  avatar,
+  photoURL,
+  name,
+}) => {
+  const isImageAvatar = Boolean(
+    photoURL ||
+      (typeof avatar === 'string' && (avatar.startsWith('http') || avatar.startsWith('/')))
+  );
+  const imgSrc = photoURL || (isImageAvatar ? avatar : '');
+
+  return (
+    <div
+      style={{
+        position: 'relative',
+        width: '92px',
+        height: '92px',
+        flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      {/* Ornate Spiked Bronze Ring SVG */}
+      <svg
+        width="92"
+        height="92"
+        viewBox="0 0 100 100"
+        fill="none"
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          filter: 'drop-shadow(0 6px 12px rgba(0, 0, 0, 0.9))',
+        }}
+      >
+        <defs>
+          <linearGradient id="spikedBronzeRing" x1="10" y1="10" x2="90" y2="90" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#f3d494" />
+            <stop offset="48%" stopColor="#b98e4c" />
+            <stop offset="100%" stopColor="#63451d" />
+          </linearGradient>
+        </defs>
+        {/* Warrior spikes around the ring */}
+        <path
+          d="M50 3L55 13L69 7L67 18L84 16L78 27L94 33L84 43L97 54L85 62L92 76L79 78L80 91L67 87L61 97L50 90L39 97L33 87L20 91L21 78L8 76L15 62L3 54L16 43L6 33L22 27L16 16L33 18L31 7L45 13Z"
+          fill="url(#spikedBronzeRing)"
+          stroke="#3b260b"
+          strokeWidth="2.2"
+          strokeLinejoin="round"
+        />
+        <circle cx="50" cy="50" r="37" fill="#100d0a" stroke="#e2ba6d" strokeWidth="2.8" />
+        <circle cx="50" cy="50" r="33" fill="#090807" stroke="#5d421c" strokeWidth="1.5" />
+      </svg>
+
+      {/* Inner Avatar Content */}
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          width: '66px',
+          height: '66px',
+          borderRadius: '9999px',
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'radial-gradient(circle at 35% 30%, #26211c 0%, #090807 100%)',
+        }}
+      >
+        {isImageAvatar && imgSrc ? (
+          <img
+            src={imgSrc}
+            alt={name}
+            referrerPolicy="no-referrer"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        ) : (
+          <span style={{ fontSize: '34px', lineHeight: 1 }}>{avatar || '⚓'}</span>
+        )}
+      </div>
+    </div>
+  );
+};
 interface TribeViewProps {
   onClose: () => void;
   tribeId: string;
@@ -451,7 +593,7 @@ interface TribeViewProps {
 }
 
 type TribeScreenMode = 'menu' | 'create' | 'join' | 'invitations' | 'manage' | 'donations' | 'levels';
-type TribeManageTab = 'info' | 'members' | 'enemies' | 'message' | 'private';
+type TribeManageTab = 'info' | 'members' | 'message' | 'private';
 
 export default function TribeView({
   onClose,
@@ -496,13 +638,6 @@ export default function TribeView({
   const [invitedPlayerIds, setInvitedPlayerIds] = useState<string[]>(() => {
     try {
       return JSON.parse(localStorage.getItem('pirate_tribe_invites') || '[]');
-    } catch {
-      return [];
-    }
-  });
-  const [enemyTribeIds, setEnemyTribeIds] = useState<string[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem('pirate_tribe_enemies') || '[]');
     } catch {
       return [];
     }
@@ -654,23 +789,46 @@ export default function TribeView({
     });
 
     if (matched.length === 0 && currentUser) {
+      const myAmount = Math.max(myTribeDonations, Number(currentTribe.donations) || 0);
       return [
         {
           id: currentUser.uid,
           name: username || 'القبطان',
           avatar: '👑',
-          points: currentTribe.donations || 0,
+          photoURL: currentUser.photoURL || '',
+          donations: myAmount,
+          points: myAmount,
+          isLeader: true,
         },
       ];
     }
 
-    return matched.map((p) => ({
-      id: p.userId || p.id,
-      name: p.username || 'قبطان_مجهول',
-      avatar: p.avatar || '⚓',
-      points: p.exp || p.donations || 0,
-    }));
-  }, [currentTribe, realPlayers, currentUser, username]);
+    const mapped = matched.map((p) => {
+      const pId = p.userId || p.id;
+      const isMe = Boolean(currentUser?.uid && pId === currentUser.uid);
+      const rawDonations = Number(p.tribeDonations ?? p.donations ?? 0) || 0;
+      const memberDonations = isMe ? Math.max(rawDonations, myTribeDonations) : rawDonations;
+      const isLeader = Boolean(
+        pId === currentTribe.leaderId ||
+          (currentTribe.leaderName && p.username === currentTribe.leaderName)
+      );
+      return {
+        id: pId,
+        name: p.username || 'قبطان_مجهول',
+        avatar: p.avatar || '⚓',
+        photoURL: p.photoURL || (isMe ? currentUser?.photoURL || '' : ''),
+        donations: memberDonations,
+        points: memberDonations,
+        isLeader,
+      };
+    });
+
+    mapped.sort((a, b) => {
+      if (a.isLeader !== b.isLeader) return a.isLeader ? -1 : 1;
+      return b.donations - a.donations;
+    });
+    return mapped;
+  }, [currentTribe, realPlayers, currentUser, username, myTribeDonations]);
 
   const filteredTribes = useMemo(() => {
     if (!tribeSearchQuery.trim()) return tribes;
@@ -1291,8 +1449,6 @@ export default function TribeView({
               >
                 {manageTab === 'members'
                   ? 'أعضاء القبيلة'
-                  : manageTab === 'enemies'
-                  ? 'الأعداء'
                   : manageTab === 'message'
                   ? 'رسالة القبيلة'
                   : manageTab === 'private'
@@ -1321,14 +1477,14 @@ export default function TribeView({
             </div>
           </div>
 
-          {/* 5-Tab Metallic Stone Navigation Row */}
+          {/* 4-Tab Metallic Stone Navigation Row */}
           <div
             style={{
               width: '100%',
               maxWidth: '900px',
               padding: '12px 24px 0 24px',
               display: 'grid',
-              gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+              gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
               gap: '8px',
               boxSizing: 'border-box',
             }}
@@ -1337,7 +1493,6 @@ export default function TribeView({
               [
                 { id: 'info', label: 'بيانات القبيلة' },
                 { id: 'members', label: 'أعضاء' },
-                { id: 'enemies', label: 'الأعداء' },
                 { id: 'message', label: 'رسالة' },
                 { id: 'private', label: 'ملكية خاصة' },
               ] as Array<{ id: TribeManageTab; label: string }>
@@ -2330,58 +2485,145 @@ export default function TribeView({
 
             {/* Sub-Tab 2: أعضاء */}
             {manageTab === 'members' && (
-              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0px' }}>
+                {/* Compact Member Count & Capacity Header */}
                 <div
                   style={{
-                    padding: '18px 22px',
-                    borderRadius: '12px',
-                    background: 'linear-gradient(180deg, #27221d 0%, #171411 100%)',
-                    border: '2.5px solid #967245',
+                    padding: '12px 18px',
+                    marginBottom: '6px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(180deg, rgba(39, 34, 29, 0.85) 0%, rgba(20, 17, 15, 0.9) 100%)',
+                    border: '2px solid #8a6b41',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     flexWrap: 'wrap',
-                    gap: '12px',
+                    gap: '10px',
                   }}
                 >
-                  <span style={{ fontSize: '26px', fontWeight: '900', color: '#f2d382' }}>
-                    أعضاء القبيلة ({currentTribeMembersCount}/{currentTribeMaxMembers})
+                  <span style={{ fontSize: '23px', fontWeight: '900', color: '#f2d382' }}>
+                    أعضاء القبيلة: {currentTribeMembersCount}/{currentTribeMaxMembers}
                   </span>
-                  <span style={{ fontSize: '22px', fontWeight: '800', color: '#cbd5e1' }}>
-                    المستوى {currentTribeLevel} • يتسع حتى {currentTribeMaxMembers} قباطنة
+                  <span style={{ fontSize: '20px', fontWeight: '800', color: '#7dd3fc' }}>
+                    المستوى {currentTribeLevel} • تبرعات الأعضاء
                   </span>
                 </div>
 
-                {realTribeDonors.map((member, idx) => (
-                  <div
-                    key={member.id || idx}
-                    style={{
-                      padding: '18px 22px',
-                      borderRadius: '12px',
-                      background: 'linear-gradient(180deg, #1d2430 0%, #11161f 100%)',
-                      border: idx === 0 ? '2.5px solid #e0a743' : '2px solid #574a3a',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '12px',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ fontSize: '32px' }}>{member.avatar || '⚓'}</span>
-                      <div>
-                        <div style={{ fontSize: '25px', fontWeight: '900', color: idx === 0 ? '#7dd3fc' : '#f8fafc' }}>
-                          @{member.name}
+                {/* RPG Dark Stone Rows matching reference screenshot (no gold medallion on right, donations below name, crown for leader, spiked avatar on left) */}
+                {realTribeDonors.map((member, idx) => {
+                  const isLeaderRow = member.isLeader || idx === 0;
+                  return (
+                    <React.Fragment key={member.id || idx}>
+                      <div
+                        style={{
+                          width: '100%',
+                          padding: '18px 16px',
+                          background:
+                            'linear-gradient(90deg, rgba(22, 16, 12, 0.72) 0%, rgba(24, 24, 27, 0.86) 50%, rgba(28, 18, 12, 0.72) 100%)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '16px',
+                          boxSizing: 'border-box',
+                        }}
+                      >
+                        {/* Right side (RTL start): Member Name + Member Donations (no gold medallion) */}
+                        <div
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-start',
+                            justifyContent: 'center',
+                            gap: '4px',
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: '30px',
+                              fontWeight: '900',
+                              color: '#f2e4c7',
+                              textShadow: '0 2px 6px rgba(0, 0, 0, 0.95)',
+                              lineHeight: 1.25,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              maxWidth: '100%',
+                            }}
+                          >
+                            {member.name}
+                          </div>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              fontSize: '25px',
+                              fontWeight: '900',
+                              color: '#7dd3fc',
+                              fontVariantNumeric: 'tabular-nums',
+                              textShadow: '0 2px 5px rgba(0, 0, 0, 0.95)',
+                            }}
+                          >
+                            <span style={{ fontSize: '19px', fontWeight: '800', color: '#bae6fd' }}>
+                              التبرعات:
+                            </span>
+                            <span>{member.donations.toLocaleString('en-US')}</span>
+                          </div>
                         </div>
-                        <div style={{ fontSize: '19px', fontWeight: '800', color: idx === 0 ? '#fbbf24' : '#94a3b8' }}>
-                          {idx === 0 ? 'شيخ القبيلة 👑' : 'عضو القبيلة'}
+
+                        {/* Left side (RTL end): Royal Crown (if Tribe Leader) + Spiked Warrior Avatar Frame */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
+                          {isLeaderRow && <RoyalLeaderCrownIcon />}
+                          <SpikedMemberAvatarFrame
+                            avatar={member.avatar}
+                            photoURL={member.photoURL}
+                            name={member.name}
+                          />
                         </div>
                       </div>
-                    </div>
-                    <span style={{ fontSize: '23px', fontWeight: '900', color: '#fef08a' }}>
-                      {member.points.toLocaleString('en-US')} نقطة
-                    </span>
-                  </div>
-                ))}
+
+                      {/* Ornate Bronze Divider with Crimson Center Diamond */}
+                      <div
+                        aria-hidden="true"
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0px',
+                          height: '12px',
+                        }}
+                      >
+                        <div
+                          style={{
+                            flex: 1,
+                            height: '2.5px',
+                            background: 'linear-gradient(90deg, rgba(140, 109, 69, 0.25), #7b664b, #9d825d)',
+                          }}
+                        />
+                        <div
+                          style={{
+                            width: '11px',
+                            height: '11px',
+                            background: '#dc2626',
+                            border: '2px solid #9d825d',
+                            transform: 'rotate(45deg)',
+                            boxShadow: '0 0 8px rgba(220, 38, 38, 0.55)',
+                            flexShrink: 0,
+                          }}
+                        />
+                        <div
+                          style={{
+                            flex: 1,
+                            height: '2.5px',
+                            background: 'linear-gradient(270deg, rgba(140, 109, 69, 0.25), #7b664b, #9d825d)',
+                          }}
+                        />
+                      </div>
+                    </React.Fragment>
+                  );
+                })}
 
                 <button
                   type="button"
@@ -2390,124 +2632,26 @@ export default function TribeView({
                     setShowJoinInvitesPanel(true);
                   }}
                   style={{
+                    marginTop: '16px',
                     width: '100%',
-                    height: '72px',
+                    height: '70px',
                     borderRadius: '10px',
                     border: '2.5px solid #7fb7e6',
                     background: 'linear-gradient(180deg, #2b6ea3 0%, #103252 100%)',
+                    boxShadow: '0 8px 18px rgba(0,0,0,0.75), inset 0 2px 0 rgba(186, 230, 253, 0.45)',
                     color: '#ffffff',
                     fontFamily: 'inherit',
-                    fontSize: '26px',
+                    fontSize: '25px',
                     fontWeight: '900',
                     cursor: 'pointer',
                   }}
                 >
-                  + دعوة أعضاء جدد ({currentTribeMaxMembers - currentTribeMembersCount} أماكن متاحة)
+                  + دعوة أعضاء جدد ({Math.max(0, currentTribeMaxMembers - currentTribeMembersCount)} أماكن متاحة)
                 </button>
               </div>
             )}
 
-            {/* Sub-Tab 3: الأعداء */}
-            {manageTab === 'enemies' && (
-              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div
-                  style={{
-                    padding: '18px 22px',
-                    borderRadius: '12px',
-                    background: 'linear-gradient(180deg, #2b1a1a 0%, #180e0e 100%)',
-                    border: '2.5px solid #991b1b',
-                    fontSize: '24px',
-                    fontWeight: '900',
-                    color: '#fecaca',
-                  }}
-                >
-                  القبائل المنافسة والأعداء ({enemyTribeIds.length})
-                </div>
-
-                {tribes.filter((t) => t.id !== currentTribe.id).length === 0 ? (
-                  <div
-                    style={{
-                      padding: '28px',
-                      borderRadius: '12px',
-                      background: 'rgba(20, 22, 28, 0.9)',
-                      border: '2px solid #574a3a',
-                      textAlign: 'center',
-                      fontSize: '24px',
-                      fontWeight: '800',
-                      color: '#cbd5e1',
-                    }}
-                  >
-                    لا توجد قبائل أخرى مسجلة حالياً.
-                  </div>
-                ) : (
-                  tribes
-                    .filter((t) => t.id !== currentTribe.id)
-                    .map((other) => {
-                      const isEnemy = enemyTribeIds.includes(other.id);
-                      return (
-                        <div
-                          key={other.id}
-                          style={{
-                            padding: '18px 22px',
-                            borderRadius: '12px',
-                            background: 'linear-gradient(180deg, #1d2430 0%, #11161f 100%)',
-                            border: isEnemy ? '2.5px solid #ef4444' : '2px solid #574a3a',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            gap: '12px',
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <TribeEmblemCrest emblem={other.emblem || '⚔️'} size={52} />
-                            <div>
-                              <div style={{ fontSize: '26px', fontWeight: '900', color: '#f2d382' }}>{other.name}</div>
-                              <div style={{ fontSize: '19px', fontWeight: '700', color: '#cbd5e1' }}>
-                                شيخ القبيلة: {other.leaderName || 'القبطان'} • القوة: {other.power || 0}
-                              </div>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const next = isEnemy
-                                ? enemyTribeIds.filter((id) => id !== other.id)
-                                : [...enemyTribeIds, other.id];
-                              setEnemyTribeIds(next);
-                              try {
-                                localStorage.setItem('pirate_tribe_enemies', JSON.stringify(next));
-                              } catch {}
-                              if (showToast) {
-                                showToast(
-                                  isEnemy
-                                    ? `تمت إزالة [${other.name}] من قائمة الأعداء.`
-                                    : `⚔️ تم إعلان العداء ضد قبيلة [${other.name}]!`,
-                                  isEnemy ? 'info' : 'error'
-                                );
-                              }
-                            }}
-                            style={{
-                              padding: '10px 22px',
-                              borderRadius: '8px',
-                              border: isEnemy ? '2px solid #94a3b8' : '2px solid #f87171',
-                              background: isEnemy ? '#334155' : 'linear-gradient(180deg, #b91c1c 0%, #7f1d1d 100%)',
-                              color: '#ffffff',
-                              fontFamily: 'inherit',
-                              fontSize: '20px',
-                              fontWeight: '900',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            {isEnemy ? 'إلغاء العداء' : 'إعلان العداء'}
-                          </button>
-                        </div>
-                      );
-                    })
-                )}
-              </div>
-            )}
-
-            {/* Sub-Tab 4: رسالة */}
+            {/* Sub-Tab 3: رسالة */}
             {manageTab === 'message' && (
               <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div

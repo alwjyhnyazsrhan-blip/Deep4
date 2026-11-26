@@ -133,11 +133,11 @@ export const executeFinancialTransaction = async (
 
         // Enforce balance sufficiency on the server side
         if (goldDelta < 0 && currentGold < Math.abs(goldDelta)) {
-          throw new Error(`⚠️ الذهب غير كافٍ لإتمام هذه العملية! الرصيد الفعلي المتوفر: ${currentGold.toLocaleString('ar-EG')} 🪙 ذهب.`);
+          throw new Error(`⚠️ الذهب غير كافٍ لإتمام هذه العملية! الرصيد الفعلي المتوفر: ${currentGold.toLocaleString('en-US')} 🪙 ذهب.`);
         }
 
         if (gemsDelta < 0 && currentGems < Math.abs(gemsDelta)) {
-          throw new Error(`⚠️ الجواهر غير كافية لإتمام هذه العملية! الرصيد الفعلي المتوفر: ${currentGems.toLocaleString('ar-EG')} 💎 جوهرة.`);
+          throw new Error(`⚠️ الجواهر غير كافية لإتمام هذه العملية! الرصيد الفعلي المتوفر: ${currentGems.toLocaleString('en-US')} 💎 جوهرة.`);
         }
 
         const calculatedGold = Math.max(0, currentGold + goldDelta);

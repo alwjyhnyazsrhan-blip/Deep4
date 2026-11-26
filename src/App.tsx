@@ -6845,7 +6845,7 @@ export default function App() {
       return;
     }
     if (gold < spec.price) {
-      alert(`⚠️ الذهب غير كافٍ! تحتاج إلى ${spec.price.toLocaleString('ar-EG')} ذهب لترقية إحدى سفنك إلى هذا المستوى.`);
+      alert(`⚠️ الذهب غير كافٍ! تحتاج إلى ${spec.price.toLocaleString('en-US')} ذهب لترقية إحدى سفنك إلى هذا المستوى.`);
       return;
     }
 
@@ -6978,11 +6978,11 @@ export default function App() {
 
     const isGold = costType === 'gold';
     if (isGold && gold < price) {
-      alert(`❌ الذهب غير كافٍ لإتمام عملية الشراء!\nتحتاج إلى: ${price.toLocaleString('ar-EG')} 🪙 ذهب.\nرصيدك المتوفر: ${gold.toLocaleString('ar-EG')} 🪙 ذهب.`);
+      alert(`❌ الذهب غير كافٍ لإتمام عملية الشراء!\nتحتاج إلى: ${price.toLocaleString('en-US')} 🪙 ذهب.\nرصيدك المتوفر: ${gold.toLocaleString('en-US')} 🪙 ذهب.`);
       return false;
     }
     if (!isGold && gems < price) {
-      alert(`❌ الجواهر غير كافية لإتمام عملية الشراء!\nتحتاج إلى: ${price.toLocaleString('ar-EG')} 💎 جوهرة.\nرصيدك المتوفر: ${gems.toLocaleString('ar-EG')} 💎 جوهرة.`);
+      alert(`❌ الجواهر غير كافٍ لإتمام عملية الشراء!\nتحتاج إلى: ${price.toLocaleString('en-US')} 💎 جوهرة.\nرصيدك المتوفر: ${gems.toLocaleString('en-US')} 💎 جوهرة.`);
       return false;
     }
 
@@ -10318,7 +10318,7 @@ export default function App() {
                 <img src={GOLD_COIN_ICON} alt="ذهب" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
                 الذهب:
               </span>
-              <strong style={{ color: '#fff', fontSize: '15px' }}>{gold.toLocaleString('ar-EG')}</strong>
+              <strong style={{ color: '#fff', fontSize: '15px' }}>{gold.toLocaleString('en-US')}</strong>
             </div>
 
             {/* Blue Gems Plaque */}
@@ -10333,7 +10333,7 @@ export default function App() {
               boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.6)'
             }}>
               <span style={{ color: '#93c5fd', fontWeight: 'bold', fontSize: '13px' }}>💎 الجواهر الزرقاء:</span>
-              <strong style={{ color: '#fff', fontSize: '15px' }}>{gems.toLocaleString('ar-EG')}</strong>
+              <strong style={{ color: '#fff', fontSize: '15px' }}>{gems.toLocaleString('en-US')}</strong>
             </div>
 
             {/* Red Gems Plaque */}
@@ -10348,7 +10348,7 @@ export default function App() {
               boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.6)'
             }}>
               <span style={{ color: '#fca5a5', fontWeight: 'bold', fontSize: '13px' }}>🔴 الجواهر الحمراء:</span>
-              <strong style={{ color: '#fff', fontSize: '15px' }}>{redGems.toLocaleString('ar-EG')}</strong>
+              <strong style={{ color: '#fff', fontSize: '15px' }}>{redGems.toLocaleString('en-US')}</strong>
             </div>
           </div>
 
@@ -11325,7 +11325,7 @@ export default function App() {
                                   }}
                                 >
                                   <span style={{ fontSize: '14px' }}>⚡</span>
-                                  ترقية إلى {getSubmarineDisplayTier(nextLevelForUpgrade)} ({submarineSuccessPct}% نجاح) بـ {(submarineRule?.cost || nextSpecForUpgrade.price).toLocaleString('ar-EG')} 🪙
+                                  ترقية إلى {getSubmarineDisplayTier(nextLevelForUpgrade)} ({submarineSuccessPct}% نجاح) بـ {(submarineRule?.cost || nextSpecForUpgrade.price).toLocaleString('en-US')} 🪙
                                 </button>
                               ) : (
                                 <button 
@@ -11387,7 +11387,7 @@ export default function App() {
                                   marginTop: '8px'
                                 }}
                               >
-                                {isSubmarineCard ? `🤿 شراء الغواصة (المستوى الأساسي 0) بـ 🪙 ${spec.price.toLocaleString('ar-EG')}` : `شراء بـ 🪙 ${spec.price.toLocaleString('ar-EG')} 🚢`}
+                                {isSubmarineCard ? `🤿 شراء الغواصة (المستوى الأساسي 0) بـ 🪙 ${spec.price.toLocaleString('en-US')}` : `شراء بـ 🪙 ${spec.price.toLocaleString('en-US')} 🚢`}
                               </button>
                             )}
                           </div>

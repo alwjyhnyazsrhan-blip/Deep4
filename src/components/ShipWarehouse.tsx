@@ -144,7 +144,7 @@ export default function ShipWarehouse({
     const spec = SHOP_SHIPS.find((s) => s.level === ship.level) || SHOP_SHIPS[0];
     const refund = Math.floor(spec.price * 0.5);
     
-    if (confirm(`هل أنت متأكد من تفكيك وتنزيل ${ship.name} وإعادتها إلى قارب صياد مبتدئ (مستوى 0) مقابل استرداد 🪙 ${refund.toLocaleString('ar-EG')} ذهب؟`)) {
+    if (confirm(`هل أنت متأكد من تفكيك وتنزيل ${ship.name} وإعادتها إلى قارب صياد مبتدئ (مستوى 0) مقابل استرداد 🪙 ${refund.toLocaleString('en-US')} ذهب؟`)) {
       const newShips = ships.map((s) => {
         if (s.id === shipId) {
           return {
@@ -217,7 +217,7 @@ export default function ShipWarehouse({
           localStorage.setItem('pirate_crew_services', JSON.stringify(updatedCrewServices));
         }
         localStorage.setItem('pirate_ships_v2', JSON.stringify(newShips));
-        alert(`💵 تم تفكيك وإعادة تعيين السفينة بنجاح إلى المستوى 0 وإخلاء طواقمها، وتأكيد إضافة 🪙 ${refund.toLocaleString('ar-EG')} ذهب ذرياً!`);
+        alert(`💵 تم تفكيك وإعادة تعيين السفينة بنجاح إلى المستوى 0 وإخلاء طواقمها، وتأكيد إضافة 🪙 ${refund.toLocaleString('en-US')} ذهب ذرياً!`);
       }
     }
   };
@@ -237,25 +237,25 @@ export default function ShipWarehouse({
           justifyContent: 'space-between',
           boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '10px',
+              width: '54px',
+              height: '54px',
+              borderRadius: '12px',
               background: 'linear-gradient(135deg, #ca8a04, #854d0e)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '22px',
-              border: '1px solid #fef08a'
+              fontSize: '28px',
+              border: '2px solid #fef08a'
             }}>
               ⚓
             </div>
             <div>
-              <h2 style={{ margin: 0, fontSize: '26px', fontWeight: '900', color: '#facc15', textShadow: '0 2px 6px rgba(0,0,0,0.8)' }}>
+              <h2 style={{ margin: 0, fontSize: '32px', fontWeight: '900', color: '#facc15', textShadow: '0 2px 6px rgba(0,0,0,0.8)' }}>
                 مستودع الأسطول
               </h2>
-              <div style={{ fontSize: '15.5px', color: '#e2e8f0', marginTop: '4px', fontWeight: '600' }}>
+              <div style={{ fontSize: '18px', color: '#e2e8f0', marginTop: '4px', fontWeight: '700' }}>
                 إدارة سفن الأسطول وتطوير الخصائص والشراء حسب مستوى بيت السفن
               </div>
             </div>
@@ -263,13 +263,13 @@ export default function ShipWarehouse({
           <button
             onClick={onClose}
             style={{
-              background: 'rgba(239, 68, 68, 0.24)',
-              border: '1.5px solid #ef4444',
+              background: 'rgba(239, 68, 68, 0.28)',
+              border: '2px solid #ef4444',
               color: '#fecaca',
-              borderRadius: '10px',
-              padding: '8px 18px',
+              borderRadius: '12px',
+              padding: '10px 24px',
               fontWeight: '900',
-              fontSize: '16px',
+              fontSize: '20px',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
             }}
@@ -282,46 +282,46 @@ export default function ShipWarehouse({
       {/* Ship House Level & Upgrade Card */}
       <div style={{
         background: 'linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%)',
-        border: '1.5px solid #6366f1',
-        borderRadius: '14px',
-        padding: '14px 18px',
+        border: '2px solid #6366f1',
+        borderRadius: '16px',
+        padding: '18px 22px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '12px',
+        gap: '14px',
         boxShadow: '0 8px 24px rgba(0,0,0,0.5)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{
-            width: '46px',
-            height: '46px',
-            borderRadius: '10px',
+            width: '54px',
+            height: '54px',
+            borderRadius: '12px',
             background: 'linear-gradient(135deg, #4f46e5, #312e81)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '24px',
-            border: '1px solid #818cf8'
+            fontSize: '28px',
+            border: '2px solid #818cf8'
           }}>
             🏰
           </div>
           <div>
-            <div style={{ color: '#facc15', fontSize: '22px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <div style={{ color: '#facc15', fontSize: '26px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <span>بيت السفن</span>
               <span style={{
-                background: 'rgba(56, 189, 248, 0.18)',
-                border: '1.5px solid #38bdf8',
-                color: '#7dd3fc',
-                fontSize: '16px',
-                fontWeight: '800',
-                padding: '3px 12px',
-                borderRadius: '8px'
+                background: 'rgba(56, 189, 248, 0.2)',
+                border: '2px solid #38bdf8',
+                color: '#bae6fd',
+                fontSize: '19px',
+                fontWeight: '900',
+                padding: '4px 14px',
+                borderRadius: '10px'
               }}>
                 مستوى {shipTowerLevel}
               </span>
             </div>
-            <div style={{ color: '#f1f5f9', fontSize: '16px', marginTop: '6px', lineHeight: '1.6', fontWeight: '600' }}>
+            <div style={{ color: '#f1f5f9', fontSize: '18.5px', marginTop: '6px', lineHeight: '1.6', fontWeight: '700' }}>
               {shipTowerLevel >= 30
                 ? '⭐ بيت السفن في أقصى مستوى (30)، كافة سفن الأسطول والغواصة الأسطورية متاحة للشراء!'
                 : `يمكنك شراء واستخدام السفن حتى المستوى ${shipTowerLevel}. قم بترقية بيت السفن إلى أقصى مستوى (30) لفتح الغواصة الأسطورية للشراء.`}
@@ -342,7 +342,7 @@ export default function ShipWarehouse({
               const upgradeCost = nextShipSpec ? Math.round(nextShipSpec.price * 0.8) : (nextLvl * 1000);
 
               if (gold < upgradeCost) {
-                alert(`⚠️ الذهب غير كافٍ! تحتاج إلى 🪙 ${upgradeCost.toLocaleString('ar-EG')} ذهب لترقية بيت السفن إلى المستوى ${nextLvl}.`);
+                alert(`⚠️ الذهب غير كافٍ! تحتاج إلى 🪙 ${upgradeCost.toLocaleString('en-US')} ذهب لترقية بيت السفن إلى المستوى ${nextLvl}.`);
                 return;
               }
 
@@ -371,21 +371,21 @@ export default function ShipWarehouse({
             style={{
               background: 'linear-gradient(to bottom, #10b981, #059669)',
               color: '#fff',
-              border: '1.5px solid #34d399',
-              borderRadius: '10px',
-              padding: '12px 20px',
-              fontSize: '16px',
+              border: '2px solid #34d399',
+              borderRadius: '12px',
+              padding: '14px 24px',
+              fontSize: '20px',
               fontWeight: '900',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '10px',
-              boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)'
+              gap: '12px',
+              boxShadow: '0 4px 16px rgba(16, 185, 129, 0.45)'
             }}
           >
             <span>⚡ ترقية بيت السفن لـ ليفل {shipTowerLevel + 1}</span>
-            <span style={{ color: '#fef08a', background: 'rgba(0,0,0,0.35)', padding: '3px 10px', borderRadius: '8px', fontSize: '15.5px' }}>
-              🪙 {(SHOP_SHIPS.find(s => s.level === shipTowerLevel + 1) ? Math.round((SHOP_SHIPS.find(s => s.level === shipTowerLevel + 1)?.price || 0) * 0.8) : (shipTowerLevel + 1) * 1000).toLocaleString('ar-EG')}
+            <span style={{ color: '#fef08a', background: 'rgba(0,0,0,0.4)', padding: '4px 12px', borderRadius: '8px', fontSize: '18.5px' }}>
+              🪙 {(SHOP_SHIPS.find(s => s.level === shipTowerLevel + 1) ? Math.round((SHOP_SHIPS.find(s => s.level === shipTowerLevel + 1)?.price || 0) * 0.8) : (shipTowerLevel + 1) * 1000).toLocaleString('en-US')}
             </span>
           </button>
         )}
@@ -640,8 +640,8 @@ export default function ShipWarehouse({
                         <div>
                           <div style={{ color: '#f1f5f9', fontSize: '15.5px', fontWeight: '700' }}>قوة التحمل</div>
                           <div style={{ color: '#34d399', fontWeight: '900', fontSize: '18.5px', marginTop: '2px' }}>
-                            {(spec.heart + (defL - 1) * 100).toLocaleString('ar-EG')}{' '}
-                            <span style={{ color: '#e2e8f0', fontSize: '14.5px', fontWeight: '600' }}>(أساسي: {spec.heart.toLocaleString('ar-EG')})</span>
+                            {(spec.heart + (defL - 1) * 100).toLocaleString('en-US')}{' '}
+                            <span style={{ color: '#e2e8f0', fontSize: '14.5px', fontWeight: '600' }}>(أساسي: {spec.heart.toLocaleString('en-US')})</span>
                           </div>
                         </div>
                       </div>
@@ -652,9 +652,9 @@ export default function ShipWarehouse({
                         <div>
                           <div style={{ color: '#f1f5f9', fontSize: '15.5px', fontWeight: '700' }}>سعة التخزين (الذهب/الأسماك)</div>
                           <div style={{ color: '#facc15', fontWeight: '900', fontSize: '18.5px', marginTop: '2px' }}>
-                            {totalCargo.toLocaleString('ar-EG')}{' '}
+                            {totalCargo.toLocaleString('en-US')}{' '}
                             <span style={{ color: '#e2e8f0', fontSize: '14.5px', fontWeight: '600' }}>
-                              (مع الحظ: {luckyCargo.toLocaleString('ar-EG')})
+                              (مع الحظ: {luckyCargo.toLocaleString('en-US')})
                             </span>
                           </div>
                         </div>
@@ -666,7 +666,7 @@ export default function ShipWarehouse({
                         <div>
                           <div style={{ color: '#f1f5f9', fontSize: '15.5px', fontWeight: '700' }}>معدل الصيد</div>
                           <div style={{ color: '#38bdf8', fontWeight: '900', fontSize: '17.5px', marginTop: '2px' }}>
-                            {shipData ? `${shipData.withoutCrewFishing}د (بدون طاقم) / ${shipData.sailorFishing}د (بحار)` : `${spec.hook.toLocaleString('ar-EG')} سمكة`}
+                            {shipData ? `${shipData.withoutCrewFishing}د (بدون طاقم) / ${shipData.sailorFishing}د (بحار)` : `${spec.hook.toLocaleString('en-US')} سمكة`}
                           </div>
                         </div>
                       </div>
@@ -676,7 +676,7 @@ export default function ShipWarehouse({
                         <span style={{ fontSize: '26px' }}>⚔️</span>
                         <div>
                           <div style={{ color: '#f1f5f9', fontSize: '15.5px', fontWeight: '700' }}>قوة تدمير السفن</div>
-                          <div style={{ color: '#f87171', fontWeight: '900', fontSize: '18.5px', marginTop: '2px' }}>{(spec.power + (defL - 1) * 4).toLocaleString('ar-EG')}</div>
+                          <div style={{ color: '#f87171', fontWeight: '900', fontSize: '18.5px', marginTop: '2px' }}>{(spec.power + (defL - 1) * 4).toLocaleString('en-US')}</div>
                         </div>
                       </div>
 
@@ -817,7 +817,7 @@ export default function ShipWarehouse({
                           cursor: 'pointer'
                         }}
                       >
-                        تفكيك السفينة مقابل 🪙 {Math.floor((SHOP_SHIPS.find((s) => s.level === ship.level)?.price || 0) * 0.5).toLocaleString('ar-EG')} ذهب
+                        تفكيك السفينة مقابل 🪙 {Math.floor((SHOP_SHIPS.find((s) => s.level === ship.level)?.price || 0) * 0.5).toLocaleString('en-US')} ذهب
                       </button>
                     </div>
                   )}
@@ -829,63 +829,64 @@ export default function ShipWarehouse({
       </div>
 
       {/* ----------------- IMPERIAL PURCHASE FLEET SECTION (أسطول الشراء) ----------------- */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderTop: '2px solid #ca8a04', paddingTop: '24px', marginTop: '12px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', borderTop: '2.5px solid #ca8a04', paddingTop: '24px', marginTop: '12px' }}>
         
         {/* Section Header Description */}
         <div style={{
           background: '#150d06',
           border: '2px solid #ca8a04',
           borderRadius: '16px',
-          padding: '18px',
+          padding: '20px',
           boxShadow: '0 8px 24px rgba(0,0,0,0.8)'
         }}>
-          <h3 style={{ color: '#facc15', fontSize: '24px', fontWeight: '900', margin: '0 0 8px 0' }}>
-            🛒 أسطول الشراء
+          <h3 style={{ color: '#facc15', fontSize: '30px', fontWeight: '900', margin: '0 0 10px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '32px' }}>🛒</span>
+            <span>أسطول الشراء</span>
           </h3>
-          <p style={{ color: '#f8fafc', fontSize: '16.5px', fontWeight: '600', margin: '0 0 16px 0', lineHeight: '1.6' }}>
+          <p style={{ color: '#f8fafc', fontSize: '19px', fontWeight: '700', margin: '0 0 18px 0', lineHeight: '1.6' }}>
             يظهر حسب مستوى السحر والطلب مع تقدم اللعبة الكبرى وتحصيل فخامة وخيالية لكل سفينة.
           </p>
 
           {/* Badges Row */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
             <div style={{
               background: '#2e1c0c',
-              border: '1.5px solid #ca8a04',
+              border: '2px solid #ca8a04',
               color: '#facc15',
               borderRadius: '20px',
-              padding: '8px 16px',
-              fontSize: '15.5px',
-              fontWeight: '800'
+              padding: '10px 20px',
+              fontSize: '18.5px',
+              fontWeight: '900'
             }}>
               مخزن السفن ({activeShips.length}/3)
             </div>
             <div style={{
               background: '#042f1a',
-              border: '1.5px solid #10b981',
+              border: '2px solid #10b981',
               color: '#6ee7b7',
               borderRadius: '20px',
-              padding: '8px 16px',
-              fontSize: '15.5px',
-              fontWeight: '800'
+              padding: '10px 20px',
+              fontSize: '18.5px',
+              fontWeight: '900'
             }}>
               النشطة: {activeShips.length} / 3
             </div>
             <div style={{
               background: '#1e293b',
-              border: '1.5px solid #64748b',
+              border: '2px solid #64748b',
               color: '#ffffff',
               borderRadius: '20px',
-              padding: '8px 16px',
-              fontSize: '15.5px',
-              fontWeight: '800'
+              padding: '10px 20px',
+              fontSize: '18.5px',
+              fontWeight: '900'
             }}>
-              السعة: {activeShips.reduce((acc, s) => acc + (s.cargo || 0), 0).toLocaleString('ar-EG')} / 380,000
+              السعة: {activeShips.reduce((acc, s) => acc + (s.cargo || 0), 0).toLocaleString('en-US')} / 380,000
             </div>
           </div>
         </div>
 
         {/* Purchase Cards List */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
           {SHOP_SHIPS.filter(spec => spec.level < 33).map((spec) => {
             const isSubmarineCard = spec.level === 32;
             const ownedSubmarine = isSubmarineCard 
@@ -931,30 +932,30 @@ export default function ShipWarehouse({
                 key={spec.level}
                 style={{
                   background: isSubmarineCard ? 'linear-gradient(to bottom, #111827, #1e1b4b)' : '#120a05',
-                  border: isSubmarineCard ? '3px solid #818cf8' : '2px solid #2d1a0e',
-                  borderRadius: '16px',
-                  padding: '18px',
+                  border: isSubmarineCard ? '3px solid #818cf8' : '2.5px solid #4a2a12',
+                  borderRadius: '18px',
+                  padding: '20px',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '14px',
+                  gap: '16px',
                   boxShadow: '0 12px 28px rgba(0,0,0,0.8)',
                   position: 'relative'
                 }}
               >
                 {/* Card Top Bar (Owned tag / Lvl Tag + Action Button) */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #2d1a0e', paddingBottom: '12px', gap: '10px', flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid #3a200e', paddingBottom: '14px', gap: '12px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
                     {isOwned && (
                       <span style={{
                         background: isMaxOwned ? '#b45309' : '#15803d',
                         color: '#fff',
-                        fontSize: '15px',
-                        fontWeight: '800',
-                        padding: '4px 12px',
-                        borderRadius: '6px',
+                        fontSize: '18px',
+                        fontWeight: '900',
+                        padding: '6px 14px',
+                        borderRadius: '8px',
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '4px'
+                        gap: '6px'
                       }}>
                         {isSubmarineCard
                           ? (isMaxOwned ? 'مملوكة بالكامل (3/3) ⭐' : `مملوكة (${ownedCount}/3)`)
@@ -962,13 +963,13 @@ export default function ShipWarehouse({
                       </span>
                     )}
                     <span style={{
-                      color: isSubmarineCard ? '#facc15' : '#7dd3fc',
+                      color: isSubmarineCard ? '#facc15' : '#bae6fd',
                       fontWeight: '900',
-                      fontSize: '16.5px',
-                      background: isSubmarineCard ? 'rgba(250, 204, 21, 0.16)' : 'rgba(56, 189, 248, 0.14)',
-                      border: isSubmarineCard ? '1.5px solid #facc15' : '1.5px solid #38bdf8',
-                      borderRadius: '8px',
-                      padding: '4px 12px'
+                      fontSize: '20px',
+                      background: isSubmarineCard ? 'rgba(250, 204, 21, 0.18)' : 'rgba(56, 189, 248, 0.16)',
+                      border: isSubmarineCard ? '2px solid #facc15' : '2px solid #38bdf8',
+                      borderRadius: '10px',
+                      padding: '6px 16px'
                     }}>
                       {isSubmarineCard ? getSubmarineTag(currentLevel) : `Lvl ${currentLevel}`}
                     </span>
@@ -978,46 +979,47 @@ export default function ShipWarehouse({
                     <button
                       disabled
                       style={{
-                        background: '#241a12',
-                        color: '#d4d4d8',
-                        border: '1.5px solid #523926',
-                        borderRadius: '10px',
-                        padding: '10px 20px',
-                        fontSize: '15.5px',
-                        fontWeight: '800',
+                        background: '#291c12',
+                        color: '#fde68a',
+                        border: '2px solid #92400e',
+                        borderRadius: '14px',
+                        padding: '13px 24px',
+                        fontSize: '20px',
+                        fontWeight: '900',
                         cursor: 'not-allowed',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '6px'
+                        gap: '8px'
                       }}
                     >
-                      {isSubmarineCard ? '🔒 يتطلب ترقية بيت السفن لأقصى مستوى (30)' : `🔒 يتطلب بيت السفن ليفل ${spec.level}`}
+                      <span style={{ fontSize: '22px' }}>🔒</span>
+                      <span>{isSubmarineCard ? 'يتطلب ترقية بيت السفن لأقصى مستوى (30)' : `يتطلب بيت السفن ليفل ${spec.level}`}</span>
                     </button>
                   ) : isSubmarineCard ? (
                     ownedSubmarine ? (
                       nextSpecForUpgrade ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                           <button
                             onClick={handleOpenSubmarineUpgrade}
                             style={{
                               background: 'linear-gradient(to bottom, #10b981, #059669)',
                               color: '#fff',
                               border: '2px solid #34d399',
-                              borderRadius: '10px',
-                              padding: '10px 18px',
-                              fontSize: '15.5px',
+                              borderRadius: '14px',
+                              padding: '14px 22px',
+                              fontSize: '20px',
                               fontWeight: '900',
                               cursor: 'pointer',
-                              boxShadow: '0 0 15px rgba(16, 185, 129, 0.6)',
+                              boxShadow: '0 0 16px rgba(16, 185, 129, 0.6)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: '6px',
+                              gap: '8px',
                               animation: 'pulse 2s infinite'
                             }}
                           >
-                            <span style={{ fontSize: '18px' }}>⚡</span>
-                            ترقية إلى {getSubmarineDisplayTier(nextLevelForUpgrade)} ({submarineSuccessPct}% نجاح) بـ {(submarineRule?.cost || nextSpecForUpgrade.price).toLocaleString('ar-EG')} 🪙
+                            <span style={{ fontSize: '23px' }}>⚡</span>
+                            <span>ترقية إلى {getSubmarineDisplayTier(nextLevelForUpgrade)} ({submarineSuccessPct}% نجاح) بـ {(submarineRule?.cost || nextSpecForUpgrade.price).toLocaleString('en-US')} 🪙</span>
                           </button>
                           {ownedCount < 3 && (
                             <button
@@ -1025,39 +1027,43 @@ export default function ShipWarehouse({
                               style={{
                                 background: 'linear-gradient(to bottom, #4f46e5, #3730a3)',
                                 color: '#fff',
-                                border: '1.5px solid #818cf8',
-                                borderRadius: '10px',
-                                padding: '10px 18px',
-                                fontSize: '15.5px',
+                                border: '2px solid #a5b4fc',
+                                borderRadius: '14px',
+                                padding: '14px 24px',
+                                fontSize: '21px',
                                 fontWeight: '900',
                                 cursor: 'pointer',
-                                boxShadow: '0 4px 12px rgba(79, 70, 229, 0.4)'
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                boxShadow: '0 6px 16px rgba(79, 70, 229, 0.5)'
                               }}
                             >
-                              🤿 شراء غواصة أخرى ({ownedCount}/3) بـ {spec.price.toLocaleString('ar-EG')} 🪙
+                              <span style={{ fontSize: '24px' }}>🤿</span>
+                              <span>شراء غواصة أخرى ({ownedCount}/3) بـ {spec.price.toLocaleString('en-US')} 🪙</span>
                             </button>
                           )}
                         </div>
                       ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                           <button
                             disabled
                             style={{
                               background: 'linear-gradient(to bottom, #b45309, #78350f)',
                               color: '#fef08a',
                               border: '2px solid #facc15',
-                              borderRadius: '10px',
-                              padding: '10px 18px',
-                              fontSize: '15.5px',
+                              borderRadius: '14px',
+                              padding: '14px 22px',
+                              fontSize: '20px',
                               fontWeight: '900',
                               cursor: 'default',
-                              boxShadow: '0 0 15px rgba(234, 179, 8, 0.4)',
+                              boxShadow: '0 0 15px rgba(234, 179, 8, 0.45)',
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '6px'
+                              gap: '8px'
                             }}
                           >
-                            <span>👑</span>
+                            <span style={{ fontSize: '23px' }}>👑</span>
                             <span>الغواصة في أقصى مستوى (المستوى Max ⭐)</span>
                           </button>
                           {ownedCount < 3 && (
@@ -1066,16 +1072,20 @@ export default function ShipWarehouse({
                               style={{
                                 background: 'linear-gradient(to bottom, #4f46e5, #3730a3)',
                                 color: '#fff',
-                                border: '1.5px solid #818cf8',
-                                borderRadius: '10px',
-                                padding: '10px 18px',
-                                fontSize: '15.5px',
+                                border: '2px solid #a5b4fc',
+                                borderRadius: '14px',
+                                padding: '14px 24px',
+                                fontSize: '21px',
                                 fontWeight: '900',
                                 cursor: 'pointer',
-                                boxShadow: '0 4px 12px rgba(79, 70, 229, 0.4)'
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                boxShadow: '0 6px 16px rgba(79, 70, 229, 0.5)'
                               }}
                             >
-                              🤿 شراء غواصة أخرى ({ownedCount}/3) بـ {spec.price.toLocaleString('ar-EG')} 🪙
+                              <span style={{ fontSize: '24px' }}>🤿</span>
+                              <span>شراء غواصة أخرى ({ownedCount}/3) بـ {spec.price.toLocaleString('en-US')} 🪙</span>
                             </button>
                           )}
                         </div>
@@ -1086,59 +1096,69 @@ export default function ShipWarehouse({
                         style={{
                           background: 'linear-gradient(to bottom, #4f46e5, #3730a3)',
                           color: '#fff',
-                          border: '1.5px solid #818cf8',
-                          borderRadius: '10px',
-                          padding: '10px 20px',
-                          fontSize: '16px',
+                          border: '2px solid #a5b4fc',
+                          borderRadius: '14px',
+                          padding: '14px 26px',
+                          fontSize: '22px',
                           fontWeight: '900',
                           cursor: 'pointer',
-                          boxShadow: '0 4px 14px rgba(79, 70, 229, 0.5)'
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          boxShadow: '0 6px 18px rgba(79, 70, 229, 0.55)'
                         }}
                       >
-                        {ownedCount > 0 ? `🤿 شراء غواصة أخرى (${ownedCount}/3) بـ ` : '🤿 شراء الغواصة (المستوى الأساسي 0) بـ '}
-                        {spec.price.toLocaleString('ar-EG')} 🪙
+                        <span style={{ fontSize: '25px' }}>🤿</span>
+                        <span>
+                          {ownedCount > 0 ? `شراء غواصة أخرى (${ownedCount}/3) بـ ` : 'شراء الغواصة (المستوى الأساسي 0) بـ '}
+                          {spec.price.toLocaleString('en-US')} 🪙
+                        </span>
                       </button>
                     )
                   ) : isMaxOwned ? (
                     <button
                       disabled
                       style={{
-                        background: 'rgba(202, 138, 4, 0.18)',
-                        color: '#facc15',
-                        border: '1.5px solid #ca8a04',
-                        borderRadius: '10px',
-                        padding: '10px 20px',
-                        fontSize: '15.5px',
-                        fontWeight: '800',
-                        cursor: 'not-allowed',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                      }}
-                    >
-                      ⭐ أقصى حد مملوك (3/3 سفن)
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => buyShipLevel(spec)}
-                      style={{
-                        background: 'linear-gradient(to bottom, #0284c7, #0369a1)',
-                        color: '#fff',
-                        border: '1.5px solid #38bdf8',
-                        borderRadius: '10px',
-                        padding: '10px 20px',
-                        fontSize: '16px',
+                        background: 'rgba(202, 138, 4, 0.22)',
+                        color: '#fef08a',
+                        border: '2px solid #eab308',
+                        borderRadius: '14px',
+                        padding: '13px 24px',
+                        fontSize: '20px',
                         fontWeight: '900',
-                        cursor: 'pointer',
-                        boxShadow: '0 4px 12px rgba(2, 132, 199, 0.4)',
+                        cursor: 'not-allowed',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px'
                       }}
                     >
-                      <span>{ownedCount > 0 ? '⚓' : '🛒'}</span>
-                      {ownedCount > 0 ? `شراء سفينة أخرى (${ownedCount}/3) بـ ` : 'شراء بـ '}
-                      {spec.price.toLocaleString('ar-EG')} 🪙
+                      <span style={{ fontSize: '22px' }}>⭐</span>
+                      <span>أقصى حد مملوك (3/3 سفن)</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => buyShipLevel(spec)}
+                      style={{
+                        background: 'linear-gradient(to bottom, #0ea5e9, #0369a1)',
+                        color: '#ffffff',
+                        border: '2.5px solid #7dd3fc',
+                        borderRadius: '14px',
+                        padding: '14px 28px',
+                        fontSize: '23px',
+                        fontWeight: '900',
+                        cursor: 'pointer',
+                        textShadow: '0 2px 4px rgba(0,0,0,0.6)',
+                        boxShadow: '0 6px 20px rgba(2, 132, 199, 0.6)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px'
+                      }}
+                    >
+                      <span style={{ fontSize: '26px' }}>{ownedCount > 0 ? '⚓' : '🛒'}</span>
+                      <span>
+                        {ownedCount > 0 ? `شراء سفينة أخرى (${ownedCount}/3) بـ ` : 'شراء بـ '}
+                        <span style={{ color: '#fef08a' }}>{spec.price.toLocaleString('en-US')}</span> 🪙
+                      </span>
                     </button>
                   )}
                 </div>
@@ -1182,13 +1202,13 @@ export default function ShipWarehouse({
 
                 {/* Ship Name & Subtitle description */}
                 <div style={{ textAlign: 'center', padding: '4px 6px' }}>
-                  <h4 style={{ color: '#facc15', margin: '0 0 6px 0', fontSize: '24px', fontWeight: '900', textShadow: '0 2px 4px rgba(0,0,0,0.75)' }}>
+                  <h4 style={{ color: '#facc15', margin: '0 0 6px 0', fontSize: '28px', fontWeight: '900', textShadow: '0 2px 4px rgba(0,0,0,0.75)' }}>
                     {isSubmarineCard && ownedSubmarine
                       ? `غواصة الأعماق الأسطورية (${getSubmarineDisplayTier(currentLevel)} 🤿)`
                       : (shipData?.name || currentSpec.name)
                     }
                   </h4>
-                  <p style={{ color: '#f8fafc', margin: '0', fontSize: '17px', fontWeight: '600', lineHeight: '1.6' }}>
+                  <p style={{ color: '#f8fafc', margin: '0', fontSize: '19.5px', fontWeight: '600', lineHeight: '1.6' }}>
                     {shipData?.description || currentSpec.subName}
                   </p>
                 </div>
@@ -1200,40 +1220,40 @@ export default function ShipWarehouse({
                   background: '#090502',
                   border: '1.5px solid #3a200e',
                   borderRadius: '12px',
-                  padding: '14px 6px',
+                  padding: '16px 8px',
                   marginTop: '6px'
                 }}>
                   {/* Col 1: Duration/Speed */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderLeft: '1px solid rgba(255,255,255,0.12)', gap: '4px', padding: '0 4px' }}>
-                    <span style={{ fontSize: '24px' }}>⏱️</span>
-                    <span style={{ fontSize: '13.5px', color: '#cbd5e1', fontWeight: '700' }}>مدة الامتلاء</span>
-                    <span style={{ fontSize: '16.5px', color: '#ffffff', fontWeight: '900', textAlign: 'center' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderLeft: '1px solid rgba(255,255,255,0.12)', gap: '6px', padding: '0 6px' }}>
+                    <span style={{ fontSize: '30px' }}>⏱️</span>
+                    <span style={{ fontSize: '16.5px', color: '#cbd5e1', fontWeight: '800' }}>مدة الامتلاء</span>
+                    <span style={{ fontSize: '19.5px', color: '#ffffff', fontWeight: '900', textAlign: 'center' }}>
                       {shipData?.withoutCrewFill || currentSpec.durationStr}
                     </span>
                   </div>
 
                   {/* Col 2: Power */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderLeft: '1px solid rgba(255,255,255,0.12)', gap: '4px', padding: '0 4px' }}>
-                    <span style={{ fontSize: '24px' }}>⚔️</span>
-                    <span style={{ fontSize: '13.5px', color: '#cbd5e1', fontWeight: '700' }}>قوة الهجوم</span>
-                    <span style={{ fontSize: '16.5px', color: '#f87171', fontWeight: '900' }}>{currentSpec.power.toLocaleString('ar-EG')}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderLeft: '1px solid rgba(255,255,255,0.12)', gap: '6px', padding: '0 6px' }}>
+                    <span style={{ fontSize: '30px' }}>⚔️</span>
+                    <span style={{ fontSize: '16.5px', color: '#cbd5e1', fontWeight: '800' }}>قوة الهجوم</span>
+                    <span style={{ fontSize: '19.5px', color: '#f87171', fontWeight: '900' }}>{currentSpec.power.toLocaleString('en-US')}</span>
                   </div>
 
                   {/* Col 3: Cargo */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderLeft: '1px solid rgba(255,255,255,0.12)', gap: '4px', padding: '0 4px' }}>
-                    <span style={{ fontSize: '24px' }}>📦</span>
-                    <span style={{ fontSize: '13.5px', color: '#cbd5e1', fontWeight: '700' }}>سعة التخزين</span>
-                    <span style={{ fontSize: '16.5px', color: '#facc15', fontWeight: '900' }}>
-                      {(shipData?.storageCapacity || currentSpec.cargo).toLocaleString('ar-EG')}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderLeft: '1px solid rgba(255,255,255,0.12)', gap: '6px', padding: '0 6px' }}>
+                    <span style={{ fontSize: '30px' }}>📦</span>
+                    <span style={{ fontSize: '16.5px', color: '#cbd5e1', fontWeight: '800' }}>سعة التخزين</span>
+                    <span style={{ fontSize: '19.5px', color: '#facc15', fontWeight: '900' }}>
+                      {(shipData?.storageCapacity || currentSpec.cargo).toLocaleString('en-US')}
                     </span>
                   </div>
 
                   {/* Col 4: Hook/Fishing */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', padding: '0 4px' }}>
-                    <span style={{ fontSize: '24px' }}>🎣</span>
-                    <span style={{ fontSize: '13.5px', color: '#cbd5e1', fontWeight: '700' }}>معدل الصيد</span>
-                    <span style={{ fontSize: '16px', color: '#7dd3fc', fontWeight: '900', textAlign: 'center' }}>
-                      {shipData ? `${shipData.withoutCrewFishing}د / ${shipData.sailorFishing}د` : currentSpec.hook.toLocaleString('ar-EG')}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '0 6px' }}>
+                    <span style={{ fontSize: '30px' }}>🎣</span>
+                    <span style={{ fontSize: '16.5px', color: '#cbd5e1', fontWeight: '800' }}>معدل الصيد</span>
+                    <span style={{ fontSize: '19px', color: '#7dd3fc', fontWeight: '900', textAlign: 'center' }}>
+                      {shipData ? `${shipData.withoutCrewFishing}د / ${shipData.sailorFishing}د` : currentSpec.hook.toLocaleString('en-US')}
                     </span>
                   </div>
                 </div>
@@ -1244,34 +1264,34 @@ export default function ShipWarehouse({
                     background: 'rgba(0,0,0,0.45)',
                     border: '1.5px solid #3a200e',
                     borderRadius: '12px',
-                    padding: '14px',
+                    padding: '16px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '10px'
+                    gap: '12px'
                   }}>
-                    <div style={{ color: '#facc15', fontSize: '16.5px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>⏱️</span> توقيتات الامتلاء وسعة الحظ:
+                    <div style={{ color: '#facc15', fontSize: '19px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '22px' }}>⏱️</span> توقيتات الامتلاء وسعة الحظ:
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', fontSize: '15.5px' }}>
-                      <div style={{ background: '#1c1007', padding: '10px 12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid rgba(56,189,248,0.2)' }}>
-                        <span style={{ color: '#f1f5f9', fontWeight: '600' }}>بدون طاقم:</span>
-                        <span style={{ color: '#7dd3fc', fontWeight: '900', fontSize: '16px' }}>{shipData.withoutCrewFill}</span>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', fontSize: '18px' }}>
+                      <div style={{ background: '#1c1007', padding: '12px 14px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid rgba(56,189,248,0.25)' }}>
+                        <span style={{ color: '#f1f5f9', fontWeight: '700' }}>بدون طاقم:</span>
+                        <span style={{ color: '#7dd3fc', fontWeight: '900', fontSize: '18.5px' }}>{shipData.withoutCrewFill}</span>
                       </div>
-                      <div style={{ background: '#1c1007', padding: '10px 12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid rgba(52,211,153,0.2)' }}>
-                        <span style={{ color: '#f1f5f9', fontWeight: '600' }}>مع الحظ:</span>
-                        <span style={{ color: '#6ee7b7', fontWeight: '900', fontSize: '16px' }}>{shipData.withoutCrewPlusLucky}</span>
+                      <div style={{ background: '#1c1007', padding: '12px 14px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid rgba(52,211,153,0.25)' }}>
+                        <span style={{ color: '#f1f5f9', fontWeight: '700' }}>مع الحظ:</span>
+                        <span style={{ color: '#6ee7b7', fontWeight: '900', fontSize: '18.5px' }}>{shipData.withoutCrewPlusLucky}</span>
                       </div>
-                      <div style={{ background: '#1c1007', padding: '10px 12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid rgba(167,139,250,0.2)' }}>
-                        <span style={{ color: '#f1f5f9', fontWeight: '600' }}>مع البحار:</span>
-                        <span style={{ color: '#c4b5fd', fontWeight: '900', fontSize: '16px' }}>{shipData.sailor}</span>
+                      <div style={{ background: '#1c1007', padding: '12px 14px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid rgba(167,139,250,0.25)' }}>
+                        <span style={{ color: '#f1f5f9', fontWeight: '700' }}>مع البحار:</span>
+                        <span style={{ color: '#c4b5fd', fontWeight: '900', fontSize: '18.5px' }}>{shipData.sailor}</span>
                       </div>
-                      <div style={{ background: '#1c1007', padding: '10px 12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid rgba(251,191,36,0.2)' }}>
-                        <span style={{ color: '#f1f5f9', fontWeight: '600' }}>البحار + الحظ:</span>
-                        <span style={{ color: '#fde047', fontWeight: '900', fontSize: '16px' }}>{shipData.sailorPlusLucky}</span>
+                      <div style={{ background: '#1c1007', padding: '12px 14px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid rgba(251,191,36,0.25)' }}>
+                        <span style={{ color: '#f1f5f9', fontWeight: '700' }}>البحار + الحظ:</span>
+                        <span style={{ color: '#fde047', fontWeight: '900', fontSize: '18.5px' }}>{shipData.sailorPlusLucky}</span>
                       </div>
                     </div>
-                    <div style={{ fontSize: '16px', color: '#f8fafc', fontWeight: '700', textAlign: 'center', marginTop: '4px' }}>
-                      ✨ السعة مع الحظ السعيد: <span style={{ color: '#facc15', fontWeight: '900', fontSize: '17px' }}>{shipData.storageWithLucky.toLocaleString('ar-EG')}</span> سمكة/ذهب
+                    <div style={{ fontSize: '18.5px', color: '#f8fafc', fontWeight: '800', textAlign: 'center', marginTop: '4px' }}>
+                      ✨ السعة مع الحظ السعيد: <span style={{ color: '#facc15', fontWeight: '900', fontSize: '20px' }}>{shipData.storageWithLucky.toLocaleString('en-US')}</span> سمكة/ذهب
                     </div>
                   </div>
                 )}
@@ -1282,9 +1302,9 @@ export default function ShipWarehouse({
                   direction: 'rtl',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '10px'
+                  gap: '12px'
                 }}>
-                  <div style={{ textAlign: 'center', fontSize: '16.5px', color: '#bae6fd', fontWeight: '900' }}>
+                  <div style={{ textAlign: 'center', fontSize: '19px', color: '#bae6fd', fontWeight: '900' }}>
                     🐟 نوع السمك المتوفر في هذه السفينة:
                   </div>
                   <div style={{
@@ -1305,15 +1325,15 @@ export default function ShipWarehouse({
                         <div
                           key={idx}
                           style={{
-                            flex: '1 1 170px',
-                            maxWidth: '240px',
+                            flex: '1 1 180px',
+                            maxWidth: '250px',
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
                             gap: '8px',
                             color: '#ffffff',
                             background: 'linear-gradient(180deg, rgba(14, 116, 144, 0.25) 0%, rgba(15, 23, 42, 0.96) 100%)',
-                            padding: '12px 12px',
+                            padding: '14px 12px',
                             borderRadius: '12px',
                             border: '1.5px solid rgba(56, 189, 248, 0.45)',
                             boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 10px rgba(0,0,0,0.45)'
@@ -1322,7 +1342,7 @@ export default function ShipWarehouse({
                           <div
                             style={{
                               width: '100%',
-                              height: '82px',
+                              height: '86px',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -1336,19 +1356,19 @@ export default function ShipWarehouse({
                                 src={fImg}
                                 alt={fish}
                                 style={{
-                                  width: '128px',
-                                  height: '74px',
+                                  width: '132px',
+                                  height: '78px',
                                   objectFit: 'contain',
                                   filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.92)) drop-shadow(0 0 6px rgba(186,230,253,0.35)) contrast(1.08) saturate(1.1)'
                                 }}
                               />
                             ) : (
-                              <span style={{ fontSize: '34px' }}>{emoji}</span>
+                              <span style={{ fontSize: '38px' }}>{emoji}</span>
                             )}
                           </div>
-                          <span style={{ fontWeight: '900', fontSize: '17.5px', color: '#ffffff', textAlign: 'center' }}>{fish}</span>
+                          <span style={{ fontWeight: '900', fontSize: '20px', color: '#ffffff', textAlign: 'center' }}>{fish}</span>
                           {fPriceLabel !== undefined && (
-                            <span style={{ color: '#fde047', fontSize: '16px', fontWeight: '800', background: 'rgba(0,0,0,0.5)', padding: '4px 12px', borderRadius: '8px', border: '1px solid rgba(251,191,36,0.35)' }}>
+                            <span style={{ color: '#fde047', fontSize: '18.5px', fontWeight: '900', background: 'rgba(0,0,0,0.55)', padding: '5px 14px', borderRadius: '8px', border: '1.5px solid rgba(251,191,36,0.4)' }}>
                               {fPriceLabel} 🪙
                             </span>
                           )}

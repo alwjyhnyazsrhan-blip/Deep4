@@ -513,7 +513,7 @@ export const WarLogModal: React.FC<WarLogModalProps> = ({
                           }}
                         >
                           <Coins style={{ width: '16px', height: '16px' }} />
-                          <span>الذهب المسروق: 🪙 {item.goldLooted.toLocaleString('ar-EG')} ذهب</span>
+                          <span>الذهب المسروق: 🪙 {item.goldLooted.toLocaleString('en-US')} ذهب</span>
                         </div>
                       )}
                     </div>
@@ -694,7 +694,7 @@ export const WarLogModal: React.FC<WarLogModalProps> = ({
                             }}
                           >
                             <Gem style={{ width: '14px', height: '14px' }} />
-                            <span>💎 {gift.rewards.gems.toLocaleString('ar-EG')} جوهرة</span>
+                            <span>💎 {gift.rewards.gems.toLocaleString('en-US')} جوهرة</span>
                           </div>
                         )}
 
@@ -714,7 +714,7 @@ export const WarLogModal: React.FC<WarLogModalProps> = ({
                             }}
                           >
                             <Coins style={{ width: '14px', height: '14px' }} />
-                            <span>🪙 {gift.rewards.gold.toLocaleString('ar-EG')} ذهب</span>
+                            <span>🪙 {gift.rewards.gold.toLocaleString('en-US')} ذهب</span>
                           </div>
                         )}
 
@@ -888,7 +888,7 @@ export const WarLogModal: React.FC<WarLogModalProps> = ({
                     <div style={{ textAlign: 'left', fontSize: '12px', color: '#94a3b8' }}>
                       {typeof report.goldChange === 'number' && report.goldChange !== 0 && (
                         <div style={{ color: report.goldChange > 0 ? '#facc15' : '#f87171', fontWeight: 'bold', fontSize: '13px' }}>
-                          {report.goldChange > 0 ? `+${report.goldChange.toLocaleString('ar-EG')} 🪙` : `${report.goldChange.toLocaleString('ar-EG')} 🪙`}
+                          {report.goldChange > 0 ? `+${report.goldChange.toLocaleString('en-US')} 🪙` : `${report.goldChange.toLocaleString('en-US')} 🪙`}
                         </div>
                       )}
                       <div>{timeText}</div>

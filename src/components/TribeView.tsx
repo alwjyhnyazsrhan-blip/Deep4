@@ -3458,7 +3458,7 @@ export default function TribeView({
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                 <span style={{ fontSize: '26px', fontWeight: '800', color: '#f2d382' }}>رصيدك من الذهب:</span>
-                <span style={{ fontSize: '30px', fontWeight: '900', color: '#ffffff' }}>{gold.toLocaleString('ar-EG')} 🪙</span>
+                <span style={{ fontSize: '30px', fontWeight: '900', color: '#ffffff' }}>{gold.toLocaleString('en-US')} 🪙</span>
               </div>
 
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>

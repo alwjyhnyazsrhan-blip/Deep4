@@ -430,11 +430,11 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '18px', fontSize: '20px', fontWeight: '900' }}>
           <span style={{ color: '#facc15', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontSize: '22px' }}>🪙</span>
-            <span>{gold.toLocaleString()} ذهب</span>
+            <span>{gold.toLocaleString('en-US')} ذهب</span>
           </span>
           <span style={{ color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontSize: '22px' }}>💎</span>
-            <span>{gems.toLocaleString()} جوهرة</span>
+            <span>{gems.toLocaleString('en-US')} جوهرة</span>
           </span>
         </div>
       </div>
@@ -794,7 +794,7 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                   }}
                 >
                   <span style={{ fontSize: '18px' }}>{item.costType === 'gold' ? '🪙' : '💎'}</span>
-                  <span>{item.costType === 'gold' ? item.price.toLocaleString() : item.price}</span>
+                  <span>{item.costType === 'gold' ? item.price.toLocaleString('en-US') : item.price}</span>
                 </div>
               </div>
 
@@ -1061,7 +1061,7 @@ export const CrewTavernModal: React.FC<CrewTavernModalProps> = ({
                     >
                       <span>🛒 {btnText} ({selectedCrewQty}x)</span>
                       <span style={{ fontSize: '20px' }}>{item.costType === 'gold' ? '🪙' : '💎'}</span>
-                      <span>{item.costType === 'gold' ? totalCrewCost.toLocaleString() : totalCrewCost}</span>
+                      <span>{item.costType === 'gold' ? totalCrewCost.toLocaleString('en-US') : totalCrewCost}</span>
                     </button>
                   );
 

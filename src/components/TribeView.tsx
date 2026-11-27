@@ -1935,7 +1935,7 @@ export default function TribeView({
           maxWidth: '100%',
           padding:
             screenMode === 'manage' && currentTribe
-              ? '0 24px 36px 24px'
+              ? '0 0 0 0'
               : '48px 5vw 72px 5vw',
           boxSizing: 'border-box',
           display: 'flex',
@@ -2208,8 +2208,9 @@ export default function TribeView({
             style={{
               position: 'relative',
               width: '100%',
-              marginTop: '-6px',
-              borderRadius: '12px',
+              maxWidth: '100%',
+              marginTop: '0px',
+              borderRadius: '0px',
               border: '4px solid #d9a441',
               boxShadow:
                 '0 18px 44px rgba(0, 0, 0, 0.9), 0 0 28px rgba(217, 164, 65, 0.25), inset 0 0 0 2px rgba(254, 240, 138, 0.35)',

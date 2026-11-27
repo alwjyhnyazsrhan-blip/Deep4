@@ -1813,7 +1813,7 @@ export default function TribeView({
             position: 'relative',
             zIndex: 4,
             width: '100%',
-            maxWidth: '100%',
+            maxWidth: '940px',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -1932,16 +1932,16 @@ export default function TribeView({
           position: 'relative',
           zIndex: 3,
           width: '100%',
-          maxWidth: '100%',
+          maxWidth: screenMode === 'manage' && currentTribe ? '940px' : '880px',
           padding:
             screenMode === 'manage' && currentTribe
-              ? '0 0 0 0'
-              : '48px 5vw 72px 5vw',
+              ? '0 4px 18px 4px'
+              : '34px 36px 50px 36px',
           boxSizing: 'border-box',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: screenMode === 'manage' && currentTribe ? '0px' : '42px',
+          gap: screenMode === 'manage' && currentTribe ? '0px' : '32px',
           flex: 1,
         }}
       >
@@ -2208,9 +2208,9 @@ export default function TribeView({
             style={{
               position: 'relative',
               width: '100%',
-              maxWidth: '100%',
-              marginTop: '0px',
-              borderRadius: '0px',
+              maxWidth: '940px',
+              marginTop: '-6px',
+              borderRadius: '12px',
               border: '4px solid #d9a441',
               boxShadow:
                 '0 18px 44px rgba(0, 0, 0, 0.9), 0 0 28px rgba(217, 164, 65, 0.25), inset 0 0 0 2px rgba(254, 240, 138, 0.35)',

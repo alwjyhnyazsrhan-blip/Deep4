@@ -956,7 +956,7 @@ interface TribeViewProps {
 }
 
 type TribeScreenMode = 'menu' | 'create' | 'join' | 'invitations' | 'manage' | 'donations' | 'levels';
-type TribeManageTab = 'info' | 'members' | 'message';
+type TribeManageTab = 'info' | 'members' | 'requests' | 'message';
 
 export default function TribeView({
   onClose,
@@ -989,6 +989,7 @@ export default function TribeView({
   const [manageTab, setManageTab] = useState<TribeManageTab>('info');
   const [searchQuery, setSearchQuery] = useState('');
   const [tribeSearchQuery, setTribeSearchQuery] = useState('');
+  const [inviteSearchQuery, setInviteSearchQuery] = useState('');
   const [expandedLevels, setExpandedLevels] = useState<Record<number, boolean>>({ 1: true });
   const [newTribeNameInput, setNewTribeNameInput] = useState('');
   const [newTribeDescInput, setNewTribeDescInput] = useState('');
@@ -1636,6 +1637,10 @@ export default function TribeView({
 
   // Back button handler depending on current sub-screen
   const handleBackAction = () => {
+    if (screenMode === 'manage' && manageTab !== 'info') {
+      setManageTab('info');
+      return;
+    }
     if (screenMode === 'menu' || (screenMode === 'manage' && hasJoinedTribe)) {
       onClose();
       return;
@@ -1813,7 +1818,7 @@ export default function TribeView({
             position: 'relative',
             zIndex: 4,
             width: '100%',
-            maxWidth: '940px',
+            maxWidth: '100%',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -1932,10 +1937,10 @@ export default function TribeView({
           position: 'relative',
           zIndex: 3,
           width: '100%',
-          maxWidth: screenMode === 'manage' && currentTribe ? '940px' : '880px',
+          maxWidth: '100%',
           padding:
             screenMode === 'manage' && currentTribe
-              ? '0 4px 18px 4px'
+              ? '0 0 0 0'
               : '34px 36px 50px 36px',
           boxSizing: 'border-box',
           display: 'flex',
@@ -2208,9 +2213,9 @@ export default function TribeView({
             style={{
               position: 'relative',
               width: '100%',
-              maxWidth: '940px',
+              maxWidth: '100%',
               marginTop: '-6px',
-              borderRadius: '12px',
+              borderRadius: '0px',
               border: '4px solid #d9a441',
               boxShadow:
                 '0 18px 44px rgba(0, 0, 0, 0.9), 0 0 28px rgba(217, 164, 65, 0.25), inset 0 0 0 2px rgba(254, 240, 138, 0.35)',
@@ -2285,6 +2290,8 @@ export default function TribeView({
               >
                 {manageTab === 'members'
                   ? 'تحالف الاعضاء'
+                  : manageTab === 'requests'
+                  ? 'قبول الأعضاء'
                   : manageTab === 'message'
                   ? 'شات القبيلة'
                   : 'بيانات ملوك الأعماق'}
@@ -2310,8 +2317,8 @@ export default function TribeView({
                 style={{
                   width: '100%',
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                  gap: '12px',
+                  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                  gap: '8px',
                   boxSizing: 'border-box',
                 }}
               >
@@ -2319,8 +2326,9 @@ export default function TribeView({
                   [
                     { id: 'info', label: 'بيانات ملوك الأعماق' },
                     { id: 'members', label: 'تحالف الاعضاء' },
+                    { id: 'requests', label: 'قبول الأعضاء', count: incomingTribeJoinRequests.length },
                     { id: 'message', label: 'شات القبيلة' },
-                  ] as Array<{ id: TribeManageTab; label: string }>
+                  ] as Array<{ id: TribeManageTab; label: string; count?: number }>
                 ).map((tab) => {
                   const isActive = manageTab === tab.id;
                   return (
@@ -2329,8 +2337,9 @@ export default function TribeView({
                       type="button"
                       onClick={() => setManageTab(tab.id)}
                       style={{
+                        position: 'relative',
                         height: '66px',
-                        padding: '0 12px',
+                        padding: '0 6px',
                         borderRadius: '8px',
                         border: isActive ? '2.5px solid #f7c95c' : '2px solid #c99940',
                         background: isActive
@@ -2341,7 +2350,7 @@ export default function TribeView({
                           : '0 4px 10px rgba(0, 0, 0, 0.7), inset 0 1.5px 0 rgba(147, 197, 253, 0.25)',
                         color: isActive ? '#fef08a' : '#f3ebd8',
                         fontFamily: 'inherit',
-                        fontSize: '23px',
+                        fontSize: 'clamp(14px, 2vw, 21px)',
                         fontWeight: '900',
                         cursor: 'pointer',
                         whiteSpace: 'nowrap',
@@ -2350,13 +2359,37 @@ export default function TribeView({
                       }}
                     >
                       {tab.label}
+                      {tab.count !== undefined && tab.count > 0 && (
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: '-7px',
+                            left: '-3px',
+                            background: '#ef4444',
+                            color: '#ffffff',
+                            border: '2px solid #fef08a',
+                            borderRadius: '9999px',
+                            minWidth: '24px',
+                            height: '24px',
+                            padding: '0 5px',
+                            fontSize: '14px',
+                            fontWeight: '900',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 2px 8px rgba(239, 68, 68, 0.9)',
+                          }}
+                        >
+                          {tab.count}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
               </div>
 
               {/* Pending Join Requests Alert Card for Tribe Leader (شيخ القبيلة) */}
-              {incomingTribeJoinRequests.length > 0 && (
+              {incomingTribeJoinRequests.length > 0 && manageTab !== 'requests' && (
                 <div
                   style={{
                     width: '100%',
@@ -2638,7 +2671,7 @@ export default function TribeView({
                     {/* Royal Sapphire-Blue Diamond-Studded "قبول الأعضاء" Button */}
                     <button
                       type="button"
-                      onClick={() => setShowJoinInvitesPanel((prev) => !prev)}
+                      onClick={() => setManageTab('requests')}
                       style={{
                         position: 'relative',
                         minWidth: '268px',
@@ -3237,7 +3270,355 @@ export default function TribeView({
               </div>
             )}
 
-            {/* Sub-Tab 3: شات القبيلة */}
+            {/* Sub-Tab 3: قبول الأعضاء والدعوات */}
+            {manageTab === 'requests' && (
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Header Overview Card */}
+                <div
+                  style={{
+                    width: '100%',
+                    padding: '20px 24px',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(180deg, #132a4e 0%, #0c1b35 100%)',
+                    border: '2.5px solid #d9a441',
+                    boxShadow: '0 8px 20px rgba(0,0,0,0.6)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '14px',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <span style={{ fontSize: '42px', lineHeight: 1 }}>🛡️</span>
+                    <div>
+                      <div style={{ fontSize: '27px', fontWeight: '900', color: '#fef08a' }}>
+                        إدارة وقبول الأعضاء
+                      </div>
+                      <div style={{ fontSize: '20px', fontWeight: '800', color: '#93c5fd', marginTop: '4px' }}>
+                        قبيلة [{currentTribe.name || 'ملوك الأعماق'}] • المستوى {currentTribeLevel}
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      background: 'rgba(15, 23, 42, 0.75)',
+                      border: '1.5px solid #60a5fa',
+                      borderRadius: '10px',
+                      padding: '8px 20px',
+                      fontSize: '23px',
+                      fontWeight: '900',
+                      color: '#ffffff',
+                    }}
+                  >
+                    الأعضاء: <span style={{ color: '#fde047' }}>{currentTribeMembersCount}</span> / {currentTribeMaxMembers}
+                  </div>
+                </div>
+
+                {/* Section 1: Pending Join Requests */}
+                <div
+                  style={{
+                    width: '100%',
+                    padding: '20px 22px',
+                    borderRadius: '14px',
+                    background: 'linear-gradient(180deg, #0f1c30 0%, #091220 100%)',
+                    border: '2.5px solid #e7b952',
+                    boxShadow: '0 8px 20px rgba(0,0,0,0.7)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '16px',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '25px', fontWeight: '900', color: '#fbbf24' }}>
+                      <span>📩</span>
+                      <span>طلبات الانضمام بانتظار الموافقة ({incomingTribeJoinRequests.length})</span>
+                    </div>
+                    <span style={{ fontSize: '18px', color: '#94a3b8', fontWeight: '700' }}>
+                      موافقة شيخ القبيلة مطلوبة لاعتماد العضوية
+                    </span>
+                  </div>
+
+                  {incomingTribeJoinRequests.length === 0 ? (
+                    <div
+                      style={{
+                        padding: '36px 20px',
+                        textAlign: 'center',
+                        background: 'rgba(15, 23, 42, 0.6)',
+                        borderRadius: '10px',
+                        border: '1.5px dashed rgba(217, 164, 65, 0.4)',
+                        color: '#cbd5e1',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      <span style={{ fontSize: '44px' }}>⚓</span>
+                      <span style={{ fontSize: '23px', fontWeight: '900', color: '#f8fafc' }}>
+                        لا توجد طلبات انضمام جديدة حالياً
+                      </span>
+                      <span style={{ fontSize: '18px', color: '#94a3b8' }}>
+                        عندما يطلب أي قبطان الانضمام إلى قبيلتك ستظهر بياناته هنا للموافقة عليه أو رفضه فوراً.
+                      </span>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {incomingTribeJoinRequests.map((req) => {
+                        const rawAv = String(req.applicantAvatar || '').trim();
+                        const isImg = rawAv.startsWith('http') || rawAv.startsWith('/') || rawAv.startsWith('data:image');
+                        return (
+                          <div
+                            key={req.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              flexWrap: 'wrap',
+                              gap: '14px',
+                              padding: '16px 20px',
+                              borderRadius: '12px',
+                              background: 'rgba(21, 37, 65, 0.95)',
+                              border: '2px solid rgba(251, 191, 36, 0.65)',
+                              boxShadow: '0 4px 14px rgba(0,0,0,0.5)',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                              <div
+                                style={{
+                                  width: '64px',
+                                  height: '64px',
+                                  borderRadius: '50%',
+                                  border: '2.5px solid #fbbf24',
+                                  overflow: 'hidden',
+                                  background: '#0f172a',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {isImg ? (
+                                  <img src={rawAv} alt={req.applicantName} referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                  <span style={{ fontSize: '36px' }}>{rawAv || '⚓'}</span>
+                                )}
+                              </div>
+                              <div>
+                                <div style={{ fontSize: '25px', fontWeight: '900', color: '#ffffff' }}>
+                                  @{req.applicantName}
+                                </div>
+                                <div style={{ fontSize: '20px', fontWeight: '800', color: '#fde047', marginTop: '2px' }}>
+                                  ليفل {req.applicantLevel || 1} • قوة {req.applicantPower || 0} ⚔️
+                                </div>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                              <button
+                                type="button"
+                                onClick={() => onRejectTribeJoin?.(req)}
+                                style={{
+                                  padding: '12px 24px',
+                                  borderRadius: '10px',
+                                  border: '2px solid #fca5a5',
+                                  background: 'linear-gradient(180deg, #dc2626 0%, #991b1b 100%)',
+                                  color: '#ffffff',
+                                  fontFamily: 'inherit',
+                                  fontSize: '22px',
+                                  fontWeight: '900',
+                                  cursor: 'pointer',
+                                  boxShadow: '0 4px 12px rgba(220, 38, 38, 0.4)',
+                                }}
+                              >
+                                ❌ رفض الطلب
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => onApproveTribeJoin?.(req)}
+                                style={{
+                                  padding: '12px 28px',
+                                  borderRadius: '10px',
+                                  border: '2px solid #86efac',
+                                  background: 'linear-gradient(180deg, #16a34a 0%, #15803d 100%)',
+                                  color: '#ffffff',
+                                  fontFamily: 'inherit',
+                                  fontSize: '22px',
+                                  fontWeight: '900',
+                                  cursor: 'pointer',
+                                  boxShadow: '0 4px 14px rgba(22, 163, 74, 0.5)',
+                                }}
+                              >
+                                ✅ موافقة على الانضمام
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Section 2: Invite Available Captains */}
+                <div
+                  style={{
+                    width: '100%',
+                    padding: '20px 22px',
+                    borderRadius: '14px',
+                    background: 'linear-gradient(180deg, #0f1c30 0%, #091220 100%)',
+                    border: '2.5px solid #38bdf8',
+                    boxShadow: '0 8px 20px rgba(0,0,0,0.7)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '16px',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '25px', fontWeight: '900', color: '#7dd3fc' }}>
+                      <span>📨</span>
+                      <span>دعوة قباطنة جدد للتحالف</span>
+                    </div>
+                    <span style={{ fontSize: '18px', color: '#bae6fd', fontWeight: '700' }}>
+                      أرسل دعوة مباشرة لأي قبطان متاح
+                    </span>
+                  </div>
+
+                  {/* Search box for captains */}
+                  <input
+                    type="text"
+                    dir="rtl"
+                    placeholder="ابحث عن قبطان بالاسم لدعوته..."
+                    value={inviteSearchQuery}
+                    onChange={(e) => setInviteSearchQuery(e.target.value)}
+                    style={{
+                      width: '100%',
+                      height: '58px',
+                      padding: '0 18px',
+                      borderRadius: '10px',
+                      border: '2px solid #38bdf8',
+                      background: '#071529',
+                      color: '#ffffff',
+                      fontFamily: 'inherit',
+                      fontSize: '21px',
+                      fontWeight: '800',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+
+                  {/* List of available players */}
+                  {(() => {
+                    const availablePlayers = realPlayers
+                      .filter((p) => {
+                        const pId = p.userId || p.id;
+                        return pId !== currentUser?.uid && p.tribeId !== currentTribe.id;
+                      })
+                      .filter((p) => {
+                        if (!inviteSearchQuery.trim()) return true;
+                        return (p.username || '').toLowerCase().includes(inviteSearchQuery.trim().toLowerCase());
+                      });
+
+                    if (availablePlayers.length === 0) {
+                      return (
+                        <div
+                          style={{
+                            padding: '24px',
+                            textAlign: 'center',
+                            background: 'rgba(15, 23, 42, 0.6)',
+                            borderRadius: '10px',
+                            border: '1.5px dashed rgba(56, 189, 248, 0.4)',
+                            color: '#cbd5e1',
+                            fontSize: '20px',
+                            fontWeight: '700',
+                          }}
+                        >
+                          {inviteSearchQuery.trim()
+                            ? `لا يوجد قبطان مطابق للبحث "${inviteSearchQuery}"`
+                            : 'لا يوجد قباطنة متاحون للدعوة حالياً.'}
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '340px', overflowY: 'auto' }}>
+                        {availablePlayers.slice(0, 20).map((p) => {
+                          const pId = p.userId || p.id;
+                          const isInvited = invitedPlayerIds.includes(pId);
+                          const pAv = String(p.avatar || '').trim();
+                          const isImg = pAv.startsWith('data:image') || pAv.startsWith('/') || pAv.startsWith('http');
+                          return (
+                            <div
+                              key={pId}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '12px 18px',
+                                borderRadius: '10px',
+                                background: 'rgba(13, 47, 102, 0.78)',
+                                border: '1.5px solid #3b82f6',
+                                gap: '12px',
+                                flexWrap: 'wrap',
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div
+                                  style={{
+                                    width: '46px',
+                                    height: '46px',
+                                    borderRadius: '50%',
+                                    overflow: 'hidden',
+                                    border: '1.5px solid #60a5fa',
+                                    background: '#0f172a',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {isImg ? (
+                                    <img src={pAv} alt={p.username || 'قبطان'} referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  ) : (
+                                    <span style={{ fontSize: '26px' }}>{pAv || '⚓'}</span>
+                                  )}
+                                </div>
+                                <span style={{ fontSize: '22px', fontWeight: '900', color: '#ffffff' }}>
+                                  @{p.username || 'قبطان'}
+                                </span>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => handleInvitePlayer(p)}
+                                style={{
+                                  padding: '10px 22px',
+                                  borderRadius: '8px',
+                                  border: '1.5px solid #93c5fd',
+                                  background: isInvited ? '#1e3a5f' : 'linear-gradient(180deg, #2789ec 0%, #0b3c85 100%)',
+                                  color: '#ffffff',
+                                  fontFamily: 'inherit',
+                                  fontSize: '20px',
+                                  fontWeight: '900',
+                                  cursor: 'pointer',
+                                  boxShadow: '0 4px 10px rgba(0,0,0,0.4)',
+                                }}
+                              >
+                                {isInvited ? 'تمت الدعوة ✓' : 'إرسال دعوة 📩'}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {/* Sub-Tab 4: شات القبيلة */}
             {manageTab === 'message' && (() => {
               const handleSendTribeChat = () => {
                 const msg = tribeMessageInput.trim();

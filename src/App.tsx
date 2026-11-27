@@ -17260,7 +17260,7 @@ export default function App() {
         useCustomAvatarFrame={useCustomAvatarFrame}
         ships={ships}
         portDestroyed={portDestroyed}
-        unavengedAlertsCount={attackLogs.filter(a => !a.isAvenged).length + incomingTribeJoinRequests.length + incomingTribeInvitations.length}
+        unavengedAlertsCount={attackLogs.filter(a => !a.isAvenged).length + supportGifts.filter(g => !g.claimed).length}
         isOnline={isOnline}
         onOpenProfile={() => setShowProfileAvatarModal(true)}
         onOpenShop={() => setActiveTab('shop')}

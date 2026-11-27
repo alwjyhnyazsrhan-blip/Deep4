@@ -2631,8 +2631,13 @@ export default function TribeView({
                                     border: '1px solid #3b82f6',
                                   }}
                                 >
-                                  <span style={{ fontSize: '20px', fontWeight: '800', color: '#ffffff' }}>
-                                    {p.avatar || '⚓'} @{p.username || 'قبطان'}
+                                  <span style={{ fontSize: '20px', fontWeight: '800', color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                                    {p.avatar && (p.avatar.startsWith('data:image') || p.avatar.startsWith('/') || p.avatar.startsWith('http')) ? (
+                                      <img src={p.avatar} alt={p.username || 'قبطان'} referrerPolicy="no-referrer" style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} />
+                                    ) : (
+                                      <span>{p.avatar || '⚓'}</span>
+                                    )}
+                                    <span>@{p.username || 'قبطان'}</span>
                                   </span>
                                   <button
                                     type="button"
@@ -3071,8 +3076,10 @@ export default function TribeView({
                 <div
                   style={{
                     position: 'relative',
-                    width: '100%',
-                    aspectRatio: '941 / 1311',
+                    width: 'calc(100% + 36px)',
+                    marginLeft: '-18px',
+                    marginRight: '-18px',
+                    aspectRatio: '941 / 1460',
                     borderRadius: '10px',
                     overflow: 'hidden',
                     boxShadow: '0 14px 32px rgba(0, 0, 0, 0.85)',
@@ -3086,7 +3093,7 @@ export default function TribeView({
                     style={{
                       width: '100%',
                       height: '100%',
-                      objectFit: 'cover',
+                      objectFit: 'fill',
                       display: 'block',
                       pointerEvents: 'none',
                     }}
@@ -3132,7 +3139,7 @@ export default function TribeView({
                               display: 'flex',
                               justifyContent: 'space-between',
                               alignItems: 'center',
-                              fontSize: 'clamp(12px, 2vw, 17px)',
+                              fontSize: 'clamp(13px, 2.2vw, 19px)',
                               fontWeight: '900',
                               color: '#6b3f0e',
                             }}
@@ -3142,7 +3149,7 @@ export default function TribeView({
                           </div>
                           <div
                             style={{
-                              fontSize: 'clamp(14px, 2.5vw, 21px)',
+                              fontSize: 'clamp(16px, 2.8vw, 24px)',
                               fontWeight: '800',
                               color: '#1e1206',
                               lineHeight: 1.35,
@@ -3184,7 +3191,7 @@ export default function TribeView({
                       color: '#ffffff',
                       textAlign: 'right',
                       fontFamily: 'inherit',
-                      fontSize: 'clamp(15px, 2.7vw, 24px)',
+                      fontSize: 'clamp(17px, 3vw, 26px)',
                       fontWeight: '800',
                       outline: 'none',
                       boxSizing: 'border-box',
@@ -3979,8 +3986,14 @@ export default function TribeView({
                     paddingBottom: '10px',
                   }}
                 >
-                  <span>
-                    #{toArabicDigits(idx + 1)} {donor.avatar} @{donor.name}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                    <span>#{toArabicDigits(idx + 1)}</span>
+                    {donor.avatar && (donor.avatar.startsWith('data:image') || donor.avatar.startsWith('/') || donor.avatar.startsWith('http')) ? (
+                      <img src={donor.avatar} alt={donor.name} referrerPolicy="no-referrer" style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover' }} />
+                    ) : (
+                      <span>{donor.avatar}</span>
+                    )}
+                    <span>@{donor.name}</span>
                   </span>
                   <span style={{ color: '#fef08a', fontWeight: '900' }}>
                     {donor.points.toLocaleString('en-US')} نقطة

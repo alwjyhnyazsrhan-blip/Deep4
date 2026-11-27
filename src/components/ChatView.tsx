@@ -332,7 +332,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
   // Map avatar to cropped character artwork
   const getAvatarForMessage = (msg: ChatMessage, index: number): string => {
-    if (msg.avatar && msg.avatar.startsWith('/assets/chat_avatar_')) return msg.avatar;
+    const rawAv = (msg.avatar || '').trim();
+    if (rawAv.startsWith('data:image') || rawAv.startsWith('/assets/') || rawAv.startsWith('http://') || rawAv.startsWith('https://')) {
+      return rawAv;
+    }
     if (msg.sender === 'Oceanking' || msg.sender === 'فارس الأعماق') return '/assets/chat_avatar_1.png';
     if (msg.sender === 'Captain 55') return '/assets/chat_avatar_2.png';
     if (msg.sender === 'نوح') return '/assets/chat_avatar_3.png';

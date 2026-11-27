@@ -48,6 +48,8 @@ import WarLogModal, { AttackLogItem, SupportGiftItem } from './components/WarLog
 import { ShipWorkshopModal } from './components/ShipWorkshopModal';
 import { SubmarineUpgradeModal } from './components/SubmarineUpgradeModal';
 import { ShipStatusBars } from './components/ShipStatusBars';
+import TopBarHud from './components/TopBarHud';
+import ProfileAvatarModal, { isImageAvatarValue } from './components/ProfileAvatarModal';
 // @ts-ignore
 import destroyedPortImg from './assets/images/destroyed_port_1784900250438.jpg';
 
@@ -445,9 +447,9 @@ export default function App() {
   const DEFAULT_FISH_STORAGE_LEVEL = 1;
   const DEFAULT_SHIP_TOWER_LEVEL = 1;
   const DEFAULT_SHIPS: ShipState[] = [
-    { id: 's1', name: 'قارب خشبي متهالك', status: 'docked', left: '45%', top: '38%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' },
-    { id: 's2', name: 'قارب خشبي متهالك', status: 'docked', left: '45%', top: '49%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' },
-    { id: 's3', name: 'قارب خشبي متهالك', status: 'docked', left: '45%', top: '60%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' }
+    { id: 's1', name: 'قارب خشبي متهالك', status: 'docked', left: '27%', top: '41%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' },
+    { id: 's2', name: 'قارب خشبي متهالك', status: 'docked', left: '26%', top: '51%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' },
+    { id: 's3', name: 'قارب خشبي متهالك', status: 'docked', left: '28%', top: '61%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' }
   ];
   const DEFAULT_CREW: CrewMember[] = [
     { id: 'c1', name: 'القبطان صخر', role: 'قبطان البحار', power: 30, cost: 150, avatar: '👨‍✈️', hired: false },
@@ -682,8 +684,34 @@ export default function App() {
   // --- Profile Settings ---
   const [username, setUsername] = useState(() => localStorage.getItem('pirate_username') || 'سياف_البحار');
   const [avatar, setAvatar] = useState(() => localStorage.getItem('pirate_avatar') || '☠️');
+  const [useCustomAvatarFrame, setUseCustomAvatarFrame] = useState(() => localStorage.getItem('pirate_custom_avatar_chosen') === 'true');
+  const [showProfileAvatarModal, setShowProfileAvatarModal] = useState(false);
   const [server, setServer] = useState(() => localStorage.getItem('pirate_server') || 'سيرفر الأسطورة 1');
   const [pirateClass, setPirateClass] = useState(() => localStorage.getItem('pirate_class') || 'صياد البحار');
+
+  const renderInlineAvatar = (av?: string, sizePx = 28) => {
+    const val = (av || '').trim();
+    if (val === 'default' || val === 'silhouette') {
+      return (
+        <img
+          src="/assets/profile_hex_default.png"
+          alt="صورة القبطان"
+          style={{ width: `${sizePx}px`, height: `${sizePx}px`, objectFit: 'contain', display: 'inline-block', verticalAlign: 'middle' }}
+        />
+      );
+    }
+    if (isImageAvatarValue(val)) {
+      return (
+        <img
+          src={val}
+          alt="صورة القبطان"
+          referrerPolicy="no-referrer"
+          style={{ width: `${sizePx}px`, height: `${sizePx}px`, borderRadius: '50%', objectFit: 'cover', display: 'inline-block', verticalAlign: 'middle' }}
+        />
+      );
+    }
+    return <span>{val || '⚓'}</span>;
+  };
 
   // --- Active Tab ---
   const [activeTab, setActiveTab] = useState<'harbor' | 'battle' | 'shop' | 'tribes' | 'chat' | 'leaderboard' | 'reports' | 'settings' | 'inventory' | 'warehouse' | 'friends'>('harbor');
@@ -779,20 +807,33 @@ export default function App() {
           // Keep exactly 3 ships, and ensure they all exist by default if not set
           const sanitized = loaded.slice(0, 3).map((s: any) => {
             const validCrew = sanitizeShipCrew(s.assignedCrew);
+            const dockById: Record<string, { l: string; t: string }> = {
+              s1: { l: '27%', t: '41%' },
+              s2: { l: '26%', t: '51%' },
+              s3: { l: '28%', t: '61%' },
+            };
+            const fishById: Record<string, { l: string; t: string }> = {
+              s1: { l: '55%', t: '38%' },
+              s2: { l: '55%', t: '49%' },
+              s3: { l: '55%', t: '60%' },
+            };
+            const targetPos = s.status === 'fishing' ? (fishById[s.id] || { l: '55%', t: '49%' }) : (dockById[s.id] || { l: '26%', t: '51%' });
             return syncShipMetadata({
               ...s,
               exists: s.exists !== undefined ? s.exists : true,
               assignedCrew: validCrew,
               crewPower: validCrew.length * 15,
+              left: targetPos.l,
+              top: targetPos.t,
               moving: false
             });
           });
           if (sanitized.length > 0) {
             while (sanitized.length < 3) {
               const defaults = [
-                { id: 's1', name: 'قارب خشبي متهالك', status: 'docked', left: '45%', top: '38%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' },
-                { id: 's2', name: 'قارب خشبي متهالك', status: 'docked', left: '45%', top: '49%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' },
-                { id: 's3', name: 'قارب خشبي متهالك', status: 'docked', left: '45%', top: '60%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' }
+                { id: 's1', name: 'قارب خشبي متهالك', status: 'docked', left: '27%', top: '41%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' },
+                { id: 's2', name: 'قارب خشبي متهالك', status: 'docked', left: '26%', top: '51%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' },
+                { id: 's3', name: 'قارب خشبي متهالك', status: 'docked', left: '28%', top: '61%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' }
               ];
               const missingIdx = sanitized.length;
               sanitized.push(defaults[missingIdx]);
@@ -805,9 +846,9 @@ export default function App() {
       }
     }
     return [
-      { id: 's1', name: 'قارب خشبي متهالك', status: 'docked', left: '45%', top: '38%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' },
-      { id: 's2', name: 'قارب خشبي متهالك', status: 'docked', left: '45%', top: '49%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' },
-      { id: 's3', name: 'قارب خشبي متهالك', status: 'docked', left: '45%', top: '60%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' },
+      { id: 's1', name: 'قارب خشبي متهالك', status: 'docked', left: '27%', top: '41%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' },
+      { id: 's2', name: 'قارب خشبي متهالك', status: 'docked', left: '26%', top: '51%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' },
+      { id: 's3', name: 'قارب خشبي متهالك', status: 'docked', left: '28%', top: '61%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' },
     ];
   });
 
@@ -1340,7 +1381,7 @@ export default function App() {
         sender: String(sender || 'القبطان').slice(0, 100),
         senderId: currentUser.uid,
         userId: currentUser.uid,
-        avatar: String(avatarIcon || '⚓').slice(0, 2000),
+        avatar: String(avatarIcon || '⚓').slice(0, 30000),
         text: String(text || '').slice(0, 1000),
         time: timeStr,
         createdAt: now.toISOString()
@@ -2695,9 +2736,9 @@ export default function App() {
 
     // Default starter ships fallback so their ocean is never empty/mock
     return [
-      { id: 's1', name: 'قارب خشبي متهالك', status: 'docked', left: '45%', top: '38%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' },
-      { id: 's2', name: 'قارب خشبي متهالك', status: 'docked', left: '45%', top: '49%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' },
-      { id: 's3', name: 'قارب خشبي متهالك', status: 'docked', left: '45%', top: '60%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' }
+      { id: 's1', name: 'قارب خشبي متهالك', status: 'docked', left: '27%', top: '41%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' },
+      { id: 's2', name: 'قارب خشبي متهالك', status: 'docked', left: '26%', top: '51%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' },
+      { id: 's3', name: 'قارب خشبي متهالك', status: 'docked', left: '28%', top: '61%', scaleX: 1, moving: false, exists: true, crewPower: 0, hasNetUpgrade: false, hasEngineUpgrade: false, level: 0, hook: 25, cargo: 2000, heart: 2000, maxHeart: 2000, energySyncedToCargo: true, durationStr: '00:30', power: 5, armor: 5, fishTypes: ['سردين', 'أنشوجة'], imgEmoji: '🛶' }
     ];
   };
 
@@ -3350,11 +3391,11 @@ export default function App() {
 
   // --- Dock & Fishing spot positions ---
   const docks: Record<string, { l: string; t: string }> = {
-    s1: { l: '45%', t: '38%' },
-    s2: { l: '45%', t: '49%' },
-    s3: { l: '45%', t: '60%' },
-    s4: { l: '45%', t: '52%' },
-    s5: { l: '45%', t: '68%' },
+    s1: { l: '27%', t: '41%' },
+    s2: { l: '26%', t: '51%' },
+    s3: { l: '28%', t: '61%' },
+    s4: { l: '27%', t: '50%' },
+    s5: { l: '29%', t: '66%' },
   };
 
   const fishSpots: Record<string, { l: string; t: string }> = {
@@ -3396,7 +3437,7 @@ export default function App() {
   // --- Automatic ship coordinate & state migration ---
   useEffect(() => {
     setShips(prev => prev.map(s => {
-      const correctDock = docks[s.id] || { l: '45%', t: '48%' };
+      const correctDock = docks[s.id] || { l: '26%', t: '51%' };
       const correctFish = fishSpots[s.id] || { l: '55%', t: '48%' };
       const nextPos = s.status === 'fishing' ? correctFish : correctDock;
       return {
@@ -3561,7 +3602,12 @@ export default function App() {
     else if (isInitial) setShipTowerLevel(DEFAULT_SHIP_TOWER_LEVEL);
 
     if (Array.isArray(data.ships) && data.ships.length > 0) {
-      const synced = data.ships.map((s: any) => syncShipMetadata({ ...s, moving: false }));
+      const synced = data.ships.map((s: any) => {
+        const correctDock = docks[s.id] || { l: '26%', t: '51%' };
+        const correctFish = fishSpots[s.id] || { l: '55%', t: '48%' };
+        const nextPos = s.status === 'fishing' ? correctFish : correctDock;
+        return syncShipMetadata({ ...s, moving: false, left: nextPos.l, top: nextPos.t });
+      });
       setShips(synced);
       try {
         localStorage.setItem('pirate_ships_v2', JSON.stringify(synced));
@@ -6025,8 +6071,8 @@ export default function App() {
               ...s,
               moving: true,
               lastMoveTime: Date.now(),
-              left: docks[s.id]?.l || '44%',
-              top: docks[s.id]?.t || '41%',
+              left: docks[s.id]?.l || '26%',
+              top: docks[s.id]?.t || '51%',
               transitionDuration: `${returnTripDuration}ms`
             };
           }
@@ -6037,9 +6083,9 @@ export default function App() {
       // After the sailing trip finishes, settle the ship at dock, face right, and stop moving
       setTimeout(() => {
         // Trigger water splash and gold particles at dock coordinates
-        const dockPos = docks[targetShipId] || { l: '45%', t: '48%' };
-        const sx = parseFloat(dockPos.l) || 45;
-        const sy = parseFloat(dockPos.t) || 48;
+        const dockPos = docks[targetShipId] || { l: '26%', t: '51%' };
+        const sx = parseFloat(dockPos.l) || 26;
+        const sy = parseFloat(dockPos.t) || 51;
         
         window.dispatchEvent(new CustomEvent('spawn-pirate-particles', {
           detail: { x: sx, y: sy, type: 'water-splash', count: 15 }
@@ -6769,8 +6815,8 @@ export default function App() {
           id: nextId,
           name: extraId === 'royal' ? 'المدمرة الملكية الأسطورية' : 'سفينة المغامر المطورة',
           status: 'docked',
-          left: docks[nextId]?.l || '45%',
-          top: docks[nextId]?.t || '68%',
+          left: docks[nextId]?.l || '29%',
+          top: docks[nextId]?.t || '66%',
           scaleX: 1,
           moving: false,
           exists: true,
@@ -11605,8 +11651,8 @@ export default function App() {
                   return (
                     <div key={friend.userId} style={{ background: 'rgba(15, 23, 42, 0.95)', border: '1.5px solid #ca8a04', padding: '14px 18px', borderRadius: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ fontSize: '26px', background: '#0284c7', width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid #38bdf8' }}>
-                          {friend.avatar || '⚓'}
+                        <div style={{ fontSize: '26px', background: '#0284c7', width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid #38bdf8', overflow: 'hidden' }}>
+                          {renderInlineAvatar(friend.avatar, 48)}
                         </div>
                         <div>
                           <div style={{ fontWeight: '900', color: '#fef08a', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -11664,7 +11710,7 @@ export default function App() {
                 .map(p => (
                   <div key={p.userId} style={{ background: '#292524', padding: '12px 14px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ fontSize: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '22px' }}>{p.avatar || '⚓'}</span>
+                      <span style={{ fontSize: '22px', display: 'inline-flex', alignItems: 'center' }}>{renderInlineAvatar(p.avatar, 28)}</span>
                       <span style={{ fontWeight: '900', color: '#fef08a' }}>@{p.username}</span>
                       <span style={{ color: '#cbd5e1', fontSize: '13px', fontWeight: 'bold' }}>🪙 {(p.gold || 0).toLocaleString()}</span>
                     </div>
@@ -11726,7 +11772,7 @@ export default function App() {
                 </h3>
                 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#130d09', padding: '10px', borderRadius: '10px', border: '1px solid #3c2919', marginBottom: '16px' }}>
-                  <span style={{ fontSize: '32px' }}>{donationTargetPlayer.avatar || '⚓'}</span>
+                  <span style={{ fontSize: '32px', display: 'inline-flex', alignItems: 'center' }}>{renderInlineAvatar(donationTargetPlayer.avatar, 40)}</span>
                   <div>
                     <div style={{ fontWeight: 'bold', color: '#fff' }}>@{donationTargetPlayer.username}</div>
                     <div style={{ fontSize: '11px', color: '#a8a29e' }}>رصيده الحالي: 🪙 {(donationTargetPlayer.gold || 0).toLocaleString()} ذهبة</div>
@@ -11964,9 +12010,10 @@ export default function App() {
                 justifyContent: 'center',
                 fontSize: '54px',
                 boxShadow: '0 0 25px rgba(0, 210, 255, 0.6), inset 0 0 15px rgba(0, 210, 255, 0.35)',
-                marginBottom: '12px'
+                marginBottom: '12px',
+                overflow: 'hidden'
               }}>
-                {inspectedPlayer.avatar || '⚓'}
+                {renderInlineAvatar(inspectedPlayer.avatar, 100)}
               </div>
 
               {/* Username & Class */}
@@ -12326,9 +12373,10 @@ export default function App() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '24px',
-                boxShadow: '0 0 12px rgba(250, 204, 21, 0.4)'
+                boxShadow: '0 0 12px rgba(250, 204, 21, 0.4)',
+                overflow: 'hidden'
               }}>
-                {inspectedPlayer.avatar || '⚓'}
+                {renderInlineAvatar(inspectedPlayer.avatar, 46)}
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -12983,12 +13031,12 @@ export default function App() {
               </div>
             ) : (
               getInspectedPlayerShips(inspectedPlayer).filter((s: any) => s.exists !== false).map((ship: any, index: number) => {
-                // Get real-time position coordinates matching docks object as fallback
+                // Get real-time position coordinates matching docks object near بيت السمك when docked
                 const dockKey = `s${ship.id || index + 1}`;
-                const fallbackPos = docks[dockKey] || docks[`s${index + 1}`] || { l: '45%', t: '49%' };
-                
-                const shipLeft = ship.left || fallbackPos.l;
-                const shipTop = ship.top || fallbackPos.t;
+                const fallbackPos = docks[ship.id] || docks[dockKey] || docks[`s${index + 1}`] || { l: '26%', t: '51%' };
+                const fishPos = fishSpots[ship.id] || fishSpots[dockKey] || fishSpots[`s${index + 1}`] || { l: '55%', t: '49%' };
+                const shipLeft = ship.status === 'fishing' ? (ship.left || fishPos.l) : fallbackPos.l;
+                const shipTop = ship.status === 'fishing' ? (ship.top || fishPos.t) : fallbackPos.t;
                 const shipScaleX = typeof ship.scaleX === 'number' ? ship.scaleX : 1;
                 const shipLevel = typeof ship.level === 'number' ? ship.level : (SHOP_SHIPS.find(s => s.name === ship.name)?.level ?? 0);
                 const shipSpec = SHOP_SHIPS.find(s => s.level === shipLevel) || SHOP_SHIPS[0];
@@ -15756,163 +15804,240 @@ export default function App() {
         const currentTarget = targetShip.expectedFish || shipFishes[shipFishes.length - 1];
 
         return (
-          <div 
-            className="modal" 
-            style={{ 
-              display: 'block', 
-              maxWidth: '480px', 
-              background: 'linear-gradient(180deg, rgba(12, 18, 30, 0.98) 0%, rgba(6, 10, 20, 0.99) 100%)',
-              border: '2px solid #38bdf8',
-              boxShadow: '0 20px 50px rgba(0,0,0,0.9), 0 0 30px rgba(56, 189, 248, 0.35)',
-              borderRadius: '16px',
-              padding: '16px',
-              zIndex: 130
-            }}
-            onClick={(e) => e.stopPropagation()}
+          <div
+            className="fixed inset-0 z-[145] flex items-center justify-center bg-black/75 backdrop-blur-sm p-5 overflow-y-auto"
+            dir="rtl"
+            onClick={() => setExpectedFishModalShipId(null)}
           >
-            {/* Modal Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(56, 189, 248, 0.4)', paddingBottom: '10px', marginBottom: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '24px' }}>🧭</span>
-                <div style={{ textAlign: 'right' }}>
-                  <h3 style={{ margin: 0, fontSize: '15px', color: '#7dd3fc', fontWeight: '900' }}>
-                    مرشد السفينة: تحديد الصيد المتوقع
-                  </h3>
-                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                    {targetShip.name} (المستوى {targetShip.level || 1})
+            <div 
+              style={{ 
+                width: '100%',
+                maxWidth: '780px', 
+                margin: 'auto',
+                background: 'linear-gradient(180deg, rgba(11, 24, 44, 0.99) 0%, rgba(5, 10, 22, 0.99) 100%)',
+                border: '2px solid #38bdf8',
+                boxShadow: '0 24px 60px rgba(0,0,0,0.92), 0 0 36px rgba(56, 189, 248, 0.35)',
+                borderRadius: '24px',
+                padding: '24px 26px',
+                color: '#ffffff'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1.5px solid rgba(56, 189, 248, 0.4)', paddingBottom: '16px', marginBottom: '18px', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '16px',
+                    background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.25) 0%, rgba(15, 23, 42, 0.9) 100%)',
+                    border: '1.5px solid rgba(56, 189, 248, 0.6)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '38px',
+                    flexShrink: 0
+                  }}>
+                    🧭
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <h3 style={{ margin: 0, fontSize: '28px', color: '#e0f2fe', fontWeight: '900', lineHeight: 1.25 }}>
+                      مرشد السفينة: تحديد الصيد المتوقع
+                    </h3>
+                    <div style={{ fontSize: '20px', color: '#fbbf24', fontWeight: '800', marginTop: '4px' }}>
+                      {targetShip.name} (المستوى {targetShip.level || 1})
+                    </div>
                   </div>
                 </div>
+                <button 
+                  type="button"
+                  onClick={() => setExpectedFishModalShipId(null)}
+                  style={{
+                    width: '54px',
+                    height: '54px',
+                    borderRadius: '50%',
+                    background: '#1e293b',
+                    border: '2px solid #64748b',
+                    color: '#ffffff',
+                    fontSize: '26px',
+                    fontWeight: '900',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}
+                >
+                  ✕
+                </button>
               </div>
-              <button 
-                onClick={() => setExpectedFishModalShipId(null)}
-                style={{ background: 'transparent', border: 'none', color: '#94a3b8', fontSize: '18px', cursor: 'pointer', padding: '4px' }}
-              >
-                ✕
-              </button>
-            </div>
 
-            {/* Explanatory Info Card */}
-            <div style={{ background: 'rgba(56, 189, 248, 0.12)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '8px', padding: '8px 10px', marginBottom: '12px', fontSize: '11px', color: '#e2e8f0', lineHeight: 1.4, textAlign: 'right' }}>
-              🎯 <strong style={{ color: '#38bdf8' }}>توجيه المرشد:</strong> اختر نوع السمك الذي ترغب أن تتوقعه وتصطاده هذه السفينة في جميع رحلاتها بدقة 100%:
-            </div>
+              {/* Explanatory Info Card */}
+              <div style={{
+                background: 'rgba(14, 165, 233, 0.14)',
+                border: '1.5px solid rgba(56, 189, 248, 0.45)',
+                borderRadius: '14px',
+                padding: '14px 18px',
+                marginBottom: '18px',
+                fontSize: '20px',
+                color: '#f1f5f9',
+                fontWeight: '700',
+                lineHeight: 1.55,
+                textAlign: 'right'
+              }}>
+                <span style={{ fontSize: '24px', marginLeft: '6px' }}>🎯</span>
+                <strong style={{ color: '#7dd3fc', fontWeight: '900' }}>توجيه المرشد:</strong> اختر نوع السمك الذي ترغب أن تتوقعه وتصطاده هذه السفينة في جميع رحلاتها بدقة 100%:
+              </div>
 
-            {/* Fish List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '350px', overflowY: 'auto', paddingRight: '4px' }}>
-              {shipFishes.map((fishName, idx) => {
-                const subFishInfo = getSubmarineFishInfo(typeof targetShip.level === 'number' ? targetShip.level : undefined);
-                const isSelected = currentTarget === fishName;
-                const emoji = subFishInfo?.emoji || getFishEmoji(fishName);
-                const info = FISH_REWARD_DATA[fishName] || FISH_REWARD_DATA[fishName.replace(/^ال/, '').trim()];
-                const priceLabel = subFishInfo ? subFishInfo.priceLabel : (info?.valPerFish !== undefined ? `${info.valPerFish}` : undefined);
+              {/* Fish List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '54vh', overflowY: 'auto', paddingLeft: '4px' }}>
+                {shipFishes.map((fishName, idx) => {
+                  const subFishInfo = getSubmarineFishInfo(typeof targetShip.level === 'number' ? targetShip.level : undefined);
+                  const isSelected = currentTarget === fishName;
+                  const emoji = subFishInfo?.emoji || getFishEmoji(fishName);
+                  const info = FISH_REWARD_DATA[fishName] || FISH_REWARD_DATA[fishName.replace(/^ال/, '').trim()];
+                  const priceLabel = subFishInfo ? subFishInfo.priceLabel : (info?.valPerFish !== undefined ? `${info.valPerFish}` : undefined);
 
-                return (
-                  <div
-                    key={idx}
-                    onClick={() => {
-                      setShipExpectedFish(targetShip.id, fishName);
-                      setExpectedFishModalShipId(null);
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '10px 12px',
-                      borderRadius: '12px',
-                      cursor: 'pointer',
-                      border: isSelected ? '1.5px solid #facc15' : '1px solid rgba(56, 189, 248, 0.25)',
-                      background: isSelected 
-                        ? 'linear-gradient(135deg, rgba(202, 138, 4, 0.25) 0%, rgba(16, 185, 129, 0.2) 100%)' 
-                        : 'rgba(15, 23, 42, 0.7)',
-                      boxShadow: isSelected ? '0 0 12px rgba(250, 204, 21, 0.3)' : 'none',
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      {(subFishInfo?.image || getFishImageUrl(fishName, typeof targetShip.level === 'number' ? targetShip.level : undefined)) ? (
-                        <div
-                          style={{
-                            width: '112px',
-                            height: '68px',
-                            borderRadius: '10px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            background: 'radial-gradient(circle, rgba(56,189,248,0.22) 0%, rgba(2,6,23,0.75) 85%)',
-                            border: '1px solid rgba(56,189,248,0.3)',
-                            padding: '4px',
-                            flexShrink: 0
-                          }}
-                        >
-                          <img
-                            src={subFishInfo?.image || getFishImageUrl(fishName, typeof targetShip.level === 'number' ? targetShip.level : undefined)}
-                            alt={fishName}
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => {
+                        setShipExpectedFish(targetShip.id, fishName);
+                        setExpectedFishModalShipId(null);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '16px',
+                        padding: '16px 20px',
+                        borderRadius: '18px',
+                        cursor: 'pointer',
+                        border: isSelected ? '2px solid #facc15' : '1.5px solid rgba(56, 189, 248, 0.35)',
+                        background: isSelected 
+                          ? 'linear-gradient(135deg, rgba(202, 138, 4, 0.28) 0%, rgba(16, 185, 129, 0.22) 100%)' 
+                          : 'rgba(15, 23, 42, 0.85)',
+                        boxShadow: isSelected ? '0 0 18px rgba(250, 204, 21, 0.32)' : '0 4px 12px rgba(0,0,0,0.35)',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        {(subFishInfo?.image || getFishImageUrl(fishName, typeof targetShip.level === 'number' ? targetShip.level : undefined)) ? (
+                          <div
                             style={{
-                              width: '102px',
-                              height: '60px',
-                              objectFit: 'contain',
-                              filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.92)) drop-shadow(0 0 6px rgba(186,230,253,0.35)) contrast(1.08) saturate(1.1)'
+                              width: '150px',
+                              height: '96px',
+                              borderRadius: '14px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: 'radial-gradient(circle, rgba(56,189,248,0.24) 0%, rgba(2,6,23,0.82) 85%)',
+                              border: '1.5px solid rgba(56,189,248,0.4)',
+                              padding: '6px',
+                              flexShrink: 0
                             }}
-                          />
-                        </div>
-                      ) : (
-                        <span style={{ fontSize: '32px' }}>{emoji}</span>
-                      )}
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '14.5px', fontWeight: 'bold', color: isSelected ? '#fef08a' : '#f8fafc' }}>
-                          {fishName}
-                        </div>
-                        {priceLabel !== undefined && (
-                          <div style={{ fontSize: '10.5px', color: '#fbbf24' }}>
-                            قيمة السمكة: {priceLabel} 🪙 ذهب
+                          >
+                            <img
+                              src={subFishInfo?.image || getFishImageUrl(fishName, typeof targetShip.level === 'number' ? targetShip.level : undefined)}
+                              alt={fishName}
+                              style={{
+                                width: '136px',
+                                height: '84px',
+                                objectFit: 'contain',
+                                filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.92)) drop-shadow(0 0 6px rgba(186,230,253,0.35)) contrast(1.08) saturate(1.1)'
+                              }}
+                            />
                           </div>
+                        ) : (
+                          <div
+                            style={{
+                              width: '96px',
+                              height: '96px',
+                              borderRadius: '14px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: 'radial-gradient(circle, rgba(56,189,248,0.2) 0%, rgba(2,6,23,0.8) 85%)',
+                              border: '1.5px solid rgba(56,189,248,0.35)',
+                              fontSize: '54px',
+                              flexShrink: 0
+                            }}
+                          >
+                            {emoji}
+                          </div>
+                        )}
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '25px', fontWeight: '900', color: isSelected ? '#fef08a' : '#ffffff', lineHeight: 1.3 }}>
+                            {fishName}
+                          </div>
+                          {priceLabel !== undefined && (
+                            <div style={{ fontSize: '20px', fontWeight: '800', color: '#fcd34d', marginTop: '4px' }}>
+                              قيمة السمكة: {priceLabel} 🪙 ذهب
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div style={{ flexShrink: 0 }}>
+                        {isSelected ? (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+                            border: '1.5px solid #4ade80',
+                            color: '#ffffff',
+                            fontSize: '19px',
+                            fontWeight: '900',
+                            padding: '10px 18px',
+                            borderRadius: '12px',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            ✔️ متوقع حالياً
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            style={{
+                              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                              color: '#ffffff',
+                              border: '2px solid #7dd3fc',
+                              fontSize: '20px',
+                              fontWeight: '900',
+                              padding: '10px 22px',
+                              borderRadius: '12px',
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            تحديد 🎯
+                          </button>
                         )}
                       </div>
                     </div>
+                  );
+                })}
+              </div>
 
-                    <div>
-                      {isSelected ? (
-                        <span style={{ background: '#16a34a', color: '#fff', fontSize: '11px', fontWeight: 'bold', padding: '3px 8px', borderRadius: '6px' }}>
-                          ✔️ متوقع حالياً
-                        </span>
-                      ) : (
-                        <button
-                          style={{
-                            background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-                            color: '#fff',
-                            border: '1px solid #38bdf8',
-                            fontSize: '11px',
-                            fontWeight: 'bold',
-                            padding: '4px 10px',
-                            borderRadius: '6px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          تحديد 🎯
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+              <button 
+                type="button"
+                onClick={() => setExpectedFishModalShipId(null)}
+                style={{
+                  width: '100%',
+                  marginTop: '18px',
+                  padding: '14px 24px',
+                  borderRadius: '14px',
+                  border: '1.5px solid #64748b',
+                  background: '#334155',
+                  color: '#ffffff',
+                  fontSize: '22px',
+                  fontWeight: '900',
+                  cursor: 'pointer'
+                }}
+              >
+                إغلاق
+              </button>
             </div>
-
-            <button 
-              onClick={() => setExpectedFishModalShipId(null)}
-              style={{
-                width: '100%',
-                marginTop: '12px',
-                padding: '8px',
-                borderRadius: '8px',
-                border: 'none',
-                background: '#334155',
-                color: '#fff',
-                fontSize: '11px',
-                fontWeight: 'bold',
-                cursor: 'pointer'
-              }}
-            >
-              إغلاق
-            </button>
           </div>
         );
       })()}
@@ -16363,78 +16488,58 @@ export default function App() {
       })()}
 
       {/* ----------------- TOP BAR / RESOURCES HUD ----------------- */}
-      <div className="top-bar" dir="rtl">
-        <div 
-          className="resource-box" 
-          onClick={() => setShowWarLogModal(true)}
-          style={{ position: 'relative', cursor: 'pointer' }}
-          title="سجل التنبيهات والمعارك والغارات 💀"
-        >
-          <img 
-            className="res-icon" 
-            src="/assets/alerts_skull_icon.jpg" 
-            alt="الجمجمة" 
-            style={{ borderRadius: '16px', objectFit: 'contain' }}
-          />
-          <div className="res-label">التنبيهات</div>
-          {attackLogs.some(a => !a.isAvenged) && (
-            <span
-              style={{
-                position: 'absolute',
-                top: '-6px',
-                right: '-6px',
-                background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
-                color: '#fff',
-                fontSize: '11px',
-                fontWeight: '900',
-                padding: '2px 7px',
-                borderRadius: '9999px',
-                border: '1.5px solid #fecaca',
-                boxShadow: '0 0 10px #ef4444',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '3px',
-                animation: 'pulse 1.2s infinite',
-                zIndex: 10,
-              }}
-            >
-              <span>💥</span>
-              <span>{attackLogs.filter(a => !a.isAvenged).length}</span>
-            </span>
-          )}
-        </div>
-        <div className="resource-box" onClick={() => setActiveTab('shop')}>
-          <img className="res-icon" src="https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/IMG_20260702_004010.png" alt="Gems" />
-          <div className="res-label">جواهر: <span id="gems-count">{gems}</span></div>
-        </div>
-        <div className="resource-box" onClick={() => setActiveTab('shop')}>
-          <img className="res-icon" src="https://raw.githubusercontent.com/alwjyhnyazsrhan-blip/my-game-assets/refs/heads/main/copilot_image_1782936949624.jpeg" alt="Gold" />
-          <div className="res-label">ذهب: <span id="gold-count">{gold}</span></div>
-        </div>
+      <TopBarHud
+        gold={gold}
+        gems={gems}
+        fishCount={getTotalFish()}
+        level={Math.max(1, Math.floor(Math.sqrt(exp || 0) / 10) + 1)}
+        avatar={avatar}
+        useCustomAvatarFrame={useCustomAvatarFrame}
+        ships={ships}
+        portDestroyed={portDestroyed}
+        unavengedAlertsCount={attackLogs.filter(a => !a.isAvenged).length}
+        isOnline={isOnline}
+        onOpenProfile={() => setShowProfileAvatarModal(true)}
+        onOpenShop={() => setActiveTab('shop')}
+        onOpenFishStorage={() => {
+          if (portDestroyed) {
+            alert("⚠️ بيت السمك تعرض للقصف والاحتراق الشديد! أعد إعمار الميناء والأسطول لترميم المنشآت.");
+            return;
+          }
+          setFishStorageModal(true);
+        }}
+        onOpenWarLog={() => setShowWarLogModal(true)}
+        onClickShipSlot={(shipId) => {
+          if (shipId && !portDestroyed) {
+            setShipDetailsModalShipId(shipId);
+          } else {
+            setActiveTab('warehouse');
+          }
+        }}
+        onClickOfflineBanner={() =>
+          setOfflineNotice('⚠️ انقطع الاتصال بالإنترنت! تم تجميد العمليات المالية مؤقتاً لحماية رصيدك وأصولك ومنع حدوث تضارب في البيانات.')
+        }
+      />
 
-        {!isOnline && (
-          <div 
-            onClick={() => setOfflineNotice('⚠️ انقطع الاتصال بالإنترنت! تم تجميد العمليات المالية مؤقتاً لحماية رصيدك وأصولك ومنع حدوث تضارب في البيانات.')}
-            style={{
-              background: 'rgba(239, 68, 68, 0.25)',
-              border: '1.5px solid #ef4444',
-              borderRadius: '20px',
-              padding: '4px 10px',
-              color: '#fca5a5',
-              fontSize: '11px',
-              fontWeight: 'bold',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer'
-            }}
-            title="انقر لعرض تفاصيل التنبيه"
-          >
-            <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }}></span>
-            <span>الإنترنت مفصول (المعاملات مجمدة)</span>
-          </div>
-        )}
-      </div>
+      <ProfileAvatarModal
+        isOpen={showProfileAvatarModal}
+        currentAvatar={avatar}
+        useCustomAvatarFrame={useCustomAvatarFrame}
+        username={username}
+        pirateClass={pirateClass}
+        level={Math.max(1, Math.floor(Math.sqrt(exp || 0) / 10) + 1)}
+        googlePhotoUrl={auth.currentUser?.photoURL || localStorage.getItem('google_auth_avatar')}
+        onSelectAvatar={(nextAvatar, isCustom) => {
+          setAvatar(nextAvatar);
+          setUseCustomAvatarFrame(isCustom);
+          if (isCustom) {
+            localStorage.setItem('pirate_custom_avatar_chosen', 'true');
+          } else {
+            localStorage.removeItem('pirate_custom_avatar_chosen');
+          }
+        }}
+        onClose={() => setShowProfileAvatarModal(false)}
+      />
 
       {/* ----------------- OFFLINE FINANCIAL NOTICE BANNER ----------------- */}
       {offlineNotice && (

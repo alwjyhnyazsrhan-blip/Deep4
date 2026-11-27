@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
-import { ShipState, ChatMessage, Tribe, CrewMember, Quest, BattleReport, GlobalNotification, NotificationEventType } from './types';
+import { ShipState, ChatMessage, Tribe, CrewMember, Quest, BattleReport, GlobalNotification, NotificationEventType, TribeJoinRequest, TribeInvitation } from './types';
 import { SHOP_SHIPS, FISH_REWARD_DATA, getHarborImageUrl, FISH_HOUSE_LEVELS, getFishHouseImageUrl, getFishHouseCapacity, getShipCapacity, getSubmarineDisplayTier, getSubmarineTag, getSubmarineUpgradeRule, getSubmarineFishInfo, rollSubmarineFishCatch, getFishImageUrl, getShipMaxHeart, normalizeShipEnergyToCargo, calculateWeaponShipDamage, GOLD_COIN_ICON, GEM_ICON, WAREHOUSE_BG, WEAPON_SMALL_MISSILE_ICON, WEAPON_SMALL_MISSILE_BG, WEAPON_MEDIUM_MISSILE_ICON, WEAPON_MEDIUM_MISSILE_BG, WEAPON_LARGE_MISSILE_ICON, WEAPON_LARGE_MISSILE_BG, WEAPON_MEDIA_BOMB_ICON, WEAPON_MEDIA_BOMB_BG, WEAPON_ATOMIC_BOMB_ICON, WEAPON_ATOMIC_BOMB_BG, SHIP_GUARDIAN_ICON, SHIP_GUARDIAN_BG, FIXER_SMALL_ICON, FIXER_SMALL_BG, FIXER_MEDIUM_ICON, FIXER_MEDIUM_BG, FIXER_LARGE_ICON, FIXER_LARGE_BG, FIXER_LEGENDARY_ICON, FIXER_LEGENDARY_BG, SAILOR_ICON, SAILOR_BG, GOLDEN_HUNTER_ICON, GOLDEN_HUNTER_BG, MARKET_EXPERT_ICON, MARKET_EXPERT_BG, LUCK_PIRATE_ICON, LUCK_PIRATE_BG, SHIP_PILOT_ICON, SHIP_PILOT_BG, SHIP_THIEF_ICON, SHIP_THIEF_BG, CREW_SHOP_ITEMS, WEAPONS_DATA } from './data';
 import FishHouseComponent from './components/FishHouseComponent';
 import GoogleAccountSelector from './components/GoogleAccountSelector';
@@ -910,6 +910,11 @@ export default function App() {
   // --- Real Multiplayer Friends & Tribe States ---
   const [friends, setFriends] = useState<string[]>([]);
   const [friendRequests, setFriendRequests] = useState<any[]>([]);
+  const [incomingTribeJoinRequests, setIncomingTribeJoinRequests] = useState<TribeJoinRequest[]>([]);
+  const [outgoingTribeJoinRequests, setOutgoingTribeJoinRequests] = useState<TribeJoinRequest[]>([]);
+  const notifiedTribeJoinRequestIdsRef = useRef<Set<string>>(new Set());
+  const [incomingTribeInvitations, setIncomingTribeInvitations] = useState<TribeInvitation[]>([]);
+  const notifiedTribeInviteIdsRef = useRef<Set<string>>(new Set());
   const [tribeId, setTribeId] = useState<string>(() => localStorage.getItem('pirate_tribe_id') || '');
   const [tribeName, setTribeName] = useState<string>(() => localStorage.getItem('pirate_tribe_name') || '');
   const [tribes, setTribes] = useState<any[]>(() => {
@@ -4485,7 +4490,12 @@ export default function App() {
         });
       });
       list.sort((a, b) => (b.power || 0) - (a.power || 0));
-      setTribes(list);
+      setTribes(prev => {
+        const map = new Map<string, any>();
+        prev.forEach(t => map.set(t.id, t));
+        list.forEach(t => map.set(t.id, t));
+        return Array.from(map.values()).sort((a, b) => (b.power || 0) - (a.power || 0));
+      });
     }, (err) => {
       if (err?.code !== 'permission-denied') {
         console.warn("Could not fetch tribes from Firestore:", err.message || err);
@@ -4578,7 +4588,9 @@ export default function App() {
             let changed = false;
             fallbackTribesMap.forEach((snapT, tid) => {
               const cur = map.get(tid);
-              if (!cur || (snapT.power || 0) > (cur.power || 0)) {
+              const snapUpdated = String(snapT.lastUpdated || '');
+              const curUpdated = String(cur?.lastUpdated || '');
+              if (!cur || (snapT.power || 0) > (cur.power || 0) || snapUpdated > curUpdated) {
                 map.set(tid, snapT);
                 changed = true;
               }
@@ -4972,6 +4984,10 @@ export default function App() {
         const ev = evDoc.data();
         const evId = evDoc.id;
 
+        if (ev.type === 'TRIBE_JOIN_REQUEST' || ev.type === 'TRIBE_INVITE') {
+          continue;
+        }
+
         if ((ev.status && ev.status !== 'PENDING') || processedHarborEventIdsRef.current.has(evId)) {
           continue;
         }
@@ -5364,6 +5380,115 @@ export default function App() {
               time: nowTime,
             });
             showToast(`🏴‍☠️ غنم القبطان @${attackerName} ${lootLabel} من مينائك!`, 'error');
+          } else if (ev.type === 'TRIBE_JOIN_APPROVED') {
+            const approvedTribeId = ev.payload?.tribeId || '';
+            const approvedTribeName = ev.payload?.tribeName || 'القبيلة';
+            const approvedTribeEmblem = ev.payload?.tribeEmblem || '🛡️';
+            const approvedTribeSnap = ev.payload?.tribeSnapshot || null;
+            const leaderName = ev.attackerName || ev.payload?.leaderName || 'شيخ القبيلة';
+            if (approvedTribeId) {
+              setTribeId(approvedTribeId);
+              setTribeName(approvedTribeName);
+              try {
+                localStorage.setItem('pirate_tribe_id', approvedTribeId);
+                localStorage.setItem('pirate_tribe_name', approvedTribeName);
+              } catch {}
+              if (approvedTribeSnap) {
+                setTribes(prev => {
+                  const exists = prev.some(t => t.id === approvedTribeId);
+                  return exists
+                    ? prev.map(t => (t.id === approvedTribeId ? approvedTribeSnap : t))
+                    : [approvedTribeSnap, ...prev];
+                });
+              }
+              updateDoc(doc(db, 'users', currentUser.uid), {
+                tribeId: approvedTribeId,
+                tribeName: approvedTribeName,
+                ...(approvedTribeSnap ? { tribeSnapshot: approvedTribeSnap } : {}),
+                updatedAt: new Date().toISOString()
+              }).catch(() => {});
+            }
+            queueNotification({
+              id: 'tja_' + evId,
+              type: 'SUPPORT',
+              title: '🎉 تمت الموافقة على انضمامك!',
+              message: `وافق شيخ القبيلة @${leaderName} على انضمامك إلى قبيلة [${approvedTribeName}]!`,
+              icon: approvedTribeEmblem,
+              createdAt: new Date().toISOString()
+            });
+            showToast(`🎉 وافق شيخ القبيلة @${leaderName} على انضمامك إلى قبيلة [${approvedTribeName}]!`, 'success');
+          } else if (ev.type === 'TRIBE_JOIN_REJECTED') {
+            const rejectedTribeName = ev.payload?.tribeName || 'القبيلة';
+            const leaderName = ev.attackerName || ev.payload?.leaderName || 'شيخ القبيلة';
+            queueNotification({
+              id: 'tjr_' + evId,
+              type: 'ATTACK',
+              title: '❌ تم رفض طلب الانضمام',
+              message: `رفض شيخ القبيلة @${leaderName} طلب انضمامك إلى قبيلة [${rejectedTribeName}].`,
+              icon: '🛡️',
+              createdAt: new Date().toISOString()
+            });
+            showToast(`❌ رفض شيخ القبيلة @${leaderName} طلب انضمامك إلى قبيلة [${rejectedTribeName}].`, 'error');
+          } else if (ev.type === 'TRIBE_INVITE_ACCEPTED') {
+            const joinedMemberId = ev.payload?.memberId || ev.attackerId || '';
+            const joinedMemberName = ev.payload?.memberName || ev.attackerName || 'قبطان';
+            const invTribeId = ev.payload?.tribeId || '';
+            const invTribeName = ev.payload?.tribeName || 'القبيلة';
+            const invTribeEmblem = ev.payload?.tribeEmblem || '🛡️';
+            if (joinedMemberId && invTribeId) {
+              setTribes((prev) =>
+                prev.map((t) => {
+                  if (t.id !== invTribeId) return t;
+                  const membersList = Array.isArray(t.members) ? t.members : [currentUser.uid];
+                  if (membersList.includes(joinedMemberId)) return t;
+                  const nextMembers = Array.from(new Set([...membersList, joinedMemberId]));
+                  const updatedT = {
+                    ...t,
+                    members: nextMembers,
+                    membersCount: nextMembers.length,
+                    lastUpdated: new Date().toISOString(),
+                  };
+                  try {
+                    const stored = JSON.parse(localStorage.getItem('pirate_local_tribes') || '[]');
+                    const nextStored = stored.some((st: any) => st.id === updatedT.id)
+                      ? stored.map((st: any) => (st.id === updatedT.id ? updatedT : st))
+                      : [updatedT, ...stored];
+                    localStorage.setItem('pirate_local_tribes', JSON.stringify(nextStored));
+                  } catch {}
+                  updateDoc(doc(db, 'users', currentUser.uid), {
+                    tribeSnapshot: updatedT,
+                    updatedAt: new Date().toISOString(),
+                  }).catch(() => {});
+                  updateDoc(doc(db, 'tribes', updatedT.id), {
+                    members: nextMembers,
+                    membersCount: nextMembers.length,
+                    lastUpdated: new Date().toISOString(),
+                  }).catch(() => {});
+                  return updatedT;
+                })
+              );
+            }
+            queueNotification({
+              id: 'tia_' + evId,
+              type: 'SUPPORT',
+              title: '🎉 قبول دعوة القبيلة!',
+              message: `قبل القبطان @${joinedMemberName} دعوتك وانضم إلى قبيلة [${invTribeName}]!`,
+              icon: invTribeEmblem,
+              createdAt: new Date().toISOString(),
+            });
+            showToast(`🎉 قبل القبطان @${joinedMemberName} الدعوة وانضم إلى قبيلة [${invTribeName}]!`, 'success');
+          } else if (ev.type === 'TRIBE_INVITE_DECLINED') {
+            const declinedByName = ev.payload?.recipientName || ev.attackerName || 'قبطان';
+            const invTribeName = ev.payload?.tribeName || 'القبيلة';
+            queueNotification({
+              id: 'tid_' + evId,
+              type: 'MILESTONE',
+              title: '📩 تم رفض الدعوة',
+              message: `رفض القبطان @${declinedByName} دعوة الانضمام إلى قبيلة [${invTribeName}].`,
+              icon: '📩',
+              createdAt: new Date().toISOString(),
+            });
+            showToast(`📩 رفض القبطان @${declinedByName} دعوة الانضمام إلى قبيلة [${invTribeName}].`, 'info');
           }
         } catch (procErr) {
           console.error("Error processing harbor event:", procErr);
@@ -5553,6 +5678,163 @@ export default function App() {
       unsubAccepted();
     };
   }, [isLoggedIn, currentUser, friends]);
+
+  // --- Live Firestore Tribe Join Requests Subscription (for Tribe Leaders & Applicants) ---
+  useEffect(() => {
+    if (!isLoggedIn || !currentUser) {
+      setIncomingTribeJoinRequests([]);
+      setOutgoingTribeJoinRequests([]);
+      return;
+    }
+    if (userDocReadyUid !== currentUser.uid) return;
+
+    const aliasSet = new Set(myAliasUids);
+    const cleanMyEmail = (currentUser.email || localStorage.getItem('google_auth_email') || '').toLowerCase().trim();
+
+    const qTribeJoinReqs = query(
+      collection(db, 'harborEvents'),
+      where('type', '==', 'TRIBE_JOIN_REQUEST'),
+      where('status', '==', 'PENDING')
+    );
+
+    const unsubscribe = onSnapshot(qTribeJoinReqs, (snap) => {
+      const incomingList: TribeJoinRequest[] = [];
+      const outgoingList: TribeJoinRequest[] = [];
+
+      snap.forEach((d) => {
+        const ev = d.data();
+        const payload = ev.payload || {};
+        const targetEmail = (payload.targetEmail || '').toLowerCase().trim();
+        const isForMeAsLeader =
+          ev.defenderId === currentUser.uid ||
+          aliasSet.has(ev.defenderId) ||
+          Boolean(cleanMyEmail && targetEmail && targetEmail === cleanMyEmail);
+
+        const reqObj: TribeJoinRequest = {
+          id: d.id,
+          tribeId: payload.tribeId || '',
+          tribeName: payload.tribeName || 'قبيلة',
+          tribeEmblem: payload.tribeEmblem || '🛡️',
+          leaderId: ev.defenderId || payload.leaderId || '',
+          leaderName: payload.leaderName || '',
+          applicantId: ev.attackerId || payload.applicantId || '',
+          applicantName: ev.attackerName || payload.applicantName || 'قبطان',
+          applicantAvatar: ev.attackerAvatar || payload.applicantAvatar || '⚓',
+          applicantLevel: typeof payload.applicantLevel === 'number' ? payload.applicantLevel : 1,
+          applicantPower: typeof payload.applicantPower === 'number' ? payload.applicantPower : 0,
+          status: 'PENDING',
+          createdAt: ev.createdAt || new Date().toISOString(),
+        };
+
+        if (isForMeAsLeader && reqObj.applicantId !== currentUser.uid) {
+          incomingList.push(reqObj);
+          if (!notifiedTribeJoinRequestIdsRef.current.has(d.id)) {
+            notifiedTribeJoinRequestIdsRef.current.add(d.id);
+            queueNotification({
+              id: 'tjr_notif_' + d.id,
+              type: 'TRIBE_JOIN',
+              title: '🛡️ طلب انضمام للقبيلة!',
+              message: `يرغب القبطان @${reqObj.applicantName} في الانضمام إلى قبيلة [${reqObj.tribeName}]`,
+              icon: reqObj.tribeEmblem || '🛡️',
+              authorId: reqObj.applicantId,
+              authorName: reqObj.applicantName,
+              tribeRequestId: reqObj.id,
+              createdAt: reqObj.createdAt || new Date().toISOString(),
+            });
+            showToast(`📩 طلب انضمام جديد للقبيلة من القبطان @${reqObj.applicantName}!`, 'info');
+          }
+        }
+
+        if (ev.attackerId === currentUser.uid) {
+          outgoingList.push(reqObj);
+        }
+      });
+
+      incomingList.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+      outgoingList.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+      setIncomingTribeJoinRequests(incomingList);
+      setOutgoingTribeJoinRequests(outgoingList);
+    }, (err) => {
+      console.warn('Tribe join requests listener warning:', err?.message || err);
+    });
+
+    return () => unsubscribe();
+  }, [isLoggedIn, currentUser, userDocReadyUid, myAliasKey]);
+
+  // --- Live Firestore Tribe Invitations Subscription (for Invited Players) ---
+  useEffect(() => {
+    if (!isLoggedIn || !currentUser) {
+      setIncomingTribeInvitations([]);
+      return;
+    }
+    if (userDocReadyUid !== currentUser.uid) return;
+
+    const aliasSet = new Set(myAliasUids);
+    const cleanMyEmail = (currentUser.email || localStorage.getItem('google_auth_email') || '').toLowerCase().trim();
+
+    const qTribeInvites = query(
+      collection(db, 'harborEvents'),
+      where('type', '==', 'TRIBE_INVITE'),
+      where('status', '==', 'PENDING')
+    );
+
+    const unsubscribe = onSnapshot(qTribeInvites, (snap) => {
+      const list: TribeInvitation[] = [];
+      snap.forEach((d) => {
+        const ev = d.data();
+        const payload = ev.payload || {};
+        const targetEmail = (payload.targetEmail || '').toLowerCase().trim();
+        const isForMe =
+          ev.defenderId === currentUser.uid ||
+          aliasSet.has(ev.defenderId) ||
+          Boolean(cleanMyEmail && targetEmail && targetEmail === cleanMyEmail);
+
+        if (!isForMe || ev.attackerId === currentUser.uid) return;
+
+        const invObj: TribeInvitation = {
+          id: d.id,
+          tribeId: payload.tribeId || '',
+          tribeName: payload.tribeName || 'قبيلة',
+          tribeEmblem: payload.tribeEmblem || '🛡️',
+          tribeLevel: typeof payload.tribeLevel === 'number' ? payload.tribeLevel : 1,
+          leaderId: payload.leaderId || '',
+          leaderName: payload.leaderName || '',
+          inviterId: ev.attackerId || payload.inviterId || '',
+          inviterName: ev.attackerName || payload.inviterName || 'قبطان',
+          inviterAvatar: ev.attackerAvatar || payload.inviterAvatar || '⚓',
+          recipientId: ev.defenderId || currentUser.uid,
+          recipientName: payload.recipientName || '',
+          status: 'PENDING',
+          createdAt: ev.createdAt || new Date().toISOString(),
+        };
+
+        list.push(invObj);
+
+        if (!notifiedTribeInviteIdsRef.current.has(d.id)) {
+          notifiedTribeInviteIdsRef.current.add(d.id);
+          queueNotification({
+            id: 'ti_notif_' + d.id,
+            type: 'TRIBE_INVITE',
+            title: '📩 دعوة للانضمام إلى قبيلة!',
+            message: `دعاك القبطان @${invObj.inviterName} للانضمام إلى قبيلة [${invObj.tribeName}]`,
+            icon: invObj.tribeEmblem || '📩',
+            authorId: invObj.inviterId,
+            authorName: invObj.inviterName,
+            tribeInviteId: invObj.id,
+            createdAt: invObj.createdAt || new Date().toISOString(),
+          });
+          showToast(`📩 وصلك إشعار دعوة للانضمام إلى قبيلة [${invObj.tribeName}] من @${invObj.inviterName}!`, 'info');
+        }
+      });
+
+      list.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+      setIncomingTribeInvitations(list);
+    }, (err) => {
+      console.warn('Tribe invitations listener warning:', err?.message || err);
+    });
+
+    return () => unsubscribe();
+  }, [isLoggedIn, currentUser, userDocReadyUid, myAliasKey]);
 
   // --- Synchronize Inspected Player State in Real-Time ---
   useEffect(() => {
@@ -7556,6 +7838,59 @@ export default function App() {
           showToast(`⚠️ عذراً، قبيلة [${targetTribe.name}] ممتلئة (${currentMembersCount}/${maxMembers})!`, 'error');
           return;
         }
+
+        // Resolve tribe leader's canonical UID & email so notification reaches شيخ القبيلة reliably
+        let resolvedLeaderId = resolveCanonicalUid(targetTribe.leaderId || '');
+        const leaderPlayer = realPlayers.find(
+          (p) =>
+            p.id === resolvedLeaderId ||
+            p.userId === resolvedLeaderId ||
+            (targetTribe.leaderName && p.username === targetTribe.leaderName)
+        );
+        if ((!resolvedLeaderId || resolvedLeaderId.startsWith('captain_')) && leaderPlayer) {
+          resolvedLeaderId = getTargetDefenderId(leaderPlayer) || leaderPlayer.id || resolvedLeaderId;
+        }
+        const leaderEmail = (leaderPlayer?.email || '').toLowerCase().trim();
+
+        const isNpcOfficial = targetTribe.leaderId === 'official';
+        const isSelfLeader = Boolean(resolvedLeaderId && resolvedLeaderId === currentUser.uid);
+
+        if (!isNpcOfficial && resolvedLeaderId && !isSelfLeader) {
+          const alreadyPending = outgoingTribeJoinRequests.some(
+            (r) => r.tribeId === targetTribe.id && r.status === 'PENDING'
+          );
+          if (alreadyPending) {
+            showToast(`⏳ طلبك للانضمام إلى [${targetTribe.name}] قيد الانتظار لدى شيخ القبيلة!`, 'info');
+            return;
+          }
+
+          await addDoc(collection(db, 'harborEvents'), {
+            attackerId: currentUser.uid,
+            attackerName: username || 'قبطان_مجهول',
+            attackerAvatar: avatar || '⚓',
+            defenderId: resolvedLeaderId,
+            type: 'TRIBE_JOIN_REQUEST',
+            payload: {
+              tribeId: targetTribe.id,
+              tribeName: targetTribe.name || 'قبيلة',
+              tribeEmblem: targetTribe.emblem || '🛡️',
+              leaderId: resolvedLeaderId,
+              leaderName: targetTribe.leaderName || leaderPlayer?.username || '',
+              ...(leaderEmail ? { targetEmail: leaderEmail } : {}),
+              applicantId: currentUser.uid,
+              applicantName: username || 'قبطان_مجهول',
+              applicantAvatar: avatar || '⚓',
+              applicantLevel: playerLevel,
+              applicantPower: exp || 0,
+            },
+            status: 'PENDING',
+            createdAt: nowIso
+          });
+
+          showToast(`📩 تم إرسال طلب الانضمام إلى شيخ قبيلة [${targetTribe.name}] وبانتظار موافقته!`, 'success');
+          return;
+        }
+
         const updatedMembers = Array.from(new Set([...(targetTribe.members || []), currentUser.uid]));
         const updatedTribe = {
           ...targetTribe,
@@ -7586,6 +7921,425 @@ export default function App() {
       }
     } catch (err) {
       console.warn("Tribe membership sync notice:", err);
+    }
+  };
+
+  const handleApproveTribeJoin = async (req: TribeJoinRequest) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser || !req) return;
+
+    const nowIso = new Date().toISOString();
+    const targetTribe =
+      tribes.find((t) => t.id === req.tribeId) ||
+      tribes.find((t) => t.id === tribeId || t.leaderId === currentUser.uid) || {
+        id: req.tribeId || tribeId,
+        name: req.tribeName || tribeName || 'قبيلتي',
+        emblem: req.tribeEmblem || '🛡️',
+        leaderId: currentUser.uid,
+        leaderName: username || 'شيخ القبيلة',
+        level: 1,
+        power: 10,
+        donations: 0,
+        members: [currentUser.uid],
+        membersCount: 1,
+      };
+
+    const tribeLevel = Math.max(1, Number(targetTribe.level) || 1);
+    const maxMembers = 6 + (tribeLevel - 1) * 2;
+    const currentMembers = Array.isArray(targetTribe.members) ? targetTribe.members : [currentUser.uid];
+
+    if (!currentMembers.includes(req.applicantId) && currentMembers.length >= maxMembers) {
+      showToast(`⚠️ عذراً، قبيلة [${targetTribe.name}] مكتملة العدد (${currentMembers.length}/${maxMembers})!`, 'error');
+      return;
+    }
+
+    const updatedMembers = Array.from(new Set([...currentMembers, req.applicantId]));
+    const updatedTribe = {
+      ...targetTribe,
+      members: updatedMembers,
+      membersCount: updatedMembers.length,
+      maxMembers,
+      lastUpdated: nowIso,
+    };
+
+    try {
+      setIncomingTribeJoinRequests((prev) => prev.filter((r) => r.id !== req.id));
+
+      // 1. Mark join request event as approved (delete/update fallback if alias UID)
+      try {
+        await updateDoc(doc(db, 'harborEvents', req.id), {
+          status: 'TRIBE_APPROVED',
+          processedAt: nowIso,
+        });
+      } catch {
+        deleteDoc(doc(db, 'harborEvents', req.id)).catch(() => {});
+      }
+
+      // 2. Update tribe roster in state, localStorage, leader userDoc, and /tribes
+      setTribes((prev) => prev.map((t) => (t.id === updatedTribe.id ? updatedTribe : t)));
+      try {
+        const stored = JSON.parse(localStorage.getItem('pirate_local_tribes') || '[]');
+        const updatedStored = stored.some((t: any) => t.id === updatedTribe.id)
+          ? stored.map((t: any) => (t.id === updatedTribe.id ? updatedTribe : t))
+          : [updatedTribe, ...stored];
+        localStorage.setItem('pirate_local_tribes', JSON.stringify(updatedStored));
+      } catch {}
+
+      updateDoc(doc(db, 'users', currentUser.uid), {
+        tribeSnapshot: updatedTribe,
+        updatedAt: nowIso,
+      }).catch(() => {});
+
+      updateDoc(doc(db, 'tribes', updatedTribe.id), {
+        members: updatedMembers,
+        membersCount: updatedMembers.length,
+        lastUpdated: nowIso,
+      }).catch(() => {});
+
+      // 3. Notify the applicant so their client finalizes membership immediately or upon next login
+      const applicantPlayer = realPlayers.find(
+        (p) => p.id === req.applicantId || p.userId === req.applicantId
+      );
+      await addDoc(collection(db, 'harborEvents'), {
+        attackerId: currentUser.uid,
+        attackerName: username || 'شيخ القبيلة',
+        attackerAvatar: avatar || '👑',
+        defenderId: resolveCanonicalUid(req.applicantId) || req.applicantId,
+        type: 'TRIBE_JOIN_APPROVED',
+        payload: {
+          tribeId: updatedTribe.id,
+          tribeName: updatedTribe.name,
+          tribeEmblem: updatedTribe.emblem || '🛡️',
+          tribeSnapshot: updatedTribe,
+          leaderName: username || 'شيخ القبيلة',
+          ...(applicantPlayer?.email ? { targetEmail: String(applicantPlayer.email).toLowerCase().trim() } : {}),
+        },
+        status: 'PENDING',
+        createdAt: nowIso,
+      });
+
+      sendSecureChatMessage(
+        'إشعار التحالفات 🛡️',
+        updatedTribe.emblem || '🛡️',
+        `⚔️ وافق شيخ القبيلة @${username} على انضمام القبطان @${req.applicantName} إلى قبيلة [${updatedTribe.name}]! مرحباً به!`
+      );
+
+      showToast(`✅ تمت الموافقة على انضمام القبطان @${req.applicantName} إلى القبيلة!`, 'success');
+    } catch (err) {
+      console.error('Error approving tribe join request:', err);
+      showToast('حدث خطأ أثناء الموافقة على الطلب!', 'error');
+    }
+  };
+
+  const handleRejectTribeJoin = async (req: TribeJoinRequest) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser || !req) return;
+    const nowIso = new Date().toISOString();
+
+    try {
+      setIncomingTribeJoinRequests((prev) => prev.filter((r) => r.id !== req.id));
+
+      try {
+        await updateDoc(doc(db, 'harborEvents', req.id), {
+          status: 'TRIBE_REJECTED',
+          processedAt: nowIso,
+        });
+      } catch {
+        deleteDoc(doc(db, 'harborEvents', req.id)).catch(() => {});
+      }
+
+      const applicantPlayer = realPlayers.find(
+        (p) => p.id === req.applicantId || p.userId === req.applicantId
+      );
+      await addDoc(collection(db, 'harborEvents'), {
+        attackerId: currentUser.uid,
+        attackerName: username || 'شيخ القبيلة',
+        attackerAvatar: avatar || '👑',
+        defenderId: resolveCanonicalUid(req.applicantId) || req.applicantId,
+        type: 'TRIBE_JOIN_REJECTED',
+        payload: {
+          tribeId: req.tribeId,
+          tribeName: req.tribeName,
+          leaderName: username || 'شيخ القبيلة',
+          ...(applicantPlayer?.email ? { targetEmail: String(applicantPlayer.email).toLowerCase().trim() } : {}),
+        },
+        status: 'PENDING',
+        createdAt: nowIso,
+      });
+
+      showToast(`❌ تم رفض طلب انضمام القبطان @${req.applicantName}.`, 'info');
+    } catch (err) {
+      console.error('Error rejecting tribe join request:', err);
+    }
+  };
+
+  const handleCancelTribeJoin = async (req: TribeJoinRequest) => {
+    if (!req?.id) return;
+    try {
+      setOutgoingTribeJoinRequests((prev) => prev.filter((r) => r.id !== req.id));
+      await deleteDoc(doc(db, 'harborEvents', req.id));
+      showToast(`تم إلغاء طلب الانضمام إلى قبيلة [${req.tribeName}].`, 'info');
+    } catch (err) {
+      console.warn('Cancel tribe join request notice:', err);
+    }
+  };
+
+  const handleApproveTribeJoinById = (reqId: string) => {
+    const found = incomingTribeJoinRequests.find((r) => r.id === reqId);
+    if (found) {
+      void handleApproveTribeJoin(found);
+    }
+  };
+
+  const handleRejectTribeJoinById = (reqId: string) => {
+    const found = incomingTribeJoinRequests.find((r) => r.id === reqId);
+    if (found) {
+      void handleRejectTribeJoin(found);
+    }
+  };
+
+  const handleSendTribeInvite = async (player: any, activeTribe: any) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser || !player || !activeTribe) return;
+
+    const rawTargetId = player.userId || player.id;
+    const targetUid = resolveCanonicalUid(rawTargetId) || rawTargetId;
+    if (!targetUid || targetUid === currentUser.uid) return;
+
+    const nowIso = new Date().toISOString();
+    const targetEmail = (player.email || '').toLowerCase().trim();
+    const tribeLevel = Math.max(1, Number(activeTribe.level) || 1);
+
+    try {
+      await addDoc(collection(db, 'harborEvents'), {
+        attackerId: currentUser.uid,
+        attackerName: username || 'قبطان_مجهول',
+        attackerAvatar: avatar || '⚓',
+        defenderId: targetUid,
+        type: 'TRIBE_INVITE',
+        payload: {
+          tribeId: activeTribe.id,
+          tribeName: activeTribe.name || 'قبيلة',
+          tribeEmblem: activeTribe.emblem || '🛡️',
+          tribeLevel,
+          leaderId: activeTribe.leaderId || currentUser.uid,
+          leaderName: activeTribe.leaderName || username || 'شيخ القبيلة',
+          inviterId: currentUser.uid,
+          inviterName: username || 'قبطان_مجهول',
+          inviterAvatar: avatar || '⚓',
+          ...(targetEmail ? { targetEmail } : {}),
+          recipientId: targetUid,
+          recipientName: player.username || 'قبطان',
+        },
+        status: 'PENDING',
+        createdAt: nowIso,
+      });
+
+      showToast(`📩 تم إرسال دعوة انضمام رسمية إلى القبطان @${player.username || 'اللاعب'}!`, 'success');
+    } catch (err) {
+      console.error('Error sending tribe invite:', err);
+      showToast('⚠️ تعذر إرسال الدعوة حالياً، حاول مرة أخرى.', 'error');
+    }
+  };
+
+  const handleAcceptTribeInvite = async (inv: TribeInvitation) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser || !inv) return;
+
+    const nowIso = new Date().toISOString();
+    const playerLevel = Math.max(1, Math.floor(Math.sqrt(exp || 0) / 10) + 1);
+    const resolvedLeaderId = inv.leaderId && inv.leaderId !== 'official'
+      ? (resolveCanonicalUid(inv.leaderId) || inv.leaderId)
+      : inv.leaderId;
+    const isInvitedByLeaderOrOfficial =
+      inv.leaderId === 'official' ||
+      !resolvedLeaderId ||
+      resolvedLeaderId === inv.inviterId ||
+      inv.inviterId === resolvedLeaderId;
+
+    try {
+      setIncomingTribeInvitations((prev) => prev.filter((i) => i.id !== inv.id));
+
+      try {
+        await updateDoc(doc(db, 'harborEvents', inv.id), {
+          status: 'TRIBE_INVITE_ACCEPTED',
+          processedAt: nowIso,
+        });
+      } catch {
+        deleteDoc(doc(db, 'harborEvents', inv.id)).catch(() => {});
+      }
+
+      if (!isInvitedByLeaderOrOfficial && resolvedLeaderId && resolvedLeaderId !== currentUser.uid) {
+        const leaderPlayer = realPlayers.find(
+          (p) => p.id === resolvedLeaderId || p.userId === resolvedLeaderId
+        );
+        const leaderEmail = (leaderPlayer?.email || '').toLowerCase().trim();
+
+        await addDoc(collection(db, 'harborEvents'), {
+          attackerId: currentUser.uid,
+          attackerName: username || 'قبطان_مجهول',
+          attackerAvatar: avatar || '⚓',
+          defenderId: resolvedLeaderId,
+          type: 'TRIBE_JOIN_REQUEST',
+          payload: {
+            tribeId: inv.tribeId,
+            tribeName: inv.tribeName,
+            tribeEmblem: inv.tribeEmblem || '🛡️',
+            leaderId: resolvedLeaderId,
+            leaderName: inv.leaderName || leaderPlayer?.username || '',
+            ...(leaderEmail ? { targetEmail: leaderEmail } : {}),
+            applicantId: currentUser.uid,
+            applicantName: username || 'قبطان_مجهول',
+            applicantAvatar: avatar || '⚓',
+            applicantLevel: playerLevel,
+            applicantPower: exp || 0,
+          },
+          status: 'PENDING',
+          createdAt: nowIso,
+        });
+
+        showToast(`📩 قبلت الدعوة! تم إرسال طلب انضمامك إلى شيخ قبيلة [${inv.tribeName}] للموافقة النهائية.`, 'info');
+        return;
+      }
+
+      const matchedTribe = tribes.find((t) => t.id === inv.tribeId);
+      const existingMembers = Array.isArray(matchedTribe?.members)
+        ? matchedTribe.members
+        : (resolvedLeaderId && resolvedLeaderId !== 'official' ? [resolvedLeaderId] : []);
+      const updatedMembers = Array.from(new Set([...existingMembers, currentUser.uid]));
+      const tribeLevel = Math.max(1, Number(matchedTribe?.level ?? inv.tribeLevel) || 1);
+      const maxMembers = 6 + (tribeLevel - 1) * 2;
+      const updatedTribe = {
+        ...(matchedTribe || {}),
+        id: inv.tribeId,
+        name: inv.tribeName || matchedTribe?.name || 'قبيلة',
+        emblem: inv.tribeEmblem || matchedTribe?.emblem || '🛡️',
+        level: tribeLevel,
+        leaderId: inv.leaderId || matchedTribe?.leaderId || inv.inviterId,
+        leaderName: inv.leaderName || matchedTribe?.leaderName || inv.inviterName,
+        members: updatedMembers,
+        membersCount: updatedMembers.length,
+        maxMembers,
+        lastUpdated: nowIso,
+      };
+
+      setTribeId(updatedTribe.id);
+      setTribeName(updatedTribe.name);
+      try {
+        localStorage.setItem('pirate_tribe_id', updatedTribe.id);
+        localStorage.setItem('pirate_tribe_name', updatedTribe.name);
+      } catch {}
+
+      setTribes((prev) => {
+        const exists = prev.some((t) => t.id === updatedTribe.id);
+        return exists
+          ? prev.map((t) => (t.id === updatedTribe.id ? updatedTribe : t))
+          : [updatedTribe, ...prev];
+      });
+
+      await setDoc(doc(db, 'users', currentUser.uid), {
+        tribeId: updatedTribe.id,
+        tribeName: updatedTribe.name,
+        tribeSnapshot: updatedTribe,
+        updatedAt: nowIso,
+      }, { merge: true });
+
+      updateDoc(doc(db, 'tribes', updatedTribe.id), {
+        members: updatedMembers,
+        membersCount: updatedMembers.length,
+        lastUpdated: nowIso,
+      }).catch(() => {});
+
+      const notifyTargetId = resolvedLeaderId && resolvedLeaderId !== 'official'
+        ? resolvedLeaderId
+        : (resolveCanonicalUid(inv.inviterId) || inv.inviterId);
+      if (notifyTargetId && notifyTargetId !== currentUser.uid) {
+        const leaderPlayer = realPlayers.find((p) => p.id === notifyTargetId || p.userId === notifyTargetId);
+        await addDoc(collection(db, 'harborEvents'), {
+          attackerId: currentUser.uid,
+          attackerName: username || 'قبطان_مجهول',
+          attackerAvatar: avatar || '⚓',
+          defenderId: notifyTargetId,
+          type: 'TRIBE_INVITE_ACCEPTED',
+          payload: {
+            tribeId: updatedTribe.id,
+            tribeName: updatedTribe.name,
+            tribeEmblem: updatedTribe.emblem || '🛡️',
+            memberId: currentUser.uid,
+            memberName: username || 'قبطان_مجهول',
+            ...(leaderPlayer?.email ? { targetEmail: String(leaderPlayer.email).toLowerCase().trim() } : {}),
+          },
+          status: 'PENDING',
+          createdAt: nowIso,
+        });
+      }
+
+      sendSecureChatMessage(
+        'إشعار التحالفات 🛡️',
+        updatedTribe.emblem || '🛡️',
+        `⚔️ قبل القبطان @${username} الدعوة وانضم إلى قبيلة [${updatedTribe.name}]! مرحباً به!`
+      );
+      showToast(`🎉 تم قبول الدعوة والانضمام إلى قبيلة [${updatedTribe.name}] بنجاح!`, 'success');
+    } catch (err) {
+      console.error('Error accepting tribe invite:', err);
+      showToast('حدث خطأ أثناء قبول الدعوة!', 'error');
+    }
+  };
+
+  const handleDeclineTribeInvite = async (inv: TribeInvitation) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser || !inv) return;
+    const nowIso = new Date().toISOString();
+
+    try {
+      setIncomingTribeInvitations((prev) => prev.filter((i) => i.id !== inv.id));
+
+      try {
+        await updateDoc(doc(db, 'harborEvents', inv.id), {
+          status: 'TRIBE_INVITE_DECLINED',
+          processedAt: nowIso,
+        });
+      } catch {
+        deleteDoc(doc(db, 'harborEvents', inv.id)).catch(() => {});
+      }
+
+      const inviterUid = resolveCanonicalUid(inv.inviterId) || inv.inviterId;
+      if (inviterUid && inviterUid !== currentUser.uid) {
+        const inviterPlayer = realPlayers.find((p) => p.id === inviterUid || p.userId === inviterUid);
+        await addDoc(collection(db, 'harborEvents'), {
+          attackerId: currentUser.uid,
+          attackerName: username || 'قبطان_مجهول',
+          attackerAvatar: avatar || '⚓',
+          defenderId: inviterUid,
+          type: 'TRIBE_INVITE_DECLINED',
+          payload: {
+            tribeId: inv.tribeId,
+            tribeName: inv.tribeName,
+            recipientName: username || 'قبطان_مجهول',
+            ...(inviterPlayer?.email ? { targetEmail: String(inviterPlayer.email).toLowerCase().trim() } : {}),
+          },
+          status: 'PENDING',
+          createdAt: nowIso,
+        });
+      }
+
+      showToast(`❌ تم رفض دعوة الانضمام إلى قبيلة [${inv.tribeName}].`, 'info');
+    } catch (err) {
+      console.error('Error declining tribe invite:', err);
+    }
+  };
+
+  const handleAcceptTribeInviteById = (invId: string) => {
+    const found = incomingTribeInvitations.find((i) => i.id === invId);
+    if (found) {
+      void handleAcceptTribeInvite(found);
+    }
+  };
+
+  const handleDeclineTribeInviteById = (invId: string) => {
+    const found = incomingTribeInvitations.find((i) => i.id === invId);
+    if (found) {
+      void handleDeclineTribeInvite(found);
     }
   };
 
@@ -11569,6 +12323,15 @@ export default function App() {
           realPlayers={realPlayers}
           joinTribe={joinTribe}
           donateToTribe={donateToTribe}
+          incomingTribeJoinRequests={incomingTribeJoinRequests}
+          outgoingTribeJoinRequests={outgoingTribeJoinRequests}
+          onApproveTribeJoin={handleApproveTribeJoin}
+          onRejectTribeJoin={handleRejectTribeJoin}
+          onCancelTribeJoin={handleCancelTribeJoin}
+          incomingTribeInvitations={incomingTribeInvitations}
+          onAcceptTribeInvite={handleAcceptTribeInvite}
+          onDeclineTribeInvite={handleDeclineTribeInvite}
+          onSendTribeInvite={handleSendTribeInvite}
         />
       )}
 
@@ -16497,7 +17260,7 @@ export default function App() {
         useCustomAvatarFrame={useCustomAvatarFrame}
         ships={ships}
         portDestroyed={portDestroyed}
-        unavengedAlertsCount={attackLogs.filter(a => !a.isAvenged).length}
+        unavengedAlertsCount={attackLogs.filter(a => !a.isAvenged).length + incomingTribeJoinRequests.length + incomingTribeInvitations.length}
         isOnline={isOnline}
         onOpenProfile={() => setShowProfileAvatarModal(true)}
         onOpenShop={() => setActiveTab('shop')}
@@ -17171,6 +17934,10 @@ export default function App() {
         onToggleSound={handleToggleNotifSound}
         onRevenge={handleRevenge}
         onOpenWarLog={() => setShowWarLogModal(true)}
+        onApproveTribeJoinById={handleApproveTribeJoinById}
+        onRejectTribeJoinById={handleRejectTribeJoinById}
+        onAcceptTribeInviteById={handleAcceptTribeInviteById}
+        onDeclineTribeInviteById={handleDeclineTribeInviteById}
       />
 
       {/* War & Revenge Log Modal (سجل الغارات والانتقام والدعوم) */}
@@ -17183,6 +17950,12 @@ export default function App() {
           attackLogs={attackLogs}
           supportGifts={supportGifts}
           onClearLogs={handleClearLogs}
+          tribeJoinRequests={incomingTribeJoinRequests}
+          onApproveTribeJoin={handleApproveTribeJoin}
+          onRejectTribeJoin={handleRejectTribeJoin}
+          tribeInvitations={incomingTribeInvitations}
+          onAcceptTribeInvite={handleAcceptTribeInvite}
+          onDeclineTribeInvite={handleDeclineTribeInvite}
         />
       )}
     </div>

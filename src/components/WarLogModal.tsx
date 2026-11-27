@@ -18,7 +18,7 @@ import {
   Trash2,
   Shield
 } from 'lucide-react';
-import { BattleReport } from '../types';
+import { BattleReport, TribeJoinRequest, TribeInvitation } from '../types';
 
 export interface AttackLogItem {
   id: string;
@@ -60,6 +60,12 @@ interface WarLogModalProps {
   attackLogs: AttackLogItem[];
   supportGifts: SupportGiftItem[];
   onClearLogs?: () => void;
+  tribeJoinRequests?: TribeJoinRequest[];
+  onApproveTribeJoin?: (req: TribeJoinRequest) => void;
+  onRejectTribeJoin?: (req: TribeJoinRequest) => void;
+  tribeInvitations?: TribeInvitation[];
+  onAcceptTribeInvite?: (inv: TribeInvitation) => void;
+  onDeclineTribeInvite?: (inv: TribeInvitation) => void;
 }
 
 export const WarLogModal: React.FC<WarLogModalProps> = ({
@@ -70,17 +76,29 @@ export const WarLogModal: React.FC<WarLogModalProps> = ({
   attackLogs,
   supportGifts,
   onClearLogs,
+  tribeJoinRequests = [],
+  onApproveTribeJoin,
+  onRejectTribeJoin,
+  tribeInvitations = [],
+  onAcceptTribeInvite,
+  onDeclineTribeInvite,
 }) => {
-  const [activeTab, setActiveTab] = useState<'attacks' | 'supports' | 'all'>('attacks');
+  const pendingAttacks = (attackLogs || []).filter((a) => !a.isAvenged);
+  const pendingGifts = (supportGifts || []).filter((g) => !g.claimed);
+  const pendingTribeRequests = (tribeJoinRequests || []).filter((r) => r.status === 'PENDING');
+  const pendingTribeInvitations = (tribeInvitations || []).filter((i) => i.status === 'PENDING');
+  const totalTribeActions = pendingTribeRequests.length + pendingTribeInvitations.length;
+
+  const [activeTab, setActiveTab] = useState<'attacks' | 'supports' | 'tribeRequests' | 'all'>(() => {
+    if (totalTribeActions > 0 && pendingAttacks.length === 0) return 'tribeRequests';
+    return 'attacks';
+  });
 
   // Filter out any mock/placeholder reports while supporting both opponentName and opponent fields
   const realReports = (battleReports || []).filter((r: any) => {
     const opp = r?.opponentName || r?.opponent;
     return Boolean(r && opp && opp !== 'قبطان معادٍ' && !r.id?.startsWith('mock_'));
   });
-
-  const pendingAttacks = (attackLogs || []).filter((a) => !a.isAvenged);
-  const pendingGifts = (supportGifts || []).filter((g) => !g.claimed);
 
   return (
     <div
@@ -328,7 +346,53 @@ export const WarLogModal: React.FC<WarLogModalProps> = ({
             )}
           </button>
 
-          {/* Tab 3: السجل العام للمعارك */}
+          {/* Tab 3: طلبات القبيلة */}
+          <button
+            onClick={() => setActiveTab('tribeRequests')}
+            style={{
+              flex: 1,
+              padding: '16px 18px',
+              borderRadius: '14px',
+              border:
+                activeTab === 'tribeRequests'
+                  ? '2.5px solid #f59e0b'
+                  : '1.5px solid rgba(71, 85, 105, 0.6)',
+              background:
+                activeTab === 'tribeRequests'
+                  ? 'linear-gradient(180deg, #92400e 0%, #78350f 100%)'
+                  : 'rgba(15, 23, 42, 0.7)',
+              color: activeTab === 'tribeRequests' ? '#ffffff' : '#e2e8f0',
+              fontSize: '22px',
+              fontWeight: '900',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              cursor: 'pointer',
+              boxShadow:
+                activeTab === 'tribeRequests' ? '0 0 18px rgba(245, 158, 11, 0.55)' : 'none',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <Shield style={{ width: '26px', height: '26px', color: '#fbbf24', flexShrink: 0 }} />
+            <span>طلبات ودعوات القبيلة</span>
+            {totalTribeActions > 0 && (
+              <span
+                style={{
+                  background: '#f59e0b',
+                  color: '#0f172a',
+                  fontSize: '17px',
+                  padding: '3px 10px',
+                  borderRadius: '9999px',
+                  fontWeight: '900',
+                }}
+              >
+                {totalTribeActions}
+              </span>
+            )}
+          </button>
+
+          {/* Tab 4: السجل العام للمعارك */}
           <button
             onClick={() => setActiveTab('all')}
             style={{
@@ -357,7 +421,7 @@ export const WarLogModal: React.FC<WarLogModalProps> = ({
             }}
           >
             <Trophy style={{ width: '26px', height: '26px', color: '#38bdf8', flexShrink: 0 }} />
-            <span>السجل العام للمعركة ({realReports.length})</span>
+            <span>السجل العام ({realReports.length})</span>
           </button>
         </div>
 
@@ -374,6 +438,50 @@ export const WarLogModal: React.FC<WarLogModalProps> = ({
             gap: '20px',
           }}
         >
+          {totalTribeActions > 0 && activeTab !== 'tribeRequests' && (
+            <div
+              onClick={() => setActiveTab('tribeRequests')}
+              style={{
+                width: '100%',
+                boxSizing: 'border-box',
+                padding: '16px 22px',
+                borderRadius: '18px',
+                background: 'linear-gradient(135deg, rgba(180, 83, 9, 0.9) 0%, rgba(120, 53, 15, 0.95) 100%)',
+                border: '2px solid #fbbf24',
+                boxShadow: '0 6px 20px rgba(245, 158, 11, 0.45)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '14px',
+                cursor: 'pointer',
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '21px', fontWeight: '900', color: '#fef3c7' }}>
+                <Shield style={{ width: '28px', height: '28px', color: '#fde047', flexShrink: 0 }} />
+                <span>
+                  {pendingTribeRequests.length > 0 && pendingTribeInvitations.length > 0
+                    ? `لديك ${pendingTribeRequests.length} طلب انضمام و ${pendingTribeInvitations.length} دعوة قبيلة بانتظار ردك!`
+                    : pendingTribeRequests.length > 0
+                    ? `لديك ${pendingTribeRequests.length} طلب انضمام للقبيلة بانتظار موافقتك يا شيخ القبيلة!`
+                    : `لديك ${pendingTribeInvitations.length} دعوة للانضمام إلى قبيلة بانتظار قبولك أو رفضك!`}
+                </span>
+              </div>
+              <span
+                style={{
+                  background: '#fef08a',
+                  color: '#451a03',
+                  padding: '8px 18px',
+                  borderRadius: '10px',
+                  fontSize: '19px',
+                  fontWeight: '900',
+                }}
+              >
+                عرض التفاصيل والرد ←
+              </span>
+            </div>
+          )}
+
           {/* ============= 1. ENEMY ATTACKS & REVENGE ============= */}
           {activeTab === 'attacks' && (
             <>
@@ -818,7 +926,288 @@ export const WarLogModal: React.FC<WarLogModalProps> = ({
             </>
           )}
 
-          {/* ============= 3. ALL BATTLE REPORTS (السجل العام الحقيقي) ============= */}
+          {/* ============= 3. TRIBE JOIN REQUESTS & INVITATIONS ============= */}
+          {activeTab === 'tribeRequests' && (
+            <>
+              {totalTribeActions === 0 ? (
+                <div
+                  style={{
+                    width: '100%',
+                    padding: '90px 28px',
+                    textAlign: 'center',
+                    background: 'rgba(15, 23, 42, 0.55)',
+                    borderRadius: '24px',
+                    border: '2px dashed rgba(245, 158, 11, 0.45)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '16px',
+                  }}
+                >
+                  <Shield style={{ width: '96px', height: '96px', color: '#fbbf24' }} />
+                  <div style={{ fontSize: '30px', fontWeight: '900', color: '#f8fafc' }}>
+                    لا توجد طلبات أو دعوات قبائل حالياً 🛡️
+                  </div>
+                  <div style={{ fontSize: '21px', color: '#cbd5e1', maxWidth: '680px', lineHeight: '1.7', fontWeight: '600' }}>
+                    عندما يطلب قبطان الانضمام إلى قبيلتك أو يدعوك أحد للانضمام لقبيلته، ستظهر هنا للموافقة أو الرفض.
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {pendingTribeRequests.map((req) => {
+                    const rawAv = String(req.applicantAvatar || '').trim();
+                    const isImg = rawAv.startsWith('http') || rawAv.startsWith('/') || rawAv.startsWith('data:image');
+                    return (
+                      <div
+                        key={req.id}
+                        style={{
+                          width: '100%',
+                          boxSizing: 'border-box',
+                          background: 'linear-gradient(135deg, rgba(49, 28, 12, 0.94) 0%, rgba(15, 23, 42, 0.98) 100%)',
+                          border: '2.5px solid rgba(251, 191, 36, 0.85)',
+                          borderRadius: '22px',
+                          padding: '22px 26px',
+                          boxShadow: '0 8px 25px rgba(245, 158, 11, 0.35)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '18px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            <div
+                              style={{
+                                width: '72px',
+                                height: '72px',
+                                borderRadius: '50%',
+                                border: '2.5px solid #fbbf24',
+                                overflow: 'hidden',
+                                background: '#0f172a',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                              }}
+                            >
+                              {isImg ? (
+                                <img
+                                  src={rawAv}
+                                  alt={req.applicantName}
+                                  referrerPolicy="no-referrer"
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                              ) : (
+                                <span style={{ fontSize: '40px', lineHeight: 1 }}>{rawAv || '⚓'}</span>
+                              )}
+                            </div>
+
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '26px', fontWeight: '900', color: '#ffffff' }}>
+                                  @{req.applicantName}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: '17px',
+                                    fontWeight: '900',
+                                    color: '#fef3c7',
+                                    background: 'rgba(245, 158, 11, 0.3)',
+                                    border: '1.5px solid rgba(251, 191, 36, 0.65)',
+                                    padding: '3px 12px',
+                                    borderRadius: '8px',
+                                  }}
+                                >
+                                  ليفل {req.applicantLevel || 1}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '21px', color: '#fde047', fontWeight: '800', marginTop: '4px' }}>
+                                {req.tribeEmblem || '🛡️'} يطلب الانضمام إلى قبيلة [{req.tribeName}]
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ fontSize: '18px', color: '#cbd5e1', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Clock style={{ width: '20px', height: '20px' }} />
+                            <span>{req.createdAt ? new Date(req.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : 'الآن'}</span>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '14px', flexWrap: 'wrap' }}>
+                          <button
+                            type="button"
+                            onClick={() => onRejectTribeJoin?.(req)}
+                            style={{
+                              background: 'linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%)',
+                              border: '2px solid #fca5a5',
+                              borderRadius: '14px',
+                              padding: '13px 26px',
+                              color: '#ffffff',
+                              fontSize: '21px',
+                              fontWeight: '900',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                            }}
+                          >
+                            <span>❌ رفض الطلب</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => onApproveTribeJoin?.(req)}
+                            style={{
+                              background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+                              border: '2px solid #86efac',
+                              borderRadius: '14px',
+                              padding: '13px 28px',
+                              color: '#ffffff',
+                              fontSize: '21px',
+                              fontWeight: '900',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              boxShadow: '0 4px 16px rgba(22, 163, 74, 0.5)',
+                            }}
+                          >
+                            <span>✅ موافقة على الانضمام</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {pendingTribeInvitations.map((inv) => {
+                    const rawAv = String(inv.inviterAvatar || '').trim();
+                    const isImg = rawAv.startsWith('http') || rawAv.startsWith('/') || rawAv.startsWith('data:image');
+                    return (
+                      <div
+                        key={inv.id}
+                        style={{
+                          width: '100%',
+                          boxSizing: 'border-box',
+                          background: 'linear-gradient(135deg, rgba(12, 42, 74, 0.94) 0%, rgba(15, 23, 42, 0.98) 100%)',
+                          border: '2.5px solid rgba(56, 189, 248, 0.85)',
+                          borderRadius: '22px',
+                          padding: '22px 26px',
+                          boxShadow: '0 8px 25px rgba(56, 189, 248, 0.35)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '18px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            <div
+                              style={{
+                                width: '72px',
+                                height: '72px',
+                                borderRadius: '50%',
+                                border: '2.5px solid #38bdf8',
+                                overflow: 'hidden',
+                                background: '#0f172a',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                              }}
+                            >
+                              {isImg ? (
+                                <img
+                                  src={rawAv}
+                                  alt={inv.inviterName}
+                                  referrerPolicy="no-referrer"
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                              ) : (
+                                <span style={{ fontSize: '40px', lineHeight: 1 }}>{inv.tribeEmblem || rawAv || '📩'}</span>
+                              )}
+                            </div>
+
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '26px', fontWeight: '900', color: '#ffffff' }}>
+                                  دعوة من @{inv.inviterName}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: '17px',
+                                    fontWeight: '900',
+                                    color: '#e0f2fe',
+                                    background: 'rgba(56, 189, 248, 0.3)',
+                                    border: '1.5px solid rgba(56, 189, 248, 0.65)',
+                                    padding: '3px 12px',
+                                    borderRadius: '8px',
+                                  }}
+                                >
+                                  قبيلة مستوى {inv.tribeLevel || 1}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '21px', color: '#7dd3fc', fontWeight: '800', marginTop: '4px' }}>
+                                {inv.tribeEmblem || '🛡️'} يدعوك للانضمام إلى قبيلة [{inv.tribeName}]
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ fontSize: '18px', color: '#cbd5e1', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Clock style={{ width: '20px', height: '20px' }} />
+                            <span>{inv.createdAt ? new Date(inv.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : 'الآن'}</span>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '14px', flexWrap: 'wrap' }}>
+                          <button
+                            type="button"
+                            onClick={() => onDeclineTribeInvite?.(inv)}
+                            style={{
+                              background: 'linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%)',
+                              border: '2px solid #fca5a5',
+                              borderRadius: '14px',
+                              padding: '13px 26px',
+                              color: '#ffffff',
+                              fontSize: '21px',
+                              fontWeight: '900',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                            }}
+                          >
+                            <span>❌ رفض الدعوة</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => onAcceptTribeInvite?.(inv)}
+                            style={{
+                              background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+                              border: '2px solid #86efac',
+                              borderRadius: '14px',
+                              padding: '13px 28px',
+                              color: '#ffffff',
+                              fontSize: '21px',
+                              fontWeight: '900',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              boxShadow: '0 4px 16px rgba(22, 163, 74, 0.5)',
+                            }}
+                          >
+                            <span>✅ قبول الدعوة</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            </>
+          )}
+
+          {/* ============= 4. ALL BATTLE REPORTS (السجل العام الحقيقي) ============= */}
           {activeTab === 'all' && (
             <>
               {(!realReports || realReports.length === 0) ? (

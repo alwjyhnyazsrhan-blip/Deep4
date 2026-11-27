@@ -10,6 +10,10 @@ interface InGameNotificationBannerProps {
   onToggleSound: () => void;
   onRevenge?: (attackerName: string, attackId?: string, attackerId?: string) => void;
   onOpenWarLog?: () => void;
+  onApproveTribeJoinById?: (requestId: string) => void;
+  onRejectTribeJoinById?: (requestId: string) => void;
+  onAcceptTribeInviteById?: (inviteId: string) => void;
+  onDeclineTribeInviteById?: (inviteId: string) => void;
 }
 
 export const InGameNotificationBanner: React.FC<InGameNotificationBannerProps> = ({
@@ -19,6 +23,10 @@ export const InGameNotificationBanner: React.FC<InGameNotificationBannerProps> =
   onToggleSound,
   onRevenge,
   onOpenWarLog,
+  onApproveTribeJoinById,
+  onRejectTribeJoinById,
+  onAcceptTribeInviteById,
+  onDeclineTribeInviteById,
 }) => {
   const [progress, setProgress] = useState(100);
 
@@ -28,7 +36,8 @@ export const InGameNotificationBanner: React.FC<InGameNotificationBannerProps> =
       return;
     }
 
-    const durationMs = 4500;
+    const durationMs =
+      notification.type === 'TRIBE_JOIN' || notification.type === 'TRIBE_INVITE' ? 12000 : 4500;
     const intervalTime = 50;
     const step = (intervalTime / durationMs) * 100;
 
@@ -46,13 +55,15 @@ export const InGameNotificationBanner: React.FC<InGameNotificationBannerProps> =
       clearTimeout(timer);
       clearInterval(interval);
     };
-  }, [notification?.id, notification?.createdAt, onDismiss]);
+  }, [notification?.id, notification?.createdAt, notification?.type, onDismiss]);
 
   if (!notification) return null;
 
   const isAttack = notification.type === 'ATTACK';
   const isSupport = notification.type === 'SUPPORT';
   const isMilestone = notification.type === 'MILESTONE';
+  const isTribeJoin = notification.type === 'TRIBE_JOIN';
+  const isTribeInvite = notification.type === 'TRIBE_INVITE';
 
   // Styling configurations
   const theme = isAttack
@@ -67,6 +78,32 @@ export const InGameNotificationBanner: React.FC<InGameNotificationBannerProps> =
         glowColor: 'bg-red-500/15',
         titleColor: 'text-red-100',
         Icon: Swords,
+      }
+    : isTribeJoin
+    ? {
+        bg: 'bg-gradient-to-r from-indigo-950 via-slate-900 to-amber-950/90',
+        border: 'border-2 border-amber-400',
+        shadow: 'shadow-[0_12px_45px_rgba(251,191,36,0.55),0_0_25px_rgba(56,189,248,0.35)]',
+        badgeBg: 'bg-amber-500/35 border border-amber-300 text-amber-100',
+        badgeText: 'طلب انضمام للقبيلة 🛡️',
+        iconBg: 'bg-gradient-to-br from-amber-500/35 to-indigo-950 text-amber-100 border-2 border-amber-400/80 shadow-[0_0_16px_rgba(251,191,36,0.5)]',
+        barColor: 'from-amber-400 via-yellow-300 to-emerald-400',
+        glowColor: 'bg-amber-500/15',
+        titleColor: 'text-amber-100',
+        Icon: ShieldCheck,
+      }
+    : isTribeInvite
+    ? {
+        bg: 'bg-gradient-to-r from-sky-950 via-slate-900 to-amber-950/90',
+        border: 'border-2 border-sky-400',
+        shadow: 'shadow-[0_12px_45px_rgba(56,189,248,0.55),0_0_25px_rgba(251,191,36,0.35)]',
+        badgeBg: 'bg-sky-500/35 border border-sky-300 text-sky-100',
+        badgeText: 'دعوة للانضمام لقبيلة 📩',
+        iconBg: 'bg-gradient-to-br from-sky-500/35 to-indigo-950 text-sky-100 border-2 border-sky-400/80 shadow-[0_0_16px_rgba(56,189,248,0.5)]',
+        barColor: 'from-sky-400 via-cyan-300 to-amber-400',
+        glowColor: 'bg-sky-500/15',
+        titleColor: 'text-sky-100',
+        Icon: ShieldCheck,
       }
     : isSupport
     ? {
@@ -165,6 +202,92 @@ export const InGameNotificationBanner: React.FC<InGameNotificationBannerProps> =
                   >
                     <span>⚡ هل تريد رد الهجوم لها؟ اضغط هنا لتفجير محيطها الآن 🚀</span>
                   </button>
+                )}
+
+                {isTribeJoin && notification.tribeRequestId && (
+                  <div className="mt-3 flex items-center gap-2.5 flex-wrap">
+                    {onApproveTribeJoinById && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const reqId = notification.tribeRequestId!;
+                          onDismiss();
+                          onApproveTribeJoinById(reqId);
+                        }}
+                        className="px-4 py-1.5 bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-500 hover:to-green-600 text-white font-black text-sm sm:text-base rounded-xl border border-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.55)] cursor-pointer active:scale-95 transition-transform"
+                      >
+                        ✅ موافقة
+                      </button>
+                    )}
+                    {onRejectTribeJoinById && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const reqId = notification.tribeRequestId!;
+                          onDismiss();
+                          onRejectTribeJoinById(reqId);
+                        }}
+                        className="px-4 py-1.5 bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-500 hover:to-red-600 text-white font-black text-sm sm:text-base rounded-xl border border-rose-300 shadow-[0_0_12px_rgba(239,68,68,0.5)] cursor-pointer active:scale-95 transition-transform"
+                      >
+                        ❌ رفض
+                      </button>
+                    )}
+                    {onOpenWarLog && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onDismiss();
+                          onOpenWarLog();
+                        }}
+                        className="px-3.5 py-1.5 bg-slate-800/90 hover:bg-slate-700 text-amber-200 font-black text-sm sm:text-base rounded-xl border border-amber-400/70 cursor-pointer active:scale-95 transition-transform"
+                      >
+                        📋 قائمة التنبيهات
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {isTribeInvite && notification.tribeInviteId && (
+                  <div className="mt-3 flex items-center gap-2.5 flex-wrap">
+                    {onAcceptTribeInviteById && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const invId = notification.tribeInviteId!;
+                          onDismiss();
+                          onAcceptTribeInviteById(invId);
+                        }}
+                        className="px-4 py-1.5 bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-500 hover:to-green-600 text-white font-black text-sm sm:text-base rounded-xl border border-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.55)] cursor-pointer active:scale-95 transition-transform"
+                      >
+                        ✅ قبول الدعوة
+                      </button>
+                    )}
+                    {onDeclineTribeInviteById && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const invId = notification.tribeInviteId!;
+                          onDismiss();
+                          onDeclineTribeInviteById(invId);
+                        }}
+                        className="px-4 py-1.5 bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-500 hover:to-red-600 text-white font-black text-sm sm:text-base rounded-xl border border-rose-300 shadow-[0_0_12px_rgba(239,68,68,0.5)] cursor-pointer active:scale-95 transition-transform"
+                      >
+                        ❌ رفض
+                      </button>
+                    )}
+                    {onOpenWarLog && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onDismiss();
+                          onOpenWarLog();
+                        }}
+                        className="px-3.5 py-1.5 bg-slate-800/90 hover:bg-slate-700 text-sky-200 font-black text-sm sm:text-base rounded-xl border border-sky-400/70 cursor-pointer active:scale-95 transition-transform"
+                      >
+                        📋 قائمة التنبيهات
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

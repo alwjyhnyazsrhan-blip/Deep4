@@ -116,7 +116,40 @@ export interface BattleReport {
   log: string[];
 }
 
-export type NotificationEventType = 'ATTACK' | 'SUPPORT' | 'MILESTONE';
+export interface TribeJoinRequest {
+  id: string;
+  tribeId: string;
+  tribeName: string;
+  tribeEmblem?: string;
+  leaderId: string;
+  leaderName?: string;
+  applicantId: string;
+  applicantName: string;
+  applicantAvatar?: string;
+  applicantLevel?: number;
+  applicantPower?: number;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  createdAt?: string;
+}
+
+export interface TribeInvitation {
+  id: string;
+  tribeId: string;
+  tribeName: string;
+  tribeEmblem?: string;
+  tribeLevel?: number;
+  leaderId: string;
+  leaderName?: string;
+  inviterId: string;
+  inviterName: string;
+  inviterAvatar?: string;
+  recipientId: string;
+  recipientName?: string;
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED';
+  createdAt?: string;
+}
+
+export type NotificationEventType = 'ATTACK' | 'SUPPORT' | 'MILESTONE' | 'TRIBE_JOIN' | 'TRIBE_INVITE';
 
 export interface GlobalNotification {
   id?: string;
@@ -131,5 +164,7 @@ export interface GlobalNotification {
   targetId?: string;
   targetName?: string;
   details?: string;
+  tribeRequestId?: string;
+  tribeInviteId?: string;
   createdAt: string;
 }

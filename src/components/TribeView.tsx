@@ -1813,7 +1813,7 @@ export default function TribeView({
             position: 'relative',
             zIndex: 4,
             width: '100%',
-            maxWidth: '1060px',
+            maxWidth: '100%',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -1932,16 +1932,16 @@ export default function TribeView({
           position: 'relative',
           zIndex: 3,
           width: '100%',
-          maxWidth: screenMode === 'manage' && currentTribe ? '1060px' : '1000px',
+          maxWidth: '100%',
           padding:
             screenMode === 'manage' && currentTribe
-              ? '0 4px 18px 4px'
-              : '34px 36px 50px 36px',
+              ? '0 24px 36px 24px'
+              : '48px 5vw 72px 5vw',
           boxSizing: 'border-box',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: screenMode === 'manage' && currentTribe ? '0px' : '32px',
+          gap: screenMode === 'manage' && currentTribe ? '0px' : '42px',
           flex: 1,
         }}
       >
